@@ -63,14 +63,25 @@ def get_strategy(strategy_id: str) -> dict | None:
 
 def list_datasets() -> list[dict]:
     df = query_df("""
-        SELECT d.id, d.name, COUNT(dp.ticker) AS pair_count, d.created_at
+        SELECT 
+            d.id, 
+            d.name, 
+            COUNT(dp.ticker) AS pair_count, 
+            d.created_at,
+            MIN(dp.date) as min_date,
+            MAX(dp.date) as max_date
         FROM datasets d
         LEFT JOIN dataset_pairs dp ON d.id = dp.dataset_id
         GROUP BY d.id, d.name, d.created_at
         ORDER BY d.created_at DESC
     """)
-    if not df.empty and "created_at" in df.columns:
-        df["created_at"] = df["created_at"].astype(str)
+    if not df.empty:
+        if "created_at" in df.columns:
+            df["created_at"] = df["created_at"].astype(str)
+        if "min_date" in df.columns:
+            df["min_date"] = df["min_date"].astype(str)
+        if "max_date" in df.columns:
+            df["max_date"] = df["max_date"].astype(str)
     return df.to_dict(orient="records")
 
 

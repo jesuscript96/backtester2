@@ -10,6 +10,8 @@ export interface Dataset {
   name: string;
   pair_count: number;
   created_at: string;
+  min_date?: string;
+  max_date?: string;
 }
 
 export interface Strategy {
@@ -153,6 +155,13 @@ export async function runBacktest(params: {
   risk_r?: number;
   fees?: number;
   slippage?: number;
+  start_date?: string;
+  end_date?: string;
+  market_sessions?: string[];
+  custom_start_time?: string;
+  custom_end_time?: string;
+  locates_cost?: number;
+  look_ahead_prevention?: boolean;
 }): Promise<BacktestResult> {
   const { data } = await api.post("/backtest", params);
   return data;

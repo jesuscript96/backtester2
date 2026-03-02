@@ -20,7 +20,7 @@ def _create_connection() -> duckdb.DuckDBPyConnection:
     t0 = time.time()
     logger.info(f"Connecting to MotherDuck db={MOTHERDUCK_DB}...")
     conn = duckdb.connect(f"md:{MOTHERDUCK_DB}?motherduck_token={MOTHERDUCK_TOKEN}")
-    logger.info(f"MotherDuck connected ({round(time.time()-t0, 2)}s)")
+    logger.info(f"MotherDuck connected to {MOTHERDUCK_DB} ({round(time.time()-t0, 2)}s)")
     return conn
 
 

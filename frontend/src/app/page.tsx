@@ -32,6 +32,11 @@ export default function Home() {
     risk_r: number;
     fees: number;
     slippage: number;
+    start_date?: string;
+    end_date?: string;
+    market_sessions?: string[];
+    custom_start_time?: string;
+    custom_end_time?: string;
   }) => {
     setLoading(true);
     setError(null);
@@ -114,7 +119,7 @@ export default function Home() {
     <div className="min-h-screen bg-[var(--background)]">
       <header className="border-b border-[var(--border)] bg-white px-6 py-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-[var(--foreground)]">BacktesterMVP</h1>
+          <h1 className="text-lg font-bold text-[var(--foreground)]">BacktesterJaume</h1>
           <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
             VectorBT
           </span>
@@ -122,7 +127,7 @@ export default function Home() {
       </header>
 
       <div className="flex h-[calc(100vh-53px)]">
-        <aside className="w-80 min-w-80 border-r border-[var(--border)] p-4 overflow-y-auto space-y-4 bg-[var(--background)]">
+        <aside className="w-80 min-w-80 border-r border-[var(--border)] p-4 overflow-y-auto space-y-4 bg-[var(--sidebar-bg)]">
           <BacktestPanel onRun={handleRun} loading={loading} />
 
           {result && (

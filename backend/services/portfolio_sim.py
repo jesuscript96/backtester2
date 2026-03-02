@@ -25,6 +25,8 @@ def simulate(
     sl_trail: bool = False,
     tp_stop: float | None = None,
     accumulate: bool = False,
+    locates_cost: float = 0.0,
+    look_ahead_prevention: bool = True,
 ) -> dict:
     n = len(close)
     is_long = direction == "longonly"
@@ -149,7 +151,13 @@ def simulate(
                 equity[i] = init_cash + realized_pnl
                 continue
 
-            ep = open_[i + 1]
+            if look_ahead_prevention:
+                # Standard: enter on next open after signal
+                ep = open_[i + 1]
+            else:
+                # Aggressive/Look-ahead: enter on current close
+                ep = close[i]
+
             slip = ep * slippage
             entry_price = (ep + slip) if is_long else (ep - slip)
             if entry_price <= 0:
@@ -166,6 +174,10 @@ def simulate(
                 continue
 
             entry_fee_amount = abs(entry_price * size) * fees
+            # Apply locates cost (per 100 shares)
+            if locates_cost > 0:
+                entry_fee_amount += (size / 100.0) * locates_cost
+
             realized_pnl -= entry_fee_amount
             in_position = True
             entry_idx = i + 1

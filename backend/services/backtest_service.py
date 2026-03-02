@@ -39,11 +39,32 @@ def run_backtest(
     risk_r: float = 100.0,
     fees: float = 0.0,
     slippage: float = 0.0,
+    market_sessions: list[str] | None = None,
+    custom_start_time: str | None = None,
+    custom_end_time: str | None = None,
+    locates_cost: float = 0.0,
+    look_ahead_prevention: bool = False,
 ) -> dict:
     t_total = time.time()
 
     qual_lookup = _build_qualifying_lookup(qualifying_df)
     del qualifying_df
+
+    # Filter by market sessions if provided
+    if market_sessions:
+        intraday_df = _filter_by_market_sessions(
+            intraday_df, market_sessions, custom_start_time, custom_end_time
+        )
+
+    if intraday_df.empty:
+        return {
+            "aggregate_metrics": _aggregate_metrics([], []),
+            "day_results": [],
+            "trades": [],
+            "equity_curves": [],
+            "global_equity": [],
+            "global_drawdown": [],
+        }
 
     grouped = intraday_df.groupby(["ticker", "date"])
     n_groups = grouped.ngroups
@@ -102,6 +123,8 @@ def run_backtest(
                 risk_r=risk_r,
                 fees=fees,
                 slippage=slippage,
+                locates_cost=locates_cost,
+                look_ahead_prevention=look_ahead_prevention,
                 sl_stop=signals["sl_stop"],
                 sl_trail=signals["sl_trail"],
                 tp_stop=signals["tp_stop"],
@@ -472,6 +495,62 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict]) -> dict:
         "total_pnl": round(float(pnls.sum()), 2) if len(pnls) else 0,
     }
 
+
+def _filter_by_market_sessions(
+    df: pd.DataFrame, 
+    sessions: list[str], 
+    custom_start: str | None = None, 
+    custom_end: str | None = None
+) -> pd.DataFrame:
+    if not sessions or "all" in sessions:
+        return df
+    
+    # ensure timestamp is datetime and localized to UTC then converted to US/Eastern
+    if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+    
+    # Convert to US/Eastern for accurate market session filtering
+    # Assuming the input timestamps are UTC (common for trading data)
+    try:
+        if df["timestamp"].dt.tz is None:
+            # If naive, assume UTC
+            localized_ts = df["timestamp"].dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
+        else:
+            localized_ts = df["timestamp"].dt.tz_convert("US/Eastern")
+    except Exception as e:
+        logger.warning(f"Timezone conversion failed: {e}. Falling back to naive filtering.")
+        localized_ts = df["timestamp"]
+
+    times = localized_ts.dt.time
+    mask = np.zeros(len(df), dtype=bool)
+    
+    import datetime
+    
+    for s in sessions:
+        if s == "pre":
+            # 04:00 - 09:30
+            start = datetime.time(4, 0)
+            end = datetime.time(9, 30)
+            mask |= (times >= start) & (times < end)
+        elif s == "rth":
+            # 09:30 - 16:00
+            start = datetime.time(9, 30)
+            end = datetime.time(16, 0)
+            mask |= (times >= start) & (times < end)
+        elif s == "post":
+            # 16:00 - 20:00
+            start = datetime.time(16, 0)
+            end = datetime.time(20, 0)
+            mask |= (times >= start) & (times < end)
+        elif s == "custom" and custom_start and custom_end:
+            try:
+                c_start = datetime.datetime.strptime(custom_start, "%H:%M").time()
+                c_end = datetime.datetime.strptime(custom_end, "%H:%M").time()
+                mask |= (times >= c_start) & (times < c_end)
+            except Exception:
+                pass
+                
+    return df[mask].copy()
 
 def _safe_float(val) -> float | None:
     try:

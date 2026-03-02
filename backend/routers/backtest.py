@@ -23,6 +23,13 @@ class BacktestRequest(BaseModel):
     risk_r: float = 100.0
     fees: float = 0.0
     slippage: float = 0.0
+    start_date: str | None = None
+    end_date: str | None = None
+    market_sessions: list[str] | None = None
+    custom_start_time: str | None = None
+    custom_end_time: str | None = None
+    locates_cost: float = 0.0
+    look_ahead_prevention: bool = False
 
 
 class MonteCarloRequest(BaseModel):
@@ -44,18 +51,27 @@ def run_backtest_endpoint(req: BacktestRequest):
     try:
         t_fetch = time.time()
         qualifying, intraday = fetch_dataset_data(req.dataset_id)
+        
+        # Filter by date range if provided
+        if req.start_date:
+            intraday = intraday[intraday["date"].astype(str) >= req.start_date]
+            qualifying = qualifying[qualifying["date"].astype(str) >= req.start_date]
+        if req.end_date:
+            intraday = intraday[intraday["date"].astype(str) <= req.end_date]
+            qualifying = qualifying[qualifying["date"].astype(str) <= req.end_date]
+            
         logger.info(
-            f"  data fetched: {len(qualifying)} qualifying rows, "
+            f"  data fetched and filtered: {len(qualifying)} qualifying rows, "
             f"{len(intraday)} intraday rows ({round(time.time()-t_fetch, 2)}s)"
         )
     except Exception as e:
-        logger.error(f"  data fetch FAILED: {e}")
+        logger.error(f"  data fetch/filter FAILED: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
 
     if intraday.empty:
         raise HTTPException(
             status_code=400,
-            detail="No hay datos intradiarios para este dataset",
+            detail="No hay datos para el periodo seleccionado",
         )
 
     unique_days = intraday.groupby(["ticker", "date"]).ngroups
@@ -76,6 +92,11 @@ def run_backtest_endpoint(req: BacktestRequest):
             risk_r=req.risk_r,
             fees=req.fees,
             slippage=req.slippage,
+            market_sessions=req.market_sessions,
+            custom_start_time=req.custom_start_time,
+            custom_end_time=req.custom_end_time,
+            locates_cost=req.locates_cost,
+            look_ahead_prevention=req.look_ahead_prevention,
         )
         del intraday, qualifying
         gc.collect()
