@@ -1,19 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import type { BacktestResult } from "@/lib/api";
-import EquityCurveTab from "@/components/tabs/EquityCurveTab";
+import type { BacktestResult, DayCandles, TradeRecord, EquityPoint } from "@/lib/api";
 import PerformanceTab from "@/components/tabs/PerformanceTab";
 import CalendarTab from "@/components/tabs/CalendarTab";
 import TradesTab from "@/components/tabs/TradesTab";
 import ChartsTab from "@/components/tabs/ChartsTab";
 import PortfolioTab from "@/components/tabs/PortfolioTab";
+import Chart from "@/components/Chart";
 
 const TABS = [
-  { id: "equity", label: "Equity Curve" },
   { id: "performance", label: "Performance" },
   { id: "calendar", label: "Calendar" },
   { id: "trades", label: "Trades" },
+  { id: "analysis", label: "Análisis por trade" },
   { id: "charts", label: "Charts" },
   { id: "portfolio", label: "Portfolio" },
 ] as const;
@@ -24,10 +24,22 @@ interface ResultsTabsProps {
   result: BacktestResult;
   initCash: number;
   riskR: number;
+  dayCandles: DayCandles | null;
+  candlesLoading: boolean;
+  currentTrades: TradeRecord[];
+  currentEquity: EquityPoint[];
 }
 
-export default function ResultsTabs({ result, initCash, riskR }: ResultsTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("equity");
+export default function ResultsTabs({
+  result,
+  initCash,
+  riskR,
+  dayCandles,
+  candlesLoading,
+  currentTrades,
+  currentEquity,
+}: ResultsTabsProps) {
+  const [activeTab, setActiveTab] = useState<TabId>("performance");
 
   return (
     <div className="bg-white rounded-lg border border-[var(--border)] overflow-hidden">
@@ -50,16 +62,6 @@ export default function ResultsTabs({ result, initCash, riskR }: ResultsTabsProp
       </div>
 
       <div className="p-4">
-        {activeTab === "equity" && (
-          <EquityCurveTab
-            globalEquity={result.global_equity}
-            globalDrawdown={result.global_drawdown}
-            trades={result.trades}
-            initCash={initCash}
-            riskR={riskR}
-          />
-        )}
-
         {activeTab === "performance" && (
           <PerformanceTab
             dayResults={result.day_results}
@@ -72,6 +74,35 @@ export default function ResultsTabs({ result, initCash, riskR }: ResultsTabsProp
           <CalendarTab dayResults={result.day_results} trades={result.trades} />
         )}
         {activeTab === "trades" && <TradesTab trades={result.trades} />}
+        {activeTab === "analysis" && (
+          <div>
+            {candlesLoading && (
+              <div className="flex items-center justify-center p-8">
+                <div className="text-center space-y-2">
+                  <svg className="animate-spin h-6 w-6 text-[var(--accent)] mx-auto" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <p className="text-xs text-[var(--muted)]">Cargando chart...</p>
+                </div>
+              </div>
+            )}
+            {!candlesLoading && dayCandles && dayCandles.candles.length > 0 && (
+              <Chart
+                candles={dayCandles.candles}
+                trades={currentTrades}
+                equity={currentEquity}
+                ticker={dayCandles.ticker}
+                date={dayCandles.date}
+              />
+            )}
+            {!candlesLoading && (!dayCandles || dayCandles.candles.length === 0) && (
+              <p className="text-sm text-[var(--muted)] text-center py-8">
+                Selecciona un día en el panel lateral para ver el análisis del trade.
+              </p>
+            )}
+          </div>
+        )}
         {activeTab === "charts" && <ChartsTab trades={result.trades} />}
         {activeTab === "portfolio" && (
           <PortfolioTab trades={result.trades} initCash={initCash} />

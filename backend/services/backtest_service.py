@@ -58,7 +58,7 @@ def run_backtest(
 
     if intraday_df.empty:
         return {
-            "aggregate_metrics": _aggregate_metrics([], []),
+            "aggregate_metrics": _aggregate_metrics([], [], 0),
             "day_results": [],
             "trades": [],
             "equity_curves": [],
@@ -176,7 +176,7 @@ def run_backtest(
     )
 
     t4 = time.time()
-    aggregate = _aggregate_metrics(day_results, all_trades)
+    aggregate = _aggregate_metrics(day_results, all_trades, risk_r)
     global_eq, global_dd = _compute_global_equity_and_drawdown(all_trades, init_cash)
     logger.info(f"[AGG] aggregate+equity done ({round(time.time()-t4, 2)}s)")
 
@@ -234,6 +234,9 @@ def _enrich_trades(
         return []
 
     max_idx = len(timestamps) - 1
+    # Convert timestamps to epoch seconds for chart marker matching
+    ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
+
     result = []
     for t in raw_trades:
         ei = min(t["entry_idx"], max_idx)
@@ -252,6 +255,9 @@ def _enrich_trades(
             "exit_time": str(exit_ts),
             "entry_idx": t["entry_idx"],
             "exit_idx": t["exit_idx"],
+            # Epoch timestamps for correct chart marker placement
+            "entry_time_epoch": int(ts_epoch[ei]),
+            "exit_time_epoch": int(ts_epoch[xi]),
             "entry_price": t["entry_price"],
             "exit_price": t["exit_price"],
             "pnl": t["pnl"],
@@ -265,6 +271,7 @@ def _enrich_trades(
             "entry_weekday": entry_ts.weekday(),
         })
     return result
+
 
 
 def _compute_r_multiple(
@@ -444,20 +451,19 @@ def _extract_day_stats_from_values(
 # Aggregate metrics
 # ---------------------------------------------------------------------------
 
-def _aggregate_metrics(day_results: list[dict], trades: list[dict]) -> dict:
+def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: float = 100) -> dict:
+    empty = {
+        "total_days": 0, "total_trades": 0, "win_rate_pct": 0,
+        "avg_return_per_day_pct": 0, "total_return_pct": 0, "avg_sharpe": 0,
+        "avg_max_dd_pct": 0, "avg_profit_factor": 0, "avg_pnl": 0, "total_pnl": 0,
+        "sortino_ratio": 0, "calmar_ratio": 0, "dd_return_ratio": 0,
+        "r_squared": 0, "avg_mae": 0, "max_profit_pct": 0,
+        "avg_win": 0, "avg_loss": 0, "max_consecutive_wins": 0,
+        "max_consecutive_losses": 0, "expectancy": 0, "payoff_ratio": 0,
+        "avg_r_per_day": 0,
+    }
     if not day_results:
-        return {
-            "total_days": 0,
-            "total_trades": 0,
-            "win_rate_pct": 0,
-            "avg_return_per_day_pct": 0,
-            "total_return_pct": 0,
-            "avg_sharpe": 0,
-            "avg_max_dd_pct": 0,
-            "avg_profit_factor": 0,
-            "avg_pnl": 0,
-            "total_pnl": 0,
-        }
+        return empty
 
     total_days = len(day_results)
     total_trades = sum(d.get("total_trades", 0) for d in day_results)
@@ -482,6 +488,59 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict]) -> dict:
 
     avg_pnl = float(pnls.mean()) if len(pnls) else 0
 
+    # --- New metrics ---
+    wins = pnls[pnls > 0] if len(pnls) else np.array([])
+    losses = pnls[pnls < 0] if len(pnls) else np.array([])
+    avg_win = float(wins.mean()) if len(wins) else 0
+    avg_loss = float(losses.mean()) if len(losses) else 0
+    payoff_ratio = abs(avg_win / avg_loss) if avg_loss != 0 else 0
+
+    # Expectancy
+    expectancy = avg_pnl
+
+    # Sortino (aggregate from daily sortinos)
+    sortinos = np.array([d.get("sortino_ratio", 0) or 0 for d in day_results])
+    sortino_ratio = float(sortinos.mean()) if len(sortinos) else 0
+
+    # Calmar = total return / max dd
+    min_dd = float(dds.min()) if len(dds) else 0
+    calmar_ratio = abs(total_return / min_dd) if min_dd != 0 else 0
+
+    # DD/Return ratio
+    dd_return_ratio = abs(min_dd / total_return) if total_return != 0 else 0
+
+    # R-Squared (how linear the equity curve is)
+    # Use day-end values to compute R² of cumulative returns
+    cum_returns = np.cumprod(1 + returns / 100) if len(returns) else np.array([])
+    if len(cum_returns) > 2:
+        x = np.arange(len(cum_returns))
+        correlation = np.corrcoef(x, cum_returns)[0, 1]
+        r_squared = float(correlation ** 2) if not np.isnan(correlation) else 0
+    else:
+        r_squared = 0
+
+    # MAE (Maximum Adverse Excursion) — average across trades
+    maes = np.array([t.get("mae", 0) for t in trades]) if trades else np.array([])
+    avg_mae = float(maes.mean()) if len(maes) else 0
+
+    # Max profit run per day
+    max_profit_pct = float(returns.max()) if len(returns) else 0
+
+    # Consecutive wins/losses
+    max_cons_wins = 0
+    max_cons_losses = 0
+    curr_wins = 0
+    curr_losses = 0
+    for p in pnls:
+        if p > 0:
+            curr_wins += 1
+            curr_losses = 0
+            max_cons_wins = max(max_cons_wins, curr_wins)
+        else:
+            curr_losses += 1
+            curr_wins = 0
+            max_cons_losses = max(max_cons_losses, curr_losses)
+
     return {
         "total_days": total_days,
         "total_trades": total_trades,
@@ -493,7 +552,21 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict]) -> dict:
         "avg_profit_factor": round(avg_pf, 4),
         "avg_pnl": round(avg_pnl, 2),
         "total_pnl": round(float(pnls.sum()), 2) if len(pnls) else 0,
+        "sortino_ratio": round(sortino_ratio, 4),
+        "calmar_ratio": round(calmar_ratio, 4),
+        "dd_return_ratio": round(dd_return_ratio, 4),
+        "r_squared": round(r_squared, 4),
+        "avg_mae": round(avg_mae, 2),
+        "max_profit_pct": round(max_profit_pct, 4),
+        "avg_win": round(avg_win, 2),
+        "avg_loss": round(avg_loss, 2),
+        "max_consecutive_wins": max_cons_wins,
+        "max_consecutive_losses": max_cons_losses,
+        "expectancy": round(expectancy, 2),
+        "payoff_ratio": round(payoff_ratio, 4),
+        "avg_r_per_day": round(float(pnls.sum()) / total_days / risk_r, 4) if total_days > 0 and risk_r > 0 else 0,
     }
+
 
 
 def _filter_by_market_sessions(
@@ -505,23 +578,13 @@ def _filter_by_market_sessions(
     if not sessions or "all" in sessions:
         return df
     
-    # ensure timestamp is datetime and localized to UTC then converted to US/Eastern
+    # Ensure timestamp is datetime
     if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
         df["timestamp"] = pd.to_datetime(df["timestamp"])
     
-    # Convert to US/Eastern for accurate market session filtering
-    # Assuming the input timestamps are UTC (common for trading data)
-    try:
-        if df["timestamp"].dt.tz is None:
-            # If naive, assume UTC
-            localized_ts = df["timestamp"].dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
-        else:
-            localized_ts = df["timestamp"].dt.tz_convert("US/Eastern")
-    except Exception as e:
-        logger.warning(f"Timezone conversion failed: {e}. Falling back to naive filtering.")
-        localized_ts = df["timestamp"]
-
-    times = localized_ts.dt.time
+    # Timestamps from MotherDuck are already in US/Eastern (naive).
+    # Do NOT convert from UTC — that would shift hours by 5-6 and break filtering.
+    times = df["timestamp"].dt.time
     mask = np.zeros(len(df), dtype=bool)
     
     import datetime

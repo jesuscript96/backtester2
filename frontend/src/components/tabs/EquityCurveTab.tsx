@@ -210,27 +210,59 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     ? Math.min(...globalDrawdown.map((d) => d.value))
     : 0;
 
+  const maxProfit = globalEquity && globalEquity.length > 0
+    ? Math.max(...globalEquity.map((p) => {
+      if (viewMode === "%") return ((p.value / initCash) - 1) * 100;
+      if (viewMode === "R") return riskR > 0 ? (p.value - initCash) / riskR : 0;
+      return p.value - initCash;
+    }))
+    : 0;
+
+  const ddDisplay = (() => {
+    if (viewMode === "%") return `${maxDD.toFixed(2)}%`;
+    if (viewMode === "$") return `$${((maxDD / 100) * initCash).toFixed(2)}`;
+    if (viewMode === "R") return riskR > 0 ? `${((maxDD / 100) * initCash / riskR).toFixed(2)}R` : "0R";
+    return `${maxDD.toFixed(2)}%`;
+  })();
+
+  const profitDisplay = (() => {
+    if (viewMode === "%") return `${maxProfit.toFixed(2)}%`;
+    if (viewMode === "$") return `$${maxProfit.toFixed(2)}`;
+    if (viewMode === "R") return `${maxProfit.toFixed(2)}R`;
+    return `${maxProfit.toFixed(2)}`;
+  })();
+
   return (
-    <div>
+    <div className="px-4 pt-4 pb-2">
       {globalDrawdown && globalDrawdown.length > 0 && (
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
-              Max Drawdown
-            </span>
-            <span className="text-sm font-semibold text-[var(--danger)]">
-              {maxDD.toFixed(2)}%
-            </span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
+                Max Drawdown
+              </span>
+              <span className="text-sm font-semibold text-[var(--danger)]">
+                {ddDisplay}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
+                Max Profit
+              </span>
+              <span className="text-sm font-semibold text-green-600">
+                {profitDisplay}
+              </span>
+            </div>
           </div>
 
-          <div className="flex bg-gray-100 p-1 rounded-md text-sm border border-gray-200">
+          <div className="flex bg-gray-100 p-1.5 rounded-md text-sm border border-gray-200">
             {(["$", "%", "R"] as ViewMode[]).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
                 className={`px-3 py-1 rounded transition-colors ${viewMode === mode
-                    ? "bg-white text-gray-900 shadow-sm font-medium"
-                    : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white text-gray-900 shadow-sm font-medium"
+                  : "text-gray-500 hover:text-gray-700"
                   }`}
               >
                 {mode}
@@ -241,5 +273,6 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       )}
       <div ref={containerRef} />
     </div>
+
   );
 }

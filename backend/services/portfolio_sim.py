@@ -41,6 +41,7 @@ def simulate(
     entry_fee_amount = 0.0
     size = 0.0
     trail_extreme = 0.0
+    mae = 0.0  # Maximum Adverse Excursion (worst unrealized PnL during trade)
 
     for i in range(n):
         # --- check exits before entries ---
@@ -48,6 +49,14 @@ def simulate(
             exit_triggered = False
             exit_price = close[i]
             exit_reason = "Signal"
+
+            # Track MAE (Maximum Adverse Excursion)
+            if is_long:
+                unrealized_pnl = (low[i] - entry_price) * size
+            else:
+                unrealized_pnl = (entry_price - high[i]) * size
+            if unrealized_pnl < mae:
+                mae = unrealized_pnl
 
             if is_long:
                 price_for_sl = low[i]
@@ -139,6 +148,7 @@ def simulate(
                     "status": "Closed",
                     "size": round(size, 6),
                     "exit_reason": exit_reason,
+                    "mae": round(mae, 4),
                 })
                 in_position = False
                 size = 0.0
@@ -182,6 +192,7 @@ def simulate(
             in_position = True
             entry_idx = i + 1
             trail_extreme = entry_price
+            mae = 0.0
 
         # --- equity ---
         if in_position:

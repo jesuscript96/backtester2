@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import BacktestPanel from "@/components/BacktestPanel";
-import Chart from "@/components/Chart";
 import MetricsCard from "@/components/MetricsCard";
+import RollingEVChart from "@/components/RollingEVChart";
 import ResultsTabs from "@/components/ResultsTabs";
 import DaySelector from "@/components/DaySelector";
+import EquityCurveTab from "@/components/tabs/EquityCurveTab";
 import {
   runBacktest,
   fetchDayCandles,
@@ -173,37 +174,39 @@ export default function Home() {
 
           {result && (
             <>
-              <MetricsCard metrics={result.aggregate_metrics} />
-
-              {candlesLoading && (
-                <div className="bg-white rounded-lg border border-[var(--border)] p-8 flex items-center justify-center">
-                  <div className="text-center space-y-2">
-                    <svg className="animate-spin h-6 w-6 text-[var(--accent)] mx-auto" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <p className="text-xs text-[var(--muted)]">Cargando chart...</p>
+              {/* TOP ROW: Equity Curve (2/3) + Metrics (1/3) */}
+              <div className="flex gap-4">
+                <div className="w-2/3">
+                  <div className="bg-white rounded border border-gray-300 shadow-sm overflow-hidden">
+                    <EquityCurveTab
+                      globalEquity={result.global_equity}
+                      globalDrawdown={result.global_drawdown}
+                      trades={result.trades}
+                      initCash={initCashRef.current}
+                      riskR={riskRRef.current}
+                    />
                   </div>
                 </div>
-              )}
-
-              {!candlesLoading && dayCandles && dayCandles.candles.length > 0 && (
-                <Chart
-                  candles={dayCandles.candles}
-                  trades={currentTrades || []}
-                  equity={currentEquity?.equity || []}
-                  ticker={dayCandles.ticker}
-                  date={dayCandles.date}
-                />
-              )}
+                <div className="w-1/3 flex flex-col gap-4">
+                  <MetricsCard metrics={result.aggregate_metrics} vertical />
+                  <div className="flex-1" style={{ minHeight: 140 }}>
+                    <RollingEVChart trades={result.trades} riskR={riskRRef.current} />
+                  </div>
+                </div>
+              </div>
 
               <ResultsTabs
                 result={result}
                 initCash={initCashRef.current}
                 riskR={riskRRef.current}
+                dayCandles={dayCandles}
+                candlesLoading={candlesLoading}
+                currentTrades={currentTrades || []}
+                currentEquity={currentEquity?.equity || []}
               />
             </>
           )}
+
         </main>
       </div>
     </div>

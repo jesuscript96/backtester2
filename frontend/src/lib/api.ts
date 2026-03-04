@@ -28,6 +28,8 @@ export interface TradeRecord {
   exit_time: string;
   entry_idx: number;
   exit_idx: number;
+  entry_time_epoch: number;
+  exit_time_epoch: number;
   entry_price: number;
   exit_price: number;
   pnl: number;
@@ -95,6 +97,19 @@ export interface AggregateMetrics {
   avg_profit_factor: number;
   avg_pnl: number;
   total_pnl: number;
+  sortino_ratio: number;
+  calmar_ratio: number;
+  dd_return_ratio: number;
+  r_squared: number;
+  avg_mae: number;
+  max_profit_pct: number;
+  avg_win: number;
+  avg_loss: number;
+  max_consecutive_wins: number;
+  max_consecutive_losses: number;
+  expectancy: number;
+  payoff_ratio: number;
+  avg_r_per_day: number;
 }
 
 export interface GlobalEquityPoint {

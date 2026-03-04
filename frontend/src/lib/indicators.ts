@@ -205,3 +205,39 @@ export function calculateVWAP(data: CandleData[]): IndicatorDataPoint[] {
 
     return result;
 }
+
+// 6. Average True Range (ATR)
+export function calculateATR(data: CandleData[], period: number = 14): IndicatorDataPoint[] {
+    const result: IndicatorDataPoint[] = [];
+    if (data.length < period + 1 || period <= 0) return result;
+
+    const trueRanges: number[] = [];
+
+    // First TR is just high - low
+    trueRanges.push(data[0].high - data[0].low);
+
+    for (let i = 1; i < data.length; i++) {
+        const tr = Math.max(
+            data[i].high - data[i].low,
+            Math.abs(data[i].high - data[i - 1].close),
+            Math.abs(data[i].low - data[i - 1].close)
+        );
+        trueRanges.push(tr);
+    }
+
+    // First ATR is SMA of first `period` TRs
+    let sum = 0;
+    for (let i = 0; i < period; i++) {
+        sum += trueRanges[i];
+    }
+    let atr = sum / period;
+    result.push({ time: data[period - 1].time as Time, value: atr });
+
+    // Smoothed ATR (Wilder's method)
+    for (let i = period; i < trueRanges.length; i++) {
+        atr = (atr * (period - 1) + trueRanges[i]) / period;
+        result.push({ time: data[i].time as Time, value: atr });
+    }
+
+    return result;
+}
