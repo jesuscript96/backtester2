@@ -18,7 +18,6 @@ import {
   calculateEMA,
   calculateRSI,
   calculateMACD,
-  calculateVWAP,
   calculateATR,
 } from "@/lib/indicators";
 
@@ -184,9 +183,12 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
       }
     }
     if (activeIndicators.has("VWAP")) {
-      const vwapData = calculateVWAP(candles);
+      // Use backend-computed VWAP (session-aware, matches strategy engine)
+      const vwapData = deduped
+        .filter((c) => c.vwap != null)
+        .map((c) => ({ time: c.time as Time, value: c.vwap as number }));
       if (vwapData.length > 0) {
-        const series = chart.addSeries(LineSeries, { color: "#ef4444", lineWidth: 2 });
+        const series = chart.addSeries(LineSeries, { color: "#d4a017", lineWidth: 2 });
         series.setData(vwapData);
       }
     }

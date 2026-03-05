@@ -50,6 +50,7 @@ export interface CandleData {
   low: number;
   close: number;
   volume: number;
+  vwap?: number | null;
 }
 
 export interface EquityPoint {

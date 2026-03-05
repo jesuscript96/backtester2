@@ -203,15 +203,33 @@ def fetch_day_candles(dataset_id: str, ticker: str, date: str) -> list[dict]:
     df = query_df(sql, [dataset_id, ticker, date])
     if df.empty:
         return []
-    ts = pd.to_datetime(df["timestamp"]).values.astype("datetime64[s]").astype("int64")
+
+    timestamps = pd.to_datetime(df["timestamp"])
+    ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
+
+    # Compute VWAP from start of day: Cumulative(TP*V) / Cumulative(V)
+    import numpy as np
+    highs = df["high"].values.astype(float)
+    lows = df["low"].values.astype(float)
+    closes = df["close"].values.astype(float)
+    volumes = df["volume"].values.astype(float)
+
+    typical = (highs + lows + closes) / 3.0
+    cum_tp_vol = np.cumsum(typical * volumes)
+    cum_vol = np.cumsum(volumes)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        vwap_arr = np.where(cum_vol > 0, cum_tp_vol / cum_vol, np.nan)
+    vwap_values = [round(float(v), 6) if not np.isnan(v) else None for v in vwap_arr]
+
     return [
         {
-            "time": int(ts[j]),
+            "time": int(ts_epoch[j]),
             "open": float(df.iloc[j]["open"]),
-            "high": float(df.iloc[j]["high"]),
-            "low": float(df.iloc[j]["low"]),
-            "close": float(df.iloc[j]["close"]),
-            "volume": int(df.iloc[j]["volume"]),
+            "high": float(highs[j]),
+            "low": float(lows[j]),
+            "close": float(closes[j]),
+            "volume": int(volumes[j]),
+            "vwap": vwap_values[j],
         }
         for j in range(len(df))
     ]
