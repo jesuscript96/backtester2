@@ -14,7 +14,7 @@ export default function MetricsCard({ metrics, vertical = false }: MetricsCardPr
     { label: "Win Rate", value: `${(metrics.win_rate_pct ?? 0).toFixed(1)}%` },
     { label: "Profit Factor", value: (metrics.avg_profit_factor ?? 0).toFixed(3) },
     { label: "Total Return", value: `${(metrics.total_return_pct ?? 0).toFixed(2)}%` },
-    { label: "Max MAE", value: `$${(metrics.max_mae ?? 0).toFixed(2)}` },
+    { label: "Max MAE", value: `${(metrics.max_mae ?? 0).toFixed(2)}%` },
     { label: "Avg Return/Día", value: `${(metrics.avg_return_per_day_pct ?? 0).toFixed(3)}%` },
     { label: "Avg R/Día", value: `${(metrics.avg_r_per_day ?? 0).toFixed(3)}R` },
     { label: "Sharpe", value: (metrics.avg_sharpe ?? 0).toFixed(3) },
@@ -30,14 +30,14 @@ export default function MetricsCard({ metrics, vertical = false }: MetricsCardPr
   if (vertical) {
     return (
       <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden transition-colors">
-        <div className="bg-gray-100 dark:bg-gray-800 border-b border-[var(--border)] px-3 py-1.5">
+        <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5">
           <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground)]">
             Resultados Agregados
           </h2>
         </div>
         <div className="grid grid-cols-2 divide-x divide-y divide-[var(--border)]">
           {rows.map((row, idx) => (
-            <div key={idx} className="flex flex-col justify-center px-2.5 py-1.5 bg-[var(--card-bg)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <div key={idx} className="flex flex-col justify-center px-2.5 py-1.5 bg-[var(--card-bg)] hover:bg-[var(--card-muted-bg)] transition-colors">
               <span className="text-[8px] font-semibold text-[var(--muted)] uppercase tracking-tighter leading-tight">
                 {row.label}
               </span>
@@ -53,14 +53,14 @@ export default function MetricsCard({ metrics, vertical = false }: MetricsCardPr
 
   return (
     <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden transition-colors">
-      <div className="bg-gray-100 dark:bg-gray-800 border-b border-[var(--border)] px-3 py-1.5">
+      <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5">
         <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground)]">
           Resultados Agregados
         </h2>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y divide-[var(--border)] border-b border-[var(--border)]">
         {rows.map((row, idx) => (
-          <div key={idx} className="flex flex-col p-2 bg-[var(--card-bg)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <div key={idx} className="flex flex-col p-2 bg-[var(--card-bg)] hover:bg-[var(--sidebar-bg)] transition-colors">
             <span className="text-[9px] font-semibold text-[var(--muted)] uppercase tracking-tighter mb-0.5">
               {row.label}
             </span>

@@ -381,10 +381,10 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
   }, [candles, trades, equity, smas, emas, rsis, atrs, showMACD, showVWAP, hasRSI, hasMACD, hasATR]);
 
   return (
-    <div className="bg-white rounded-lg border border-[var(--border)] overflow-hidden">
+    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden">
 
       {/* TOOLBAR */}
-      <div className="px-4 py-2 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3 bg-gray-50">
+      <div className="px-4 py-2 border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3 bg-[var(--sidebar-bg)]">
         <div className="flex items-center gap-3">
           <span className="font-semibold text-sm">{ticker}</span>
           <span className="text-xs text-[var(--muted)]">{date}</span>
@@ -393,10 +393,10 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* SMA */}
-          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
+          <div className="flex items-center gap-1 bg-[var(--card-bg)] border border-[var(--border)] rounded overflow-hidden">
             <button
               onClick={() => (smas.length === 0 ? addIndicator(setSmas, 20) : setSmas([]))}
-              className={`px-2 py-1 font-medium transition-colors ${smas.length > 0 ? "bg-amber-100 text-amber-800" : "text-gray-600 hover:bg-gray-100"}`}
+              className={`px-2 py-1 font-medium transition-colors ${smas.length > 0 ? "bg-amber-100 text-amber-800" : "text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
             >
               SMA
             </button>
@@ -418,10 +418,10 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
           </div>
 
           {/* EMA */}
-          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
+          <div className="flex items-center gap-1 bg-[var(--card-bg)] border border-[var(--border)] rounded overflow-hidden">
             <button
               onClick={() => (emas.length === 0 ? addIndicator(setEmas, 20) : setEmas([]))}
-              className={`px-2 py-1 font-medium transition-colors ${emas.length > 0 ? "bg-purple-100 text-purple-800" : "text-gray-600 hover:bg-gray-100"}`}
+              className={`px-2 py-1 font-medium transition-colors ${emas.length > 0 ? "bg-purple-100 text-purple-800" : "text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
             >
               EMA
             </button>
@@ -470,7 +470,7 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
           {/* MACD */}
           <button
             onClick={() => setShowMACD(!showMACD)}
-            className={`px-2 py-1 border rounded font-medium transition-colors ${showMACD ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"}`}
+            className={`px-2 py-1 border rounded font-medium transition-colors ${showMACD ? "border-blue-500 bg-blue-50 text-blue-700" : "border-[var(--border)] bg-[var(--card-bg)] text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
           >
             MACD
           </button>
@@ -503,7 +503,7 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
           {/* VWAP */}
           <button
             onClick={() => setShowVWAP(!showVWAP)}
-            className={`px-2 py-1 border rounded font-medium transition-colors ${showVWAP ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"}`}
+            className={`px-2 py-1 border rounded font-medium transition-colors ${showVWAP ? "border-pink-500 bg-pink-50 text-pink-700" : "border-[var(--border)] bg-[var(--card-bg)] text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
           >
             VWAP
           </button>

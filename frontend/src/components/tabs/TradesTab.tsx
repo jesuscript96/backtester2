@@ -140,7 +140,7 @@ export default function TradesTab({ trades }: TradesTabProps) {
 
       <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-[var(--border)] rounded-md bg-[var(--card-bg)] shadow-inner">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-950/50 sticky top-0 border-b border-[var(--border)]">
+          <thead className="bg-[var(--sidebar-bg)] sticky top-0 border-b border-[var(--border)]">
             <tr>
               <SortHeader label="Ticker" field="ticker" />
               <SortHeader label="Fecha" field="date" />
@@ -156,7 +156,7 @@ export default function TradesTab({ trades }: TradesTabProps) {
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {filtered.map((t, i) => (
-              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors">
+              <tr key={i} className="hover:bg-[var(--card-muted-bg)] transition-colors">
                 <td className="px-3 py-1.5 font-medium">{t.ticker}</td>
                 <td className="px-3 py-1.5 text-[var(--muted)]">{t.date}</td>
                 <td className="px-3 py-1.5 text-[var(--muted)] font-mono text-xs">
@@ -176,16 +176,16 @@ export default function TradesTab({ trades }: TradesTabProps) {
                 </td>
                 <td
                   className={`px-3 py-1.5 text-right font-mono font-medium ${t.pnl >= 0
-                      ? "text-[var(--success)]"
-                      : "text-[var(--danger)]"
+                    ? "text-[var(--success)]"
+                    : "text-[var(--danger)]"
                     }`}
                 >
                   {t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(2)}
                 </td>
                 <td
                   className={`px-3 py-1.5 text-right font-mono ${(t.r_multiple || 0) >= 0
-                      ? "text-[var(--success)]"
-                      : "text-[var(--danger)]"
+                    ? "text-[var(--success)]"
+                    : "text-[var(--danger)]"
                     }`}
                 >
                   {t.r_multiple !== null ? `${t.r_multiple.toFixed(2)}R` : "—"}

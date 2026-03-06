@@ -59,48 +59,29 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
   const maeOverlay = useMemo(() => {
     if (!globalEquity.length || !trades.length) return [];
 
-    // O(N log N) sweep-line approach
-    const events: { time: number; mae: number; type: "start" | "end" }[] = [];
+    // Map each day's exact timestamp to the worst MAE of trades that occurred on that day
+    const dailyWorstMae = new Map<number, { mae: number; pnl: number; entryPrice: number; size: number }>();
     for (const t of trades) {
-      const entryTs = Math.floor(new Date(t.entry_time).getTime() / 1000);
-      const exitTs = Math.floor(new Date(t.exit_time).getTime() / 1000);
-      events.push({ time: entryTs, mae: t.mae, type: "start" });
-      events.push({ time: exitTs, mae: t.mae, type: "end" });
+      // globalEquity timestamps are midnight UTC of the trade date
+      const dayTs = new Date(t.date + "T00:00:00Z").getTime() / 1000;
+      const current = dailyWorstMae.get(dayTs);
+      if (!current || t.mae < current.mae) {
+        dailyWorstMae.set(dayTs, { mae: t.mae, pnl: t.pnl, entryPrice: t.entry_price, size: t.size });
+      }
     }
-    events.sort((a, b) => a.time - b.time);
 
-    // Track active MAEs
-    const activeMaes = new Map<number, number>(); // mae -> count
-    let worstActiveMae = 0;
-
-    let eventIdx = 0;
     return globalEquity.map((p) => {
       const timeSec = p.time as number;
+      const tradeInfo = dailyWorstMae.get(timeSec);
 
-      while (eventIdx < events.length && events[eventIdx].time <= timeSec) {
-        const e = events[eventIdx];
-        if (e.type === "start") {
-          activeMaes.set(e.mae, (activeMaes.get(e.mae) || 0) + 1);
-          if (e.mae < worstActiveMae) worstActiveMae = e.mae;
-        } else {
-          const count = activeMaes.get(e.mae) || 0;
-          if (count <= 1) {
-            activeMaes.delete(e.mae);
-            if (e.mae === worstActiveMae) {
-              // Recompute worst
-              worstActiveMae = 0;
-              for (const m of activeMaes.keys()) {
-                if (m < worstActiveMae) worstActiveMae = m;
-              }
-            }
-          } else {
-            activeMaes.set(e.mae, count - 1);
-          }
-        }
-        eventIdx++;
+      let val = p.value;
+      if (tradeInfo) {
+        // The equity before the trade was closed is `p.value - tradeInfo.pnl`
+        // The worst point during the trade was `Equity_Before + dollarMae`
+        const dollarMae = (tradeInfo.mae / 100) * (tradeInfo.entryPrice * tradeInfo.size);
+        val = (p.value - tradeInfo.pnl) + dollarMae;
       }
 
-      let val = p.value + worstActiveMae;
       if (viewMode === "%") {
         val = ((val / initCash) - 1) * 100;
       } else if (viewMode === "R") {
@@ -339,13 +320,13 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
               MAE {showMAE ? "ON" : "OFF"}
             </button>
 
-            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-md text-xs border border-[var(--border)] ml-2">
+            <div className="flex bg-[var(--sidebar-bg)] p-1 rounded-md text-xs border border-[var(--border)] ml-2">
               {(["$", "%", "R"] as ViewMode[]).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
                   className={`px-3 py-1 rounded transition-colors ${viewMode === mode
-                    ? "bg-white dark:bg-gray-700 text-[var(--foreground)] shadow-sm font-bold"
+                    ? "bg-[var(--card-bg)] text-[var(--foreground)] shadow-sm font-bold"
                     : "text-[var(--muted)] hover:text-[var(--foreground)]"
                     }`}
                 >

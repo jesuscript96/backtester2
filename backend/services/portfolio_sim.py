@@ -69,13 +69,13 @@ def simulate(
             exit_reason = "Signal"
             eff_exit_idx = i
 
-            # Track MAE (Maximum Adverse Excursion)
+            # Track MAE (Maximum Adverse Excursion) as a percentage
             if is_long:
-                unrealized_pnl = (low[i] - entry_price) * size
+                unrealized_pct = ((low[i] - entry_price) / entry_price) * 100
             else:
-                unrealized_pnl = (entry_price - high[i]) * size
-            if unrealized_pnl < mae:
-                mae = unrealized_pnl
+                unrealized_pct = ((entry_price - high[i]) / entry_price) * 100
+            if unrealized_pct < mae:
+                mae = unrealized_pct
 
             if is_long:
                 price_for_sl = low[i]

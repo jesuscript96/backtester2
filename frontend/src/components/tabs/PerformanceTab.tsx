@@ -338,7 +338,7 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
 
       {/* GRID SECTION */}
       <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden">
-        <div className="bg-gray-100 dark:bg-gray-800 border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
+        <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-[var(--foreground)]">Monthly Returns</h3>
           <div className="flex bg-[var(--card-bg)] rounded-md border border-[var(--border)] p-0.5 shadow-sm text-xs">
             {(["PnL %", "PnL $", "PnL R", "Win Rate", "Trades", "Profit Factor"] as GridMetric[]).map((m) => (
@@ -357,7 +357,7 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-center">
             <thead>
-              <tr className="border-b border-[var(--border)] bg-gray-100 dark:bg-gray-800/50">
+              <tr className="border-b border-[var(--border)] bg-[var(--sidebar-bg)]">
                 <th className="px-2 py-2 font-medium text-[var(--muted)] text-left pl-4">Year</th>
                 {MONTH_NAMES.map(m => (
                   <th key={m} className="px-1 py-2 font-medium text-[var(--muted)]">{m}</th>

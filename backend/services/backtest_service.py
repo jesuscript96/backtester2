@@ -397,7 +397,7 @@ def _compute_global_equity_and_drawdown(
 
     # Convert date strings to UNIX timestamps (midnight UTC)
     times = np.array(
-        [int(pd.Timestamp(d).timestamp()) for d in sorted_dates], dtype=np.int64
+        [int(pd.Timestamp(d, tz="UTC").timestamp()) for d in sorted_dates], dtype=np.int64
     )
 
     running_max = np.maximum.accumulate(values)

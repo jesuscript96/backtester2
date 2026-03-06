@@ -143,23 +143,23 @@ export default function RollingEVChart({ trades, riskR, isDarkMode = false }: Ro
             chart.remove();
             chartRef.current = null;
         };
-    }, [evData]);
+    }, [evData, isDarkMode]);
 
     return (
         <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col h-full transition-colors">
-            <div className="bg-gray-100 dark:bg-gray-800 border-b border-[var(--border)] px-3 py-1.5 flex items-center justify-between">
+            <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5 flex items-center justify-between">
                 <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground)]">
                     Rolling EV
                 </h2>
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-100 dark:bg-gray-900 rounded text-[10px] border border-gray-200 dark:border-gray-800">
+                    <div className="flex bg-[var(--sidebar-bg)] rounded text-[10px] border border-[var(--border)]">
                         {([["trades", "Trades"], ["days", "Días"]] as const).map(([val, label]) => (
                             <button
                                 key={val}
                                 onClick={() => setBasis(val)}
-                                className={`px-2 py-0.5 rounded transition-colors font-medium ${basis === val
-                                    ? "bg-white dark:bg-gray-800 text-[var(--foreground)] shadow-sm"
-                                    : "text-gray-400 hover:text-gray-600"
+                                className={`px-2 py-0.5 rounded transition-colors font-medium border-none ${basis === val
+                                    ? "bg-[var(--card-bg)] text-[var(--foreground)] shadow-sm"
+                                    : "text-gray-400 hover:text-[var(--foreground)]"
                                     }`}
                             >
                                 {label}

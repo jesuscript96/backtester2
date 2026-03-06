@@ -9,7 +9,7 @@ interface TradeTableProps {
 export default function TradeTable({ trades }: TradeTableProps) {
   if (trades.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-[var(--border)] p-4">
+      <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)] mb-2">
           Trades
         </h2>
@@ -19,7 +19,7 @@ export default function TradeTable({ trades }: TradeTableProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-[var(--border)] overflow-hidden">
+    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden">
       <div className="px-4 py-3 border-b border-[var(--border)]">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
           Trades ({trades.length})
@@ -27,7 +27,7 @@ export default function TradeTable({ trades }: TradeTableProps) {
       </div>
       <div className="overflow-x-auto max-h-80 overflow-y-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 sticky top-0">
+          <thead className="bg-[var(--sidebar-bg)] sticky top-0">
             <tr>
               <th className="px-3 py-2 text-left text-xs font-medium text-[var(--muted)] uppercase">Ticker</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-[var(--muted)] uppercase">Fecha</th>
@@ -42,16 +42,15 @@ export default function TradeTable({ trades }: TradeTableProps) {
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {trades.map((t, i) => (
-              <tr key={i} className="hover:bg-gray-50 transition-colors">
+              <tr key={i} className="hover:bg-[var(--card-muted-bg)] transition-colors">
                 <td className="px-3 py-2 font-medium">{t.ticker}</td>
                 <td className="px-3 py-2 text-[var(--muted)]">{t.date}</td>
                 <td className="px-3 py-2">
                   <span
-                    className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
-                      t.direction.toLowerCase().includes("long")
+                    className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${t.direction.toLowerCase().includes("long")
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-red-100 text-red-700"
-                    }`}
+                      }`}
                   >
                     {t.direction}
                   </span>
