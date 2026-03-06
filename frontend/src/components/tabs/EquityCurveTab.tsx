@@ -6,6 +6,8 @@ import {
   AreaSeries,
   HistogramSeries,
   BaselineSeries,
+  LineSeries,
+  LineStyle,
   type IChartApi,
   type Time,
 } from "lightweight-charts";
@@ -17,15 +19,17 @@ interface EquityCurveTabProps {
   trades: TradeRecord[];
   initCash: number;
   riskR: number;
+  isDarkMode?: boolean;
 }
 
-export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, initCash, riskR }: EquityCurveTabProps) {
+export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, initCash, riskR, isDarkMode = false }: EquityCurveTabProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const ddChartRef = useRef<IChartApi | null>(null);
 
   type ViewMode = "$" | "%" | "R";
   const [viewMode, setViewMode] = useState<ViewMode>("$");
+  const [showMAE, setShowMAE] = useState(false);
 
   const openPositions = useMemo(() => {
     if (!globalEquity.length || !trades.length) return [];
@@ -52,6 +56,60 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     }));
   }, [globalEquity, trades]);
 
+  const maeOverlay = useMemo(() => {
+    if (!globalEquity.length || !trades.length) return [];
+
+    // O(N log N) sweep-line approach
+    const events: { time: number; mae: number; type: "start" | "end" }[] = [];
+    for (const t of trades) {
+      const entryTs = Math.floor(new Date(t.entry_time).getTime() / 1000);
+      const exitTs = Math.floor(new Date(t.exit_time).getTime() / 1000);
+      events.push({ time: entryTs, mae: t.mae, type: "start" });
+      events.push({ time: exitTs, mae: t.mae, type: "end" });
+    }
+    events.sort((a, b) => a.time - b.time);
+
+    // Track active MAEs
+    const activeMaes = new Map<number, number>(); // mae -> count
+    let worstActiveMae = 0;
+
+    let eventIdx = 0;
+    return globalEquity.map((p) => {
+      const timeSec = p.time as number;
+
+      while (eventIdx < events.length && events[eventIdx].time <= timeSec) {
+        const e = events[eventIdx];
+        if (e.type === "start") {
+          activeMaes.set(e.mae, (activeMaes.get(e.mae) || 0) + 1);
+          if (e.mae < worstActiveMae) worstActiveMae = e.mae;
+        } else {
+          const count = activeMaes.get(e.mae) || 0;
+          if (count <= 1) {
+            activeMaes.delete(e.mae);
+            if (e.mae === worstActiveMae) {
+              // Recompute worst
+              worstActiveMae = 0;
+              for (const m of activeMaes.keys()) {
+                if (m < worstActiveMae) worstActiveMae = m;
+              }
+            }
+          } else {
+            activeMaes.set(e.mae, count - 1);
+          }
+        }
+        eventIdx++;
+      }
+
+      let val = p.value + worstActiveMae;
+      if (viewMode === "%") {
+        val = ((val / initCash) - 1) * 100;
+      } else if (viewMode === "R") {
+        val = riskR > 0 ? (val - initCash) / riskR : 0;
+      }
+      return { time: p.time as Time, value: val };
+    });
+  }, [globalEquity, trades, viewMode, initCash, riskR]);
+
   useEffect(() => {
     if (!containerRef.current || !globalEquity.length) return;
 
@@ -68,13 +126,16 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     const chart = createChart(equityContainer, {
       width: equityContainer.clientWidth,
       height: 400,
-      layout: { background: { color: "#ffffff" }, textColor: "#333" },
-      grid: {
-        vertLines: { color: "#f0f0f0" },
-        horzLines: { color: "#f0f0f0" },
+      layout: {
+        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        textColor: isDarkMode ? "#f8fafc" : "#333"
       },
-      rightPriceScale: { borderColor: "#e2e8f0" },
-      timeScale: { borderColor: "#e2e8f0", timeVisible: true },
+      grid: {
+        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+      },
+      rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+      timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
     });
     chartRef.current = chart;
 
@@ -107,6 +168,15 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       posSeries.setData(openPositions);
     }
 
+    if (maeOverlay.length) {
+      const maeSeries = chart.addSeries(LineSeries, {
+        color: isDarkMode ? "#f87171" : "#ef4444", // Reddish
+        lineWidth: 1,
+        lineStyle: LineStyle.Dotted,
+        visible: showMAE,
+      });
+      maeSeries.setData(maeOverlay);
+    }
 
 
     // --- Drawdown Chart ---
@@ -117,13 +187,16 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       ddChart = createChart(ddContainer, {
         width: ddContainer.clientWidth,
         height: 150,
-        layout: { background: { color: "#ffffff" }, textColor: "#333" },
-        grid: {
-          vertLines: { color: "#f0f0f0" },
-          horzLines: { color: "#f0f0f0" },
+        layout: {
+          background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+          textColor: isDarkMode ? "#f8fafc" : "#333"
         },
-        rightPriceScale: { borderColor: "#e2e8f0" },
-        timeScale: { borderColor: "#e2e8f0", timeVisible: true },
+        grid: {
+          vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+          horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        },
+        rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+        timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
       });
       ddChartRef.current = ddChart;
 
@@ -200,7 +273,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       chartRef.current = null;
       ddChartRef.current = null;
     };
-  }, [globalEquity, globalDrawdown, openPositions, viewMode, initCash, riskR]);
+  }, [globalEquity, globalDrawdown, openPositions, maeOverlay, viewMode, initCash, riskR, isDarkMode, showMAE]);
 
   if (!globalEquity.length) {
     return <p className="text-sm text-[var(--muted)]">Sin datos de equity</p>;
@@ -255,19 +328,31 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
             </div>
           </div>
 
-          <div className="flex bg-gray-100 p-1.5 rounded-md text-sm border border-gray-200">
-            {(["$", "%", "R"] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-3 py-1 rounded transition-colors ${viewMode === mode
-                  ? "bg-white text-gray-900 shadow-sm font-medium"
-                  : "text-gray-500 hover:text-gray-700"
-                  }`}
-              >
-                {mode}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowMAE(!showMAE)}
+              className={`px-3 py-1 rounded text-xs font-bold transition-all border ${showMAE
+                ? "bg-red-50 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800"
+                : "bg-[var(--card-bg)] text-[var(--muted)] border-[var(--border)] hover:bg-[var(--card-muted-bg)]"
+                }`}
+            >
+              MAE {showMAE ? "ON" : "OFF"}
+            </button>
+
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-md text-xs border border-[var(--border)] ml-2">
+              {(["$", "%", "R"] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-3 py-1 rounded transition-colors ${viewMode === mode
+                    ? "bg-white dark:bg-gray-700 text-[var(--foreground)] shadow-sm font-bold"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                    }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

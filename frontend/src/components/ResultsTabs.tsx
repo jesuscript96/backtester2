@@ -28,6 +28,7 @@ interface ResultsTabsProps {
   candlesLoading: boolean;
   currentTrades: TradeRecord[];
   currentEquity: EquityPoint[];
+  isDarkMode?: boolean;
 }
 
 export default function ResultsTabs({
@@ -38,11 +39,12 @@ export default function ResultsTabs({
   candlesLoading,
   currentTrades,
   currentEquity,
+  isDarkMode = false,
 }: ResultsTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>("performance");
 
   return (
-    <div className="bg-white rounded-lg border border-[var(--border)] overflow-hidden">
+    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden transition-colors">
       <div className="border-b border-[var(--border)] overflow-x-auto">
         <nav className="flex min-w-max">
           {TABS.map((tab) => (
@@ -68,10 +70,11 @@ export default function ResultsTabs({
             trades={result.trades}
             initCash={initCash}
             riskR={riskR}
+            isDarkMode={isDarkMode}
           />
         )}
         {activeTab === "calendar" && (
-          <CalendarTab dayResults={result.day_results} trades={result.trades} />
+          <CalendarTab dayResults={result.day_results} trades={result.trades} isDarkMode={isDarkMode} />
         )}
         {activeTab === "trades" && <TradesTab trades={result.trades} />}
         {activeTab === "analysis" && (

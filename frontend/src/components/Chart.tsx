@@ -37,25 +37,74 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
   const chartRef = useRef<IChartApi | null>(null);
   const subChartsRef = useRef<IChartApi[]>([]);
 
-  const [activeIndicators, setActiveIndicators] = useState<Set<string>>(new Set());
-  const [smaPeriod, setSmaPeriod] = useState(20);
-  const [emaPeriod, setEmaPeriod] = useState(20);
-  const [rsiPeriod, setRsiPeriod] = useState(14);
-  const [atrPeriod, setAtrPeriod] = useState(14);
-
-  const toggleIndicator = (id: string) => {
-    setActiveIndicators((prev: Set<string>) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  // Custom hook for local storage persistence
+  function useLocalStorage<T>(key: string, initialValue: T) {
+    const [storedValue, setStoredValue] = useState<T>(() => {
+      if (typeof window === "undefined") return initialValue;
+      try {
+        const item = window.localStorage.getItem(key);
+        return item ? JSON.parse(item) : initialValue;
+      } catch (error) {
+        console.warn(`Error reading localStorage key "${key}":`, error);
+        return initialValue;
+      }
     });
+
+    const setValue = (value: T | ((val: T) => T)) => {
+      try {
+        const valueToStore = value instanceof Function ? value(storedValue) : value;
+        setStoredValue(valueToStore);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        }
+      } catch (error) {
+        console.warn(`Error setting localStorage key "${key}":`, error);
+      }
+    };
+
+    return [storedValue, setValue] as const;
+  }
+
+  // Array-based indicator states
+  type IndicatorItem = { id: string; period: number };
+  const [smas, setSmas] = useLocalStorage<IndicatorItem[]>("chart_smas", []);
+  const [emas, setEmas] = useLocalStorage<IndicatorItem[]>("chart_emas", []);
+  const [rsis, setRsis] = useLocalStorage<IndicatorItem[]>("chart_rsis", []);
+  const [atrs, setAtrs] = useLocalStorage<IndicatorItem[]>("chart_atrs", []);
+
+  // Non-period indicators
+  const [showMACD, setShowMACD] = useLocalStorage<boolean>("chart_macd", false);
+  const [showVWAP, setShowVWAP] = useLocalStorage<boolean>("chart_vwap", false);
+
+  // Layout booleans
+  const hasRSI = rsis.length > 0;
+  const hasMACD = showMACD;
+  const hasATR = atrs.length > 0;
+
+  // Generic helpers for arrays
+  const addIndicator = (
+    setter: React.Dispatch<React.SetStateAction<IndicatorItem[]>>,
+    defaultPeriod: number
+  ) => {
+    setter((prev) => [...prev, { id: Math.random().toString(36).substring(7), period: defaultPeriod }]);
   };
 
-  // Count active oscillators for layout
-  const hasRSI = activeIndicators.has("RSI");
-  const hasMACD = activeIndicators.has("MACD");
-  const hasATR = activeIndicators.has("ATR");
+  const removeIndicator = (
+    setter: React.Dispatch<React.SetStateAction<IndicatorItem[]>>,
+    idToRemove: string
+  ) => {
+    setter((prev) => prev.filter((i) => i.id !== idToRemove));
+  };
+
+  const updateIndicator = (
+    setter: React.Dispatch<React.SetStateAction<IndicatorItem[]>>,
+    idToUpdate: string,
+    newPeriod: number
+  ) => {
+    setter((prev) =>
+      prev.map((i) => (i.id === idToUpdate ? { ...i, period: newPeriod } : i))
+    );
+  };
 
   useEffect(() => {
     if (!chartContainerRef.current || candles.length === 0) return;
@@ -168,21 +217,25 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
     }
 
     // --- OVERLAY INDICATORS (SMA, EMA, VWAP) ---
-    if (activeIndicators.has("SMA")) {
-      const smaData = calculateSMA(candles, smaPeriod);
+    const smaColors = ["#f59e0b", "#d97706", "#b45309", "#78350f"];
+    smas.forEach((sma, idx) => {
+      const smaData = calculateSMA(candles, sma.period);
       if (smaData.length > 0) {
-        const series = chart.addSeries(LineSeries, { color: "#f59e0b", lineWidth: 2 });
+        const series = chart.addSeries(LineSeries, { color: smaColors[idx % smaColors.length], lineWidth: 2 });
         series.setData(smaData);
       }
-    }
-    if (activeIndicators.has("EMA")) {
-      const emaData = calculateEMA(candles, emaPeriod);
+    });
+
+    const emaColors = ["#a855f7", "#9333ea", "#7e22ce", "#581c87"];
+    emas.forEach((ema, idx) => {
+      const emaData = calculateEMA(candles, ema.period);
       if (emaData.length > 0) {
-        const series = chart.addSeries(LineSeries, { color: "#a855f7", lineWidth: 2 });
+        const series = chart.addSeries(LineSeries, { color: emaColors[idx % emaColors.length], lineWidth: 2 });
         series.setData(emaData);
       }
-    }
-    if (activeIndicators.has("VWAP")) {
+    });
+
+    if (showVWAP) {
       // Use backend-computed VWAP (session-aware, matches strategy engine)
       const vwapData = deduped
         .filter((c) => c.vwap != null)
@@ -237,16 +290,24 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
     // ========== RSI SUB-CHART ==========
     if (hasRSI && rsiContainerRef.current) {
       const rsiChart = createSubChart(rsiContainerRef.current);
-      const rsiData = calculateRSI(candles, rsiPeriod);
-      if (rsiData.length > 0) {
-        const rsiSeries = rsiChart.addSeries(LineSeries, {
-          color: "#3b82f6",
-          lineWidth: 2,
-        });
-        rsiSeries.setData(rsiData);
-        rsiSeries.createPriceLine({ price: 70, color: "#ef4444", lineWidth: 1, lineStyle: 2 });
-        rsiSeries.createPriceLine({ price: 30, color: "#10b981", lineWidth: 1, lineStyle: 2 });
-      }
+      const rsiColors = ["#3b82f6", "#2563eb", "#1d4ed8", "#1e3a8a"];
+
+      let boundsCreated = false;
+      rsis.forEach((rsi, idx) => {
+        const rsiData = calculateRSI(candles, rsi.period);
+        if (rsiData.length > 0) {
+          const rsiSeries = rsiChart.addSeries(LineSeries, {
+            color: rsiColors[idx % rsiColors.length],
+            lineWidth: 2,
+          });
+          rsiSeries.setData(rsiData);
+          if (!boundsCreated) {
+            rsiSeries.createPriceLine({ price: 70, color: "#ef4444", lineWidth: 1, lineStyle: 2 });
+            rsiSeries.createPriceLine({ price: 30, color: "#10b981", lineWidth: 1, lineStyle: 2 });
+            boundsCreated = true;
+          }
+        }
+      });
       rsiChart.timeScale().fitContent();
     }
 
@@ -280,14 +341,18 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
     // ========== ATR SUB-CHART ==========
     if (hasATR && atrContainerRef.current) {
       const atrChart = createSubChart(atrContainerRef.current);
-      const atrData = calculateATR(candles, atrPeriod);
-      if (atrData.length > 0) {
-        const atrSeries = atrChart.addSeries(LineSeries, {
-          color: "#8b5cf6",
-          lineWidth: 2,
-        });
-        atrSeries.setData(atrData);
-      }
+      const atrColors = ["#8b5cf6", "#7c3aed", "#6d28d9", "#4c1d95"];
+
+      atrs.forEach((atr, idx) => {
+        const atrData = calculateATR(candles, atr.period);
+        if (atrData.length > 0) {
+          const atrSeries = atrChart.addSeries(LineSeries, {
+            color: atrColors[idx % atrColors.length],
+            lineWidth: 2,
+          });
+          atrSeries.setData(atrData);
+        }
+      });
       atrChart.timeScale().fitContent();
     }
 
@@ -313,7 +378,7 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles, trades, equity, activeIndicators, smaPeriod, emaPeriod, rsiPeriod, atrPeriod, hasRSI, hasMACD, hasATR]);
+  }, [candles, trades, equity, smas, emas, rsis, atrs, showMACD, showVWAP, hasRSI, hasMACD, hasATR]);
 
   return (
     <div className="bg-white rounded-lg border border-[var(--border)] overflow-hidden">
@@ -326,59 +391,119 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
           <span className="text-xs px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">1m</span>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* SMA */}
-          <div className={`flex items-center border rounded overflow-hidden transition-colors ${activeIndicators.has("SMA") ? "border-amber-500 bg-amber-50" : "border-gray-300 bg-white"}`}>
-            <button onClick={() => toggleIndicator("SMA")} className={`px-2 py-1 font-medium ${activeIndicators.has("SMA") ? "text-amber-700" : "text-gray-600 hover:bg-gray-100"}`}>
+          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
+            <button
+              onClick={() => (smas.length === 0 ? addIndicator(setSmas, 20) : setSmas([]))}
+              className={`px-2 py-1 font-medium transition-colors ${smas.length > 0 ? "bg-amber-100 text-amber-800" : "text-gray-600 hover:bg-gray-100"}`}
+            >
               SMA
             </button>
-            {activeIndicators.has("SMA") && (
-              <input type="number" value={smaPeriod} onChange={e => setSmaPeriod(Number(e.target.value))} className="w-12 pl-1 pr-0 py-1 border-l border-amber-200 bg-transparent text-amber-900 outline-none" min={1} />
+            {smas.map((sma) => (
+              <div key={sma.id} className="flex items-center bg-amber-50 pl-1">
+                <input
+                  type="number"
+                  value={sma.period}
+                  onChange={(e) => updateIndicator(setSmas, sma.id, Number(e.target.value))}
+                  className="w-10 bg-transparent text-amber-900 outline-none"
+                  min={1}
+                />
+                <button onClick={() => removeIndicator(setSmas, sma.id)} className="px-1 text-amber-500 hover:text-amber-700">×</button>
+              </div>
+            ))}
+            {smas.length > 0 && (
+              <button onClick={() => addIndicator(setSmas, 50)} className="px-1.5 py-1 text-amber-600 hover:bg-amber-100 border-l border-gray-200">+</button>
             )}
           </div>
 
           {/* EMA */}
-          <div className={`flex items-center border rounded overflow-hidden transition-colors ${activeIndicators.has("EMA") ? "border-purple-500 bg-purple-50" : "border-gray-300 bg-white"}`}>
-            <button onClick={() => toggleIndicator("EMA")} className={`px-2 py-1 font-medium ${activeIndicators.has("EMA") ? "text-purple-700" : "text-gray-600 hover:bg-gray-100"}`}>
+          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
+            <button
+              onClick={() => (emas.length === 0 ? addIndicator(setEmas, 20) : setEmas([]))}
+              className={`px-2 py-1 font-medium transition-colors ${emas.length > 0 ? "bg-purple-100 text-purple-800" : "text-gray-600 hover:bg-gray-100"}`}
+            >
               EMA
             </button>
-            {activeIndicators.has("EMA") && (
-              <input type="number" value={emaPeriod} onChange={e => setEmaPeriod(Number(e.target.value))} className="w-12 pl-1 pr-0 py-1 border-l border-purple-200 bg-transparent text-purple-900 outline-none" min={1} />
+            {emas.map((ema) => (
+              <div key={ema.id} className="flex items-center bg-purple-50 pl-1">
+                <input
+                  type="number"
+                  value={ema.period}
+                  onChange={(e) => updateIndicator(setEmas, ema.id, Number(e.target.value))}
+                  className="w-10 bg-transparent text-purple-900 outline-none"
+                  min={1}
+                />
+                <button onClick={() => removeIndicator(setEmas, ema.id)} className="px-1 text-purple-500 hover:text-purple-700">×</button>
+              </div>
+            ))}
+            {emas.length > 0 && (
+              <button onClick={() => addIndicator(setEmas, 50)} className="px-1.5 py-1 text-purple-600 hover:bg-purple-100 border-l border-gray-200">+</button>
             )}
           </div>
 
           {/* RSI */}
-          <div className={`flex items-center border rounded overflow-hidden transition-colors ${activeIndicators.has("RSI") ? "border-blue-500 bg-blue-50" : "border-gray-300 bg-white"}`}>
-            <button onClick={() => toggleIndicator("RSI")} className={`px-2 py-1 font-medium ${activeIndicators.has("RSI") ? "text-blue-700" : "text-gray-600 hover:bg-gray-100"}`}>
+          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
+            <button
+              onClick={() => (rsis.length === 0 ? addIndicator(setRsis, 14) : setRsis([]))}
+              className={`px-2 py-1 font-medium transition-colors ${rsis.length > 0 ? "bg-blue-100 text-blue-800" : "text-gray-600 hover:bg-gray-100"}`}
+            >
               RSI
             </button>
-            {activeIndicators.has("RSI") && (
-              <input type="number" value={rsiPeriod} onChange={e => setRsiPeriod(Number(e.target.value))} className="w-12 pl-1 pr-0 py-1 border-l border-blue-200 bg-transparent text-blue-900 outline-none" min={1} />
+            {rsis.map((rsi) => (
+              <div key={rsi.id} className="flex items-center bg-blue-50 pl-1">
+                <input
+                  type="number"
+                  value={rsi.period}
+                  onChange={(e) => updateIndicator(setRsis, rsi.id, Number(e.target.value))}
+                  className="w-10 bg-transparent text-blue-900 outline-none"
+                  min={1}
+                />
+                <button onClick={() => removeIndicator(setRsis, rsi.id)} className="px-1 text-blue-500 hover:text-blue-700">×</button>
+              </div>
+            ))}
+            {rsis.length > 0 && (
+              <button onClick={() => addIndicator(setRsis, 14)} className="px-1.5 py-1 text-blue-600 hover:bg-blue-100 border-l border-gray-200">+</button>
             )}
           </div>
 
           {/* MACD */}
           <button
-            onClick={() => toggleIndicator("MACD")}
-            className={`px-2 py-1 border rounded font-medium transition-colors ${activeIndicators.has("MACD") ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"}`}
+            onClick={() => setShowMACD(!showMACD)}
+            className={`px-2 py-1 border rounded font-medium transition-colors ${showMACD ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"}`}
           >
             MACD
           </button>
 
           {/* ATR */}
-          <div className={`flex items-center border rounded overflow-hidden transition-colors ${activeIndicators.has("ATR") ? "border-violet-500 bg-violet-50" : "border-gray-300 bg-white"}`}>
-            <button onClick={() => toggleIndicator("ATR")} className={`px-2 py-1 font-medium ${activeIndicators.has("ATR") ? "text-violet-700" : "text-gray-600 hover:bg-gray-100"}`}>
+          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
+            <button
+              onClick={() => (atrs.length === 0 ? addIndicator(setAtrs, 14) : setAtrs([]))}
+              className={`px-2 py-1 font-medium transition-colors ${atrs.length > 0 ? "bg-violet-100 text-violet-800" : "text-gray-600 hover:bg-gray-100"}`}
+            >
               ATR
             </button>
-            {activeIndicators.has("ATR") && (
-              <input type="number" value={atrPeriod} onChange={e => setAtrPeriod(Number(e.target.value))} className="w-12 pl-1 pr-0 py-1 border-l border-violet-200 bg-transparent text-violet-900 outline-none" min={1} />
+            {atrs.map((atr) => (
+              <div key={atr.id} className="flex items-center bg-violet-50 pl-1">
+                <input
+                  type="number"
+                  value={atr.period}
+                  onChange={(e) => updateIndicator(setAtrs, atr.id, Number(e.target.value))}
+                  className="w-10 bg-transparent text-violet-900 outline-none"
+                  min={1}
+                />
+                <button onClick={() => removeIndicator(setAtrs, atr.id)} className="px-1 text-violet-500 hover:text-violet-700">×</button>
+              </div>
+            ))}
+            {atrs.length > 0 && (
+              <button onClick={() => addIndicator(setAtrs, 14)} className="px-1.5 py-1 text-violet-600 hover:bg-violet-100 border-l border-gray-200">+</button>
             )}
           </div>
 
           {/* VWAP */}
           <button
-            onClick={() => toggleIndicator("VWAP")}
-            className={`px-2 py-1 border rounded font-medium transition-colors ${activeIndicators.has("VWAP") ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"}`}
+            onClick={() => setShowVWAP(!showVWAP)}
+            className={`px-2 py-1 border rounded font-medium transition-colors ${showVWAP ? "border-pink-500 bg-pink-50 text-pink-700" : "border-gray-300 bg-white text-gray-600 hover:bg-gray-100"}`}
           >
             VWAP
           </button>
@@ -391,8 +516,8 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
       {/* RSI SUB-CHART */}
       {hasRSI && (
         <div className="border-t border-gray-200">
-          <div className="px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-            RSI ({rsiPeriod})
+          <div className="px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 tracking-wider flex items-center gap-1">
+            RSI {rsis.map(r => <span key={r.id} className="bg-blue-100 text-blue-700 px-1 rounded">{r.period}</span>)}
           </div>
           <div ref={rsiContainerRef} style={{ width: "100%", height: "120px" }} />
         </div>
@@ -411,8 +536,8 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
       {/* ATR SUB-CHART */}
       {hasATR && (
         <div className="border-t border-gray-200">
-          <div className="px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-            ATR ({atrPeriod})
+          <div className="px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 tracking-wider flex items-center gap-1">
+            ATR {atrs.map(a => <span key={a.id} className="bg-violet-100 text-violet-700 px-1 rounded">{a.period}</span>)}
           </div>
           <div ref={atrContainerRef} style={{ width: "100%", height: "120px" }} />
         </div>

@@ -19,11 +19,14 @@ interface BacktestPanelProps {
     custom_end_time?: string;
     locates_cost?: number;
     look_ahead_prevention?: boolean;
+    risk_type?: string;
+    size_by_sl?: boolean;
   }) => void;
   loading: boolean;
+  isDarkMode?: boolean;
 }
 
-export default function BacktestPanel({ onRun, loading }: BacktestPanelProps) {
+export default function BacktestPanel({ onRun, loading, isDarkMode = false }: BacktestPanelProps) {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [selectedDataset, setSelectedDataset] = useState("");
@@ -40,6 +43,8 @@ export default function BacktestPanel({ onRun, loading }: BacktestPanelProps) {
   const [locatesCost, setLocatesCost] = useState(0);
   const [useLocates, setUseLocates] = useState(false);
   const [lookAheadPrevention, setLookAheadPrevention] = useState(true);
+  const [riskType, setRiskType] = useState<"FIXED" | "PERCENT" | "KELLY">("FIXED");
+  const [sizeBySl, setSizeBySl] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -100,6 +105,8 @@ export default function BacktestPanel({ onRun, loading }: BacktestPanelProps) {
       custom_end_time: marketSessions.includes("custom") ? customEndTime : undefined,
       locates_cost: useLocates ? locatesCost : 0,
       look_ahead_prevention: lookAheadPrevention,
+      risk_type: riskType,
+      size_by_sl: sizeBySl,
     });
   };
 
@@ -193,11 +200,23 @@ export default function BacktestPanel({ onRun, loading }: BacktestPanelProps) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1 text-[var(--muted)]">
-                Riesgo 1R ($)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-[var(--muted)]">
+                  Riesgo 1R {riskType === "PERCENT" ? "(%)" : riskType === "KELLY" ? "(K)" : "($)"}
+                </label>
+                <select
+                  value={riskType}
+                  onChange={(e) => setRiskType(e.target.value as "FIXED" | "PERCENT" | "KELLY")}
+                  className="text-[10px] bg-transparent text-[var(--muted)] hover:text-[var(--foreground)] outline-none cursor-pointer"
+                >
+                  <option value="FIXED">Fijo ($)</option>
+                  <option value="PERCENT">% Eq</option>
+                  <option value="KELLY">Kelly</option>
+                </select>
+              </div>
               <input
                 type="number"
+                step={riskType === "PERCENT" ? "0.1" : "1"}
                 value={riskR}
                 onChange={(e) => setRiskR(Number(e.target.value))}
                 className="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm bg-[var(--card-muted-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
@@ -268,6 +287,23 @@ export default function BacktestPanel({ onRun, loading }: BacktestPanelProps) {
                 {lookAheadPrevention ? "ON" : "OFF"}
               </span>
             </div>
+
+            <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
+              <div className="flex flex-col">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sizeBySl}
+                    onChange={() => setSizeBySl(!sizeBySl)}
+                    className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                  />
+                  <span className="text-xs font-medium text-[var(--muted)]">Size por Distancia al SL</span>
+                </label>
+                <span className="text-[10px] text-[var(--muted)] mt-1 ml-6 leading-tight">
+                  Calcula nº Shares usando el Riesgo dividido por la distancia real al Stop Loss
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -328,7 +364,7 @@ export default function BacktestPanel({ onRun, loading }: BacktestPanelProps) {
                     onChange={() => toggleSession(session.id)}
                     className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
                   />
-                  <span className="text-xs text-[var(--foreground)]">{session.label}</span>
+                  <span className="text-xs text-[var(--muted)]">{session.label}</span>
                 </label>
                 {session.time && (
                   <span className="text-[10px] text-[var(--muted)]">{session.time}</span>

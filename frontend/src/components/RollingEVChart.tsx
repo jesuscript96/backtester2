@@ -12,9 +12,10 @@ import type { TradeRecord } from "@/lib/api";
 interface RollingEVChartProps {
     trades: TradeRecord[];
     riskR: number;
+    isDarkMode?: boolean;
 }
 
-export default function RollingEVChart({ trades, riskR }: RollingEVChartProps) {
+export default function RollingEVChart({ trades, riskR, isDarkMode = false }: RollingEVChartProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const [rollingWindow, setRollingWindow] = useState(50);
@@ -92,13 +93,16 @@ export default function RollingEVChart({ trades, riskR }: RollingEVChartProps) {
         const chart = createChart(containerRef.current, {
             width: containerRef.current.clientWidth,
             height: containerRef.current.clientHeight || 120,
-            layout: { background: { color: "#ffffff" }, textColor: "#999" },
-            grid: {
-                vertLines: { color: "#f5f5f5" },
-                horzLines: { color: "#f5f5f5" },
+            layout: {
+                background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+                textColor: isDarkMode ? "#94a3b8" : "#999"
             },
-            rightPriceScale: { borderColor: "#e2e8f0" },
-            timeScale: { borderColor: "#e2e8f0", timeVisible: true },
+            grid: {
+                vertLines: { color: isDarkMode ? "#1e293b" : "#f5f5f5" },
+                horzLines: { color: isDarkMode ? "#1e293b" : "#f5f5f5" },
+            },
+            rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+            timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
             crosshair: { mode: 0 },
         });
         chartRef.current = chart;
@@ -142,19 +146,19 @@ export default function RollingEVChart({ trades, riskR }: RollingEVChartProps) {
     }, [evData]);
 
     return (
-        <div className="bg-white rounded border border-gray-300 shadow-sm overflow-hidden flex flex-col h-full">
-            <div className="bg-gray-50 border-b border-gray-300 px-3 py-1.5 flex items-center justify-between">
-                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-600">
+        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col h-full transition-colors">
+            <div className="bg-gray-100 dark:bg-gray-800 border-b border-[var(--border)] px-3 py-1.5 flex items-center justify-between">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground)]">
                     Rolling EV
                 </h2>
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-100 rounded text-[10px] border border-gray-200">
+                    <div className="flex bg-gray-100 dark:bg-gray-900 rounded text-[10px] border border-gray-200 dark:border-gray-800">
                         {([["trades", "Trades"], ["days", "Días"]] as const).map(([val, label]) => (
                             <button
                                 key={val}
                                 onClick={() => setBasis(val)}
                                 className={`px-2 py-0.5 rounded transition-colors font-medium ${basis === val
-                                    ? "bg-white text-gray-900 shadow-sm"
+                                    ? "bg-white dark:bg-gray-800 text-[var(--foreground)] shadow-sm"
                                     : "text-gray-400 hover:text-gray-600"
                                     }`}
                             >
@@ -163,14 +167,14 @@ export default function RollingEVChart({ trades, riskR }: RollingEVChartProps) {
                         ))}
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] text-gray-400 uppercase">Window</span>
+                        <span className="text-[9px] text-[var(--muted)] uppercase">Window</span>
                         <input
                             type="number"
                             min={5}
                             max={500}
                             value={rollingWindow}
                             onChange={(e) => setRollingWindow(Math.max(5, Math.min(500, parseInt(e.target.value) || 50)))}
-                            className="w-12 text-xs border border-gray-200 rounded px-1.5 py-0.5 text-center font-mono bg-white"
+                            className="w-12 text-xs border border-[var(--border)] rounded px-1.5 py-0.5 text-center font-mono bg-[var(--card-muted-bg)] text-[var(--foreground)]"
                         />
                     </div>
                 </div>

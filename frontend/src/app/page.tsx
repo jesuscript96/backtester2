@@ -19,6 +19,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const initCashRef = useRef(10000);
   const riskRRef = useRef(100);
   const datasetIdRef = useRef("");
@@ -102,6 +103,27 @@ export default function Home() {
     }
   }, [result, selectedDay, loadCandles]);
 
+  // Dark Mode side-effect
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") {
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    const newVal = !isDarkMode;
+    setIsDarkMode(newVal);
+    if (newVal) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
+
   const selectedDayResult = result?.day_results?.[selectedDay];
   const currentEquity = result?.equity_curves?.find(
     (e) =>
@@ -117,19 +139,27 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <header className="border-b border-[var(--border)] bg-white px-6 py-3">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors duration-200">
+      <header className="border-b border-[var(--border)] bg-[var(--card-bg)] px-6 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold text-[var(--foreground)]">BacktesterJaume</h1>
-          <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+          <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-100 font-medium">
             VectorBT
           </span>
         </div>
+
+        <button
+          onClick={toggleDarkMode}
+          className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 border border-[var(--border)] transition-colors"
+          title={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+        >
+          {isDarkMode ? "☀️" : "🌙"}
+        </button>
       </header>
 
       <div className="flex h-[calc(100vh-53px)]">
         <aside className="w-80 min-w-80 border-r border-[var(--border)] p-4 overflow-y-auto space-y-4 bg-[var(--sidebar-bg)]">
-          <BacktestPanel onRun={handleRun} loading={loading} />
+          <BacktestPanel onRun={handleRun} loading={loading} isDarkMode={isDarkMode} />
 
           {result && (
             <DaySelector
@@ -142,8 +172,8 @@ export default function Home() {
 
         <main className="flex-1 overflow-y-auto p-4 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4">
+              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
 
@@ -177,20 +207,21 @@ export default function Home() {
               {/* TOP ROW: Equity Curve (2/3) + Metrics (1/3) */}
               <div className="flex gap-4">
                 <div className="w-2/3">
-                  <div className="bg-white rounded border border-gray-300 shadow-sm overflow-hidden">
+                  <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden">
                     <EquityCurveTab
                       globalEquity={result.global_equity}
                       globalDrawdown={result.global_drawdown}
                       trades={result.trades}
                       initCash={initCashRef.current}
                       riskR={riskRRef.current}
+                      isDarkMode={isDarkMode}
                     />
                   </div>
                 </div>
                 <div className="w-1/3 flex flex-col gap-4">
                   <MetricsCard metrics={result.aggregate_metrics} vertical />
                   <div className="flex-1" style={{ minHeight: 140 }}>
-                    <RollingEVChart trades={result.trades} riskR={riskRRef.current} />
+                    <RollingEVChart trades={result.trades} riskR={riskRRef.current} isDarkMode={isDarkMode} />
                   </div>
                 </div>
               </div>
@@ -203,6 +234,7 @@ export default function Home() {
                 candlesLoading={candlesLoading}
                 currentTrades={currentTrades || []}
                 currentEquity={currentEquity?.equity || []}
+                isDarkMode={isDarkMode}
               />
             </>
           )}

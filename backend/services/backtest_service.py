@@ -37,6 +37,8 @@ def run_backtest(
     strategy_def: dict,
     init_cash: float = 10000.0,
     risk_r: float = 100.0,
+    risk_type: str = "FIXED",
+    size_by_sl: bool = False,
     fees: float = 0.0,
     slippage: float = 0.0,
     market_sessions: list[str] | None = None,
@@ -50,11 +52,9 @@ def run_backtest(
     qual_lookup = _build_qualifying_lookup(qualifying_df)
     del qualifying_df
 
-    # Filter by market sessions if provided
-    if market_sessions:
-        intraday_df = _filter_by_market_sessions(
-            intraday_df, market_sessions, custom_start_time, custom_end_time
-        )
+    # We no longer filter intraday_df upfront. We'll compute a session mask per day
+    # so that indicators like VWAP and SMA calculate correctly using the full day,
+    # but entries only happen during allowed sessions.
 
     if intraday_df.empty:
         return {
@@ -76,6 +76,17 @@ def run_backtest(
     days_with_entries = 0
     scanned = 0
     t1 = time.time()
+
+    # Tracking running stats for KELLY
+    running_stats = {
+        "win_count": 0,
+        "loss_count": 0,
+        "total_win_pnl": 0.0,
+        "total_loss_pnl": 0.0,
+        "win_rate": 0.5, # Default starting point
+        "avg_win": 0.0,
+        "avg_loss": 0.0
+    }
 
     for (ticker_raw, date_raw), day_df in grouped:
         scanned += 1
@@ -110,6 +121,18 @@ def run_backtest(
         entries_arr = signals["entries"].values if hasattr(signals["entries"], "values") else np.asarray(signals["entries"])
         exits_arr = signals["exits"].values if hasattr(signals["exits"], "values") else np.asarray(signals["exits"])
 
+        # Apply market session mask to entries
+        if market_sessions and "all" not in market_sessions:
+            session_mask = _get_market_sessions_mask(
+                mini_df["timestamp"], market_sessions, custom_start_time, custom_end_time
+            )
+            entries_arr = entries_arr & session_mask
+
+        # If after masking we have no entries, skip simulation
+        if not np.any(entries_arr):
+            del mini_df, signals
+            continue
+
         try:
             sim_result = simulate(
                 close=arrays["close"],
@@ -121,6 +144,9 @@ def run_backtest(
                 direction=signals["direction"],
                 init_cash=init_cash,
                 risk_r=risk_r,
+                risk_type=risk_type,
+                size_by_sl=size_by_sl,
+                prev_stats=running_stats, # Pass stats for Kelly
                 fees=fees,
                 slippage=slippage,
                 locates_cost=locates_cost,
@@ -143,6 +169,22 @@ def run_backtest(
         if not raw_trades:
             del sim_result
             continue
+
+        # Update running stats for Kelly Criterion
+        for t in raw_trades:
+            pnl = t["pnl"]
+            if pnl > 0:
+                running_stats["win_count"] += 1
+                running_stats["total_win_pnl"] += pnl
+            else:
+                running_stats["loss_count"] += 1
+                running_stats["total_loss_pnl"] += abs(pnl)
+        
+        total_finished = running_stats["win_count"] + running_stats["loss_count"]
+        if total_finished > 0:
+            running_stats["win_rate"] = running_stats["win_count"] / total_finished
+            running_stats["avg_win"] = running_stats["total_win_pnl"] / running_stats["win_count"] if running_stats["win_count"] > 0 else 0.0
+            running_stats["avg_loss"] = running_stats["total_loss_pnl"] / running_stats["loss_count"] if running_stats["loss_count"] > 0 else 0.0
 
         timestamps = pd.Series(pd.to_datetime(arrays["timestamp"]))
         ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
@@ -266,6 +308,7 @@ def _enrich_trades(
             "status": t["status"],
             "size": t["size"],
             "exit_reason": t["exit_reason"],
+            "mae": t["mae"],
             "r_multiple": r_multiple,
             "entry_hour": entry_ts.hour,
             "entry_weekday": entry_ts.weekday(),
@@ -519,9 +562,9 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: floa
     else:
         r_squared = 0
 
-    # MAE (Maximum Adverse Excursion) — average across trades
+    # MAE (Maximum Adverse Excursion) — worst case across all trades
     maes = np.array([t.get("mae", 0) for t in trades]) if trades else np.array([])
-    avg_mae = float(maes.mean()) if len(maes) else 0
+    max_mae = float(maes.min()) if len(maes) else 0
 
     # Max profit run per day
     max_profit_pct = float(returns.max()) if len(returns) else 0
@@ -556,7 +599,7 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: floa
         "calmar_ratio": round(calmar_ratio, 4),
         "dd_return_ratio": round(dd_return_ratio, 4),
         "r_squared": round(r_squared, 4),
-        "avg_mae": round(avg_mae, 2),
+        "max_mae": round(max_mae, 2),
         "max_profit_pct": round(max_profit_pct, 4),
         "avg_win": round(avg_win, 2),
         "avg_loss": round(avg_loss, 2),
@@ -569,23 +612,21 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: floa
 
 
 
-def _filter_by_market_sessions(
-    df: pd.DataFrame, 
+def _get_market_sessions_mask(
+    timestamps: pd.Series, 
     sessions: list[str], 
     custom_start: str | None = None, 
     custom_end: str | None = None
-) -> pd.DataFrame:
+) -> np.ndarray:
     if not sessions or "all" in sessions:
-        return df
+        return np.ones(len(timestamps), dtype=bool)
     
     # Ensure timestamp is datetime
-    if not pd.api.types.is_datetime64_any_dtype(df["timestamp"]):
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+    if not pd.api.types.is_datetime64_any_dtype(timestamps):
+        timestamps = pd.to_datetime(timestamps)
     
-    # Timestamps from MotherDuck are already in US/Eastern (naive).
-    # Do NOT convert from UTC — that would shift hours by 5-6 and break filtering.
-    times = df["timestamp"].dt.time
-    mask = np.zeros(len(df), dtype=bool)
+    times = timestamps.dt.time
+    mask = np.zeros(len(timestamps), dtype=bool)
     
     import datetime
     
@@ -613,7 +654,7 @@ def _filter_by_market_sessions(
             except Exception:
                 pass
                 
-    return df[mask].copy()
+    return mask.values
 
 def _safe_float(val) -> float | None:
     try:

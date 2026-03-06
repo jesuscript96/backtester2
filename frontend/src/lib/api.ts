@@ -38,6 +38,7 @@ export interface TradeRecord {
   status: string;
   size: number;
   exit_reason: string;
+  mae: number;
   r_multiple: number | null;
   entry_hour: number;
   entry_weekday: number;
@@ -102,7 +103,7 @@ export interface AggregateMetrics {
   calmar_ratio: number;
   dd_return_ratio: number;
   r_squared: number;
-  avg_mae: number;
+  max_mae: number;
   max_profit_pct: number;
   avg_win: number;
   avg_loss: number;
@@ -167,10 +168,12 @@ export async function fetchStrategies(): Promise<Strategy[]> {
 export async function runBacktest(params: {
   dataset_id: string;
   strategy_id: string;
-  init_cash?: number;
-  risk_r?: number;
-  fees?: number;
-  slippage?: number;
+  init_cash: number;
+  risk_r: number;
+  risk_type?: string;     // "FIXED" or "PERCENT"
+  size_by_sl?: boolean;   // true if sizing by stop loss distance
+  fees: number;
+  slippage: number;
   start_date?: string;
   end_date?: string;
   market_sessions?: string[];
