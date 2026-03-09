@@ -5,8 +5,6 @@ from backend.services.data_service import (
     get_strategy,
     list_datasets,
     get_dataset,
-    create_dataset,
-    delete_dataset,
 )
 
 router = APIRouter(prefix="/api", tags=["data"])
