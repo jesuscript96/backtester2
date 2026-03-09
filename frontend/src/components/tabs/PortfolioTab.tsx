@@ -12,6 +12,7 @@ import { runMonteCarlo, type TradeRecord, type MonteCarloResult } from "@/lib/ap
 interface PortfolioTabProps {
   trades: TradeRecord[];
   initCash: number;
+  isDarkMode?: boolean;
 }
 
 const PERCENTILE_COLORS: Record<string, string> = {
@@ -30,7 +31,7 @@ const PERCENTILE_LABELS: Record<string, string> = {
   p95: "P95 (mejor)",
 };
 
-export default function PortfolioTab({ trades, initCash }: PortfolioTabProps) {
+export default function PortfolioTab({ trades, initCash, isDarkMode = false }: PortfolioTabProps) {
   const [result, setResult] = useState<MonteCarloResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,13 +71,16 @@ export default function PortfolioTab({ trades, initCash }: PortfolioTabProps) {
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 400,
-      layout: { background: { color: "#ffffff" }, textColor: "#333" },
-      grid: {
-        vertLines: { color: "#f0f0f0" },
-        horzLines: { color: "#f0f0f0" },
+      layout: {
+        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        textColor: isDarkMode ? "#f8fafc" : "#333"
       },
-      rightPriceScale: { borderColor: "#e2e8f0" },
-      timeScale: { borderColor: "#e2e8f0", timeVisible: false },
+      grid: {
+        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+      },
+      rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+      timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: false },
     });
     chartRef.current = chart;
 
@@ -139,8 +143,8 @@ export default function PortfolioTab({ trades, initCash }: PortfolioTabProps) {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-md p-3">
+          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
         </div>
       )}
 

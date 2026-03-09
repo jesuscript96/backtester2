@@ -6,6 +6,8 @@ import {
   AreaSeries,
   HistogramSeries,
   BaselineSeries,
+  LineSeries,
+  LineStyle,
   type IChartApi,
   type Time,
 } from "lightweight-charts";
@@ -17,15 +19,17 @@ interface EquityCurveTabProps {
   trades: TradeRecord[];
   initCash: number;
   riskR: number;
+  isDarkMode?: boolean;
 }
 
-export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, initCash, riskR }: EquityCurveTabProps) {
+export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, initCash, riskR, isDarkMode = false }: EquityCurveTabProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const ddChartRef = useRef<IChartApi | null>(null);
 
   type ViewMode = "$" | "%" | "R";
   const [viewMode, setViewMode] = useState<ViewMode>("$");
+  const [showMAE, setShowMAE] = useState(false);
 
   const openPositions = useMemo(() => {
     if (!globalEquity.length || !trades.length) return [];
@@ -52,6 +56,41 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     }));
   }, [globalEquity, trades]);
 
+  const maeOverlay = useMemo(() => {
+    if (!globalEquity.length || !trades.length) return [];
+
+    // Map each day's exact timestamp to the worst MAE of trades that occurred on that day
+    const dailyWorstMae = new Map<number, { mae: number; pnl: number; entryPrice: number; size: number }>();
+    for (const t of trades) {
+      // globalEquity timestamps are midnight UTC of the trade date
+      const dayTs = new Date(t.date + "T00:00:00Z").getTime() / 1000;
+      const current = dailyWorstMae.get(dayTs);
+      if (!current || t.mae < current.mae) {
+        dailyWorstMae.set(dayTs, { mae: t.mae, pnl: t.pnl, entryPrice: t.entry_price, size: t.size });
+      }
+    }
+
+    return globalEquity.map((p) => {
+      const timeSec = p.time as number;
+      const tradeInfo = dailyWorstMae.get(timeSec);
+
+      let val = p.value;
+      if (tradeInfo) {
+        // The equity before the trade was closed is `p.value - tradeInfo.pnl`
+        // The worst point during the trade was `Equity_Before + dollarMae`
+        const dollarMae = (tradeInfo.mae / 100) * (tradeInfo.entryPrice * tradeInfo.size);
+        val = (p.value - tradeInfo.pnl) + dollarMae;
+      }
+
+      if (viewMode === "%") {
+        val = ((val / initCash) - 1) * 100;
+      } else if (viewMode === "R") {
+        val = riskR > 0 ? (val - initCash) / riskR : 0;
+      }
+      return { time: p.time as Time, value: val };
+    });
+  }, [globalEquity, trades, viewMode, initCash, riskR]);
+
   useEffect(() => {
     if (!containerRef.current || !globalEquity.length) return;
 
@@ -68,13 +107,16 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     const chart = createChart(equityContainer, {
       width: equityContainer.clientWidth,
       height: 400,
-      layout: { background: { color: "#ffffff" }, textColor: "#333" },
-      grid: {
-        vertLines: { color: "#f0f0f0" },
-        horzLines: { color: "#f0f0f0" },
+      layout: {
+        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        textColor: isDarkMode ? "#f8fafc" : "#333"
       },
-      rightPriceScale: { borderColor: "#e2e8f0" },
-      timeScale: { borderColor: "#e2e8f0", timeVisible: true },
+      grid: {
+        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+      },
+      rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+      timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
     });
     chartRef.current = chart;
 
@@ -107,6 +149,15 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       posSeries.setData(openPositions);
     }
 
+    if (maeOverlay.length) {
+      const maeSeries = chart.addSeries(LineSeries, {
+        color: isDarkMode ? "#f87171" : "#ef4444", // Reddish
+        lineWidth: 1,
+        lineStyle: LineStyle.Dotted,
+        visible: showMAE,
+      });
+      maeSeries.setData(maeOverlay);
+    }
 
 
     // --- Drawdown Chart ---
@@ -117,13 +168,16 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       ddChart = createChart(ddContainer, {
         width: ddContainer.clientWidth,
         height: 150,
-        layout: { background: { color: "#ffffff" }, textColor: "#333" },
-        grid: {
-          vertLines: { color: "#f0f0f0" },
-          horzLines: { color: "#f0f0f0" },
+        layout: {
+          background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+          textColor: isDarkMode ? "#f8fafc" : "#333"
         },
-        rightPriceScale: { borderColor: "#e2e8f0" },
-        timeScale: { borderColor: "#e2e8f0", timeVisible: true },
+        grid: {
+          vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+          horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        },
+        rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+        timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
       });
       ddChartRef.current = ddChart;
 
@@ -200,7 +254,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       chartRef.current = null;
       ddChartRef.current = null;
     };
-  }, [globalEquity, globalDrawdown, openPositions, viewMode, initCash, riskR]);
+  }, [globalEquity, globalDrawdown, openPositions, maeOverlay, viewMode, initCash, riskR, isDarkMode, showMAE]);
 
   if (!globalEquity.length) {
     return <p className="text-sm text-[var(--muted)]">Sin datos de equity</p>;
@@ -210,36 +264,81 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     ? Math.min(...globalDrawdown.map((d) => d.value))
     : 0;
 
+  const maxProfit = globalEquity && globalEquity.length > 0
+    ? Math.max(...globalEquity.map((p) => {
+      if (viewMode === "%") return ((p.value / initCash) - 1) * 100;
+      if (viewMode === "R") return riskR > 0 ? (p.value - initCash) / riskR : 0;
+      return p.value - initCash;
+    }))
+    : 0;
+
+  const ddDisplay = (() => {
+    if (viewMode === "%") return `${maxDD.toFixed(2)}%`;
+    if (viewMode === "$") return `$${((maxDD / 100) * initCash).toFixed(2)}`;
+    if (viewMode === "R") return riskR > 0 ? `${((maxDD / 100) * initCash / riskR).toFixed(2)}R` : "0R";
+    return `${maxDD.toFixed(2)}%`;
+  })();
+
+  const profitDisplay = (() => {
+    if (viewMode === "%") return `${maxProfit.toFixed(2)}%`;
+    if (viewMode === "$") return `$${maxProfit.toFixed(2)}`;
+    if (viewMode === "R") return `${maxProfit.toFixed(2)}R`;
+    return `${maxProfit.toFixed(2)}`;
+  })();
+
   return (
-    <div>
+    <div className="px-4 pt-4 pb-2">
       {globalDrawdown && globalDrawdown.length > 0 && (
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
-              Max Drawdown
-            </span>
-            <span className="text-sm font-semibold text-[var(--danger)]">
-              {maxDD.toFixed(2)}%
-            </span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
+                Max Drawdown
+              </span>
+              <span className="text-sm font-semibold text-[var(--danger)]">
+                {ddDisplay}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
+                Max Profit
+              </span>
+              <span className="text-sm font-semibold text-green-600">
+                {profitDisplay}
+              </span>
+            </div>
           </div>
 
-          <div className="flex bg-gray-100 p-1 rounded-md text-sm border border-gray-200">
-            {(["$", "%", "R"] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-3 py-1 rounded transition-colors ${viewMode === mode
-                    ? "bg-white text-gray-900 shadow-sm font-medium"
-                    : "text-gray-500 hover:text-gray-700"
-                  }`}
-              >
-                {mode}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowMAE(!showMAE)}
+              className={`px-3 py-1 rounded text-xs font-bold transition-all border ${showMAE
+                ? "bg-red-50 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800"
+                : "bg-[var(--card-bg)] text-[var(--muted)] border-[var(--border)] hover:bg-[var(--card-muted-bg)]"
+                }`}
+            >
+              MAE {showMAE ? "ON" : "OFF"}
+            </button>
+
+            <div className="flex bg-[var(--sidebar-bg)] p-1 rounded-md text-xs border border-[var(--border)] ml-2">
+              {(["$", "%", "R"] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-3 py-1 rounded transition-colors ${viewMode === mode
+                    ? "bg-[var(--card-bg)] text-[var(--foreground)] shadow-sm font-bold"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                    }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
       <div ref={containerRef} />
     </div>
+
   );
 }

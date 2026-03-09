@@ -15,6 +15,7 @@ interface PerformanceTabProps {
   trades: TradeRecord[];
   initCash: number;
   riskR: number;
+  isDarkMode?: boolean;
 }
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
@@ -43,8 +44,9 @@ function getFormatWeek(dateStr: string) {
   return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, "0")}`;
 }
 
-export default function PerformanceTab({ dayResults, trades, initCash, riskR }: PerformanceTabProps) {
+export default function PerformanceTab({ dayResults, trades, initCash, riskR, isDarkMode = false }: PerformanceTabProps) {
   const [metric, setMetric] = useState<GridMetric>("PnL %");
+  const [rollingWindow, setRollingWindow] = useState(30); // days
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
@@ -189,46 +191,65 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR }: 
     return { text, color: bgColor, tColor };
   };
 
-  // --- 2. Data Processing for Chart ---
+  // --- 2. Data Processing for Chart (Rolling Window) ---
   const chartData = useMemo(() => {
-    // Group trades by timeframe
-    const groups = new Map<string, { trades: number, wins: number, gp: number, gl: number }>();
+    if (!trades.length) return { wrData: [], pfData: [], trData: [] };
 
-    for (const t of trades) {
-      if (!t.exit_time) continue;
-      // Force Monthly view mapped to 1st of month
-      const key = t.exit_time.substring(0, 7) + "-01";
+    // Sort trades by exit time
+    const sortedTrades = [...trades]
+      .filter(t => t.exit_time)
+      .sort((a, b) => a.exit_time!.localeCompare(b.exit_time!));
 
-      if (!groups.has(key)) groups.set(key, { trades: 0, wins: 0, gp: 0, gl: 0 });
-      const g = groups.get(key)!;
-      g.trades++;
-      if (t.pnl > 0) {
-        g.wins++;
-        g.gp += t.pnl;
-      } else {
-        g.gl += Math.abs(t.pnl);
-      }
-    }
-
-    // Sort chronologically
-    const sortedKeys = Array.from(groups.keys()).sort();
+    if (!sortedTrades.length) return { wrData: [], pfData: [], trData: [] };
 
     const wrData: { time: Time, value: number }[] = [];
     const pfData: { time: Time, value: number }[] = [];
     const trData: { time: Time, value: number, color: string }[] = [];
 
-    for (const k of sortedKeys) {
-      const g = groups.get(k)!;
-      const wr = g.trades > 0 ? (g.wins / g.trades) * 100 : 0;
-      const pf = g.gl > 0 ? g.gp / g.gl : (g.gp > 0 ? 5 : 0); // cap pf at 5 visually if no losses
-      const time = k as Time;
+    // Get all unique exit dates
+    const uniqueDates = Array.from(new Set(sortedTrades.map(t => t.exit_time!.substring(0, 10)))).sort();
+
+    const windowMs = rollingWindow * 24 * 60 * 60 * 1000;
+
+    for (const dateStr of uniqueDates) {
+      const currentDate = new Date(dateStr);
+      const startTime = currentDate.getTime() - windowMs;
+
+      // Filter trades in window
+      const windowTrades = sortedTrades.filter(t => {
+        const tTime = new Date(t.exit_time!).getTime();
+        return tTime > startTime && tTime <= currentDate.getTime();
+      });
+
+      if (windowTrades.length === 0) continue;
+
+      let wins = 0;
+      let gp = 0;
+      let gl = 0;
+      for (const t of windowTrades) {
+        if (t.pnl > 0) {
+          wins++;
+          gp += t.pnl;
+        } else {
+          gl += Math.abs(t.pnl);
+        }
+      }
+
+      const wr = (wins / windowTrades.length) * 100;
+      const pf = gl > 0 ? gp / gl : (gp > 0 ? 5 : 0);
+      const time = (dateStr) as Time;
+
       wrData.push({ time, value: wr });
       pfData.push({ time, value: pf });
-      trData.push({ time, value: g.trades, color: "rgba(59, 130, 246, 0.3)" });
+      // For trades histogram, we'll show actual count of trades on that specific day
+      const dayTradesCount = sortedTrades.filter(t => t.exit_time!.startsWith(dateStr)).length;
+      if (dayTradesCount > 0) {
+        trData.push({ time, value: dayTradesCount, color: "rgba(59, 130, 246, 0.3)" });
+      }
     }
 
     return { wrData, pfData, trData };
-  }, [trades]);
+  }, [trades, rollingWindow]);
 
   // --- 3. Chart Initialization ---
   useEffect(() => {
@@ -237,19 +258,25 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR }: 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 300,
-      layout: { background: { color: "#ffffff" }, textColor: "#333" },
-      grid: { vertLines: { color: "#f0f0f0" }, horzLines: { color: "#f0f0f0" } },
+      layout: {
+        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        textColor: isDarkMode ? "#f8fafc" : "#333"
+      },
+      grid: {
+        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" }
+      },
       rightPriceScale: {
-        borderColor: "#e2e8f0",
+        borderColor: isDarkMode ? "#334155" : "#e2e8f0",
         visible: true,
         scaleMargins: { top: 0.1, bottom: 0.1 }
       },
       leftPriceScale: {
-        borderColor: "#e2e8f0",
+        borderColor: isDarkMode ? "#334155" : "#e2e8f0",
         visible: true,
         scaleMargins: { top: 0.6, bottom: 0 } // Push histogram down
       },
-      timeScale: { borderColor: "#e2e8f0", timeVisible: true },
+      timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
     });
     chartRef.current = chart;
 
@@ -310,15 +337,15 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR }: 
     <div className="space-y-6">
 
       {/* GRID SECTION */}
-      <div className="bg-white rounded-lg border border-[var(--border)] overflow-hidden">
-        <div className="bg-gray-50 border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Monthly Returns</h3>
-          <div className="flex bg-white rounded-md border border-gray-200 p-0.5 shadow-sm text-xs">
+      <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden">
+        <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">Monthly Returns</h3>
+          <div className="flex bg-[var(--card-bg)] rounded-md border border-[var(--border)] p-0.5 shadow-sm text-xs">
             {(["PnL %", "PnL $", "PnL R", "Win Rate", "Trades", "Profit Factor"] as GridMetric[]).map((m) => (
               <button
                 key={m}
                 onClick={() => setMetric(m)}
-                className={`px-3 py-1.5 rounded-sm transition-colors ${metric === m ? "bg-[var(--accent)] text-white font-medium" : "text-gray-500 hover:bg-gray-50"
+                className={`px-3 py-1.5 rounded-sm transition-colors ${metric === m ? "bg-[var(--accent)] text-white font-medium" : "text-[var(--muted)] hover:bg-[var(--card-muted-bg)] hover:text-[var(--foreground)]"
                   }`}
               >
                 {m}
@@ -330,12 +357,12 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR }: 
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-center">
             <thead>
-              <tr className="border-b border-[var(--border)] bg-gray-50">
+              <tr className="border-b border-[var(--border)] bg-[var(--sidebar-bg)]">
                 <th className="px-2 py-2 font-medium text-[var(--muted)] text-left pl-4">Year</th>
                 {MONTH_NAMES.map(m => (
                   <th key={m} className="px-1 py-2 font-medium text-[var(--muted)]">{m}</th>
                 ))}
-                <th className="px-2 py-2 font-semibold text-gray-700 border-l border-[var(--border)]">YTD</th>
+                <th className="px-2 py-2 font-semibold text-[var(--foreground)] border-l border-[var(--border)]">YTD</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
@@ -343,8 +370,8 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR }: 
                 const mMap = gridData.get(year)!;
                 const ytdCell = renderCell(mMap.get("YTD")!);
                 return (
-                  <tr key={year} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-2 py-3 font-semibold text-gray-700 text-left pl-4">{year}</td>
+                  <tr key={year} className="hover:bg-[var(--card-muted-bg)] transition-colors">
+                    <td className="px-2 py-3 font-semibold text-[var(--foreground)] text-left pl-4">{year}</td>
                     {MONTHS.map(m => {
                       const c = renderCell(mMap.get(m)!);
                       return (
@@ -364,17 +391,32 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR }: 
         </div>
       </div>
 
-      {/* CHART SECTION */}
-      <div className="bg-white rounded-lg border border-[var(--border)] p-4">
+      <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] p-4 shadow-sm transition-colors">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-4">
-            Evolucion Mensual
-            <div className="flex items-center gap-3 text-xs font-normal normal-case">
-              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-blue-400"></div> Trades (Eje Izq)</span>
-              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Win Rate (Eje Der)</span>
-              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Profit Factor</span>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-sm font-semibold text-[var(--foreground)] flex items-center gap-4">
+              Métricas Rolling ({rollingWindow} días)
+            </h3>
+            <div className="flex items-center gap-3 text-[10px] font-normal normal-case">
+              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-blue-400"></div> Trades/Día</span>
+              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Win Rate {rollingWindow}d</span>
+              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Profit Factor {rollingWindow}d</span>
             </div>
-          </h3>
+          </div>
+
+          <div className="flex items-center gap-4 bg-[var(--card-bg)] border border-[var(--border)] px-3 py-1.5 rounded-md">
+            <span className="text-xs font-medium text-[var(--muted)]">Ventana:</span>
+            <input
+              type="range"
+              min="7"
+              max="90"
+              step="1"
+              value={rollingWindow}
+              onChange={(e) => setRollingWindow(parseInt(e.target.value))}
+              className="w-32 accent-[var(--accent)]"
+            />
+            <span className="text-xs font-bold text-[var(--accent)] min-w-[40px]">{rollingWindow} días</span>
+          </div>
         </div>
         <div ref={chartContainerRef} style={{ width: "100%", height: "300px" }} />
       </div>

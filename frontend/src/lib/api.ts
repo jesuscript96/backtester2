@@ -10,6 +10,8 @@ export interface Dataset {
   name: string;
   pair_count: number;
   created_at: string;
+  min_date?: string;
+  max_date?: string;
 }
 
 export interface Strategy {
@@ -26,6 +28,8 @@ export interface TradeRecord {
   exit_time: string;
   entry_idx: number;
   exit_idx: number;
+  entry_time_epoch: number;
+  exit_time_epoch: number;
   entry_price: number;
   exit_price: number;
   pnl: number;
@@ -34,6 +38,7 @@ export interface TradeRecord {
   status: string;
   size: number;
   exit_reason: string;
+  mae: number;
   r_multiple: number | null;
   entry_hour: number;
   entry_weekday: number;
@@ -46,6 +51,7 @@ export interface CandleData {
   low: number;
   close: number;
   volume: number;
+  vwap?: number | null;
 }
 
 export interface EquityPoint {
@@ -93,6 +99,19 @@ export interface AggregateMetrics {
   avg_profit_factor: number;
   avg_pnl: number;
   total_pnl: number;
+  sortino_ratio: number;
+  calmar_ratio: number;
+  dd_return_ratio: number;
+  r_squared: number;
+  max_mae: number;
+  max_profit_pct: number;
+  avg_win: number;
+  avg_loss: number;
+  max_consecutive_wins: number;
+  max_consecutive_losses: number;
+  expectancy: number;
+  payoff_ratio: number;
+  avg_r_per_day: number;
 }
 
 export interface GlobalEquityPoint {
@@ -149,10 +168,19 @@ export async function fetchStrategies(): Promise<Strategy[]> {
 export async function runBacktest(params: {
   dataset_id: string;
   strategy_id: string;
-  init_cash?: number;
-  risk_r?: number;
-  fees?: number;
-  slippage?: number;
+  init_cash: number;
+  risk_r: number;
+  risk_type?: string;     // "FIXED" or "PERCENT"
+  size_by_sl?: boolean;   // true if sizing by stop loss distance
+  fees: number;
+  slippage: number;
+  start_date?: string;
+  end_date?: string;
+  market_sessions?: string[];
+  custom_start_time?: string;
+  custom_end_time?: string;
+  locates_cost?: number;
+  look_ahead_prevention?: boolean;
 }): Promise<BacktestResult> {
   const { data } = await api.post("/backtest", params);
   return data;

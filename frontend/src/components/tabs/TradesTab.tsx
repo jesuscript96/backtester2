@@ -11,11 +11,11 @@ type SortKey = keyof TradeRecord;
 type SortDir = "asc" | "desc";
 
 const EXIT_COLORS: Record<string, string> = {
-  SL: "bg-red-100 text-red-700",
-  TP: "bg-emerald-100 text-emerald-700",
-  Trailing: "bg-amber-100 text-amber-700",
-  Signal: "bg-blue-100 text-blue-700",
-  EOD: "bg-gray-100 text-gray-600",
+  SL: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  TP: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  Trailing: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  Signal: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  EOD: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
 export default function TradesTab({ trades }: TradesTabProps) {
@@ -103,7 +103,7 @@ export default function TradesTab({ trades }: TradesTabProps) {
           placeholder="Buscar ticker, fecha, exit reason..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-[var(--border)] rounded-md w-64 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          className="px-3 py-1.5 text-sm border border-[var(--border)] rounded-md w-64 bg-[var(--card-muted-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
         />
         <div className="flex gap-4 text-xs text-[var(--muted)]">
           <span>
@@ -138,9 +138,9 @@ export default function TradesTab({ trades }: TradesTabProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-[var(--border)] rounded-md">
+      <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-[var(--border)] rounded-md bg-[var(--card-bg)] shadow-inner">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 sticky top-0">
+          <thead className="bg-[var(--sidebar-bg)] sticky top-0 border-b border-[var(--border)]">
             <tr>
               <SortHeader label="Ticker" field="ticker" />
               <SortHeader label="Fecha" field="date" />
@@ -156,7 +156,7 @@ export default function TradesTab({ trades }: TradesTabProps) {
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
             {filtered.map((t, i) => (
-              <tr key={i} className="hover:bg-gray-50 transition-colors">
+              <tr key={i} className="hover:bg-[var(--card-muted-bg)] transition-colors">
                 <td className="px-3 py-1.5 font-medium">{t.ticker}</td>
                 <td className="px-3 py-1.5 text-[var(--muted)]">{t.date}</td>
                 <td className="px-3 py-1.5 text-[var(--muted)] font-mono text-xs">
@@ -175,28 +175,25 @@ export default function TradesTab({ trades }: TradesTabProps) {
                   {t.size.toFixed(2)}
                 </td>
                 <td
-                  className={`px-3 py-1.5 text-right font-mono font-medium ${
-                    t.pnl >= 0
-                      ? "text-[var(--success)]"
-                      : "text-[var(--danger)]"
-                  }`}
+                  className={`px-3 py-1.5 text-right font-mono font-medium ${t.pnl >= 0
+                    ? "text-[var(--success)]"
+                    : "text-[var(--danger)]"
+                    }`}
                 >
                   {t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(2)}
                 </td>
                 <td
-                  className={`px-3 py-1.5 text-right font-mono ${
-                    (t.r_multiple || 0) >= 0
-                      ? "text-[var(--success)]"
-                      : "text-[var(--danger)]"
-                  }`}
+                  className={`px-3 py-1.5 text-right font-mono ${(t.r_multiple || 0) >= 0
+                    ? "text-[var(--success)]"
+                    : "text-[var(--danger)]"
+                    }`}
                 >
                   {t.r_multiple !== null ? `${t.r_multiple.toFixed(2)}R` : "—"}
                 </td>
                 <td className="px-3 py-1.5">
                   <span
-                    className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${
-                      EXIT_COLORS[t.exit_reason] || "bg-gray-100 text-gray-600"
-                    }`}
+                    className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${EXIT_COLORS[t.exit_reason] || "bg-gray-100 text-gray-600"
+                      }`}
                   >
                     {t.exit_reason}
                   </span>

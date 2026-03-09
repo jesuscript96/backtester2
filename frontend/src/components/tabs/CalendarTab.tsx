@@ -6,6 +6,7 @@ import type { DayResult, TradeRecord } from "@/lib/api";
 interface CalendarTabProps {
   dayResults: DayResult[];
   trades: TradeRecord[];
+  isDarkMode?: boolean;
 }
 
 const WEEKDAY_LABELS = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
@@ -18,10 +19,11 @@ function pnlColor(pnl: number, maxAbs: number): string {
   return "rgba(148,163,184,0.1)";
 }
 
-export default function CalendarTab({ dayResults, trades }: CalendarTabProps) {
+export default function CalendarTab({ dayResults, trades, isDarkMode = false }: CalendarTabProps) {
   const pnlByDate = useMemo(() => {
     const map = new Map<string, number>();
     for (const t of trades) {
+      if (!t.date) continue;
       map.set(t.date, (map.get(t.date) || 0) + t.pnl);
     }
     return map;
@@ -35,31 +37,6 @@ export default function CalendarTab({ dayResults, trades }: CalendarTabProps) {
     return Array.from(set).sort();
   }, [dayResults]);
 
-  const [selectedMonth, setSelectedMonth] = useState(months[0] || "");
-
-  const calendarDays = useMemo(() => {
-    if (!selectedMonth) return [];
-
-    const [year, month] = selectedMonth.split("-").map(Number);
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    const startWeekday = (firstDay.getDay() + 6) % 7;
-
-    const days: (null | { date: string; pnl: number | null })[] = [];
-
-    for (let i = 0; i < startWeekday; i++) {
-      days.push(null);
-    }
-
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-      const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const pnl = pnlByDate.has(dateStr) ? pnlByDate.get(dateStr)! : null;
-      days.push({ date: dateStr, pnl });
-    }
-
-    return days;
-  }, [selectedMonth, pnlByDate]);
-
   const maxAbsPnl = useMemo(() => {
     const values = Array.from(pnlByDate.values());
     return values.length ? Math.max(...values.map(Math.abs), 1) : 1;
@@ -70,66 +47,58 @@ export default function CalendarTab({ dayResults, trades }: CalendarTabProps) {
   }
 
   return (
-    <div>
-      {months.length > 1 && (
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {months.map((m) => (
-            <button
-              key={m}
-              onClick={() => setSelectedMonth(m)}
-              className={`px-3 py-1 text-xs rounded-md border transition-colors ${
-                selectedMonth === m
-                  ? "border-[var(--accent)] bg-blue-50 text-[var(--accent)]"
-                  : "border-[var(--border)] text-[var(--muted)] hover:border-gray-400"
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {months.map((monthStr) => {
+        const [year, month] = monthStr.split("-").map(Number);
+        const firstDay = new Date(year, month - 1, 1);
+        const lastDay = new Date(year, month, 0);
+        const startWeekday = (firstDay.getDay() + 6) % 7;
 
-      <div className="grid grid-cols-7 gap-1">
-        {WEEKDAY_LABELS.map((label) => (
-          <div
-            key={label}
-            className="text-center text-xs font-medium text-[var(--muted)] py-1"
-          >
-            {label}
-          </div>
-        ))}
+        const monthName = new Date(year, month - 1, 1).toLocaleString("es-ES", { month: "long", year: "numeric" });
 
-        {calendarDays.map((day, i) => {
-          if (!day) {
-            return <div key={`empty-${i}`} className="aspect-square" />;
-          }
-          const dayNum = parseInt(day.date.split("-")[2]);
-          return (
-            <div
-              key={day.date}
-              className="aspect-square rounded-md flex flex-col items-center justify-center text-xs border border-[var(--border)]"
-              style={{
-                backgroundColor:
-                  day.pnl !== null ? pnlColor(day.pnl, maxAbsPnl) : undefined,
-              }}
-            >
-              <span className="text-[10px] text-[var(--muted)]">{dayNum}</span>
-              {day.pnl !== null && (
-                <span
-                  className={`font-mono text-[10px] font-medium ${
-                    day.pnl >= 0
-                      ? "text-[var(--success)]"
-                      : "text-[var(--danger)]"
-                  }`}
-                >
-                  {day.pnl >= 0 ? "+" : ""}
-                  {day.pnl.toFixed(0)}
-                </span>
-              )}
+        const days: (null | { date: string; pnl: number | null })[] = [];
+        for (let i = 0; i < startWeekday; i++) days.push(null);
+        for (let d = 1; d <= lastDay.getDate(); d++) {
+          const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const pnl = pnlByDate.get(dateStr) ?? null;
+          days.push({ date: dateStr, pnl });
+        }
+
+        return (
+          <div key={monthStr} className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] p-3 shadow-sm transition-colors">
+            <h4 className="text-[11px] font-bold text-[var(--foreground)] mb-2 uppercase tracking-tight text-center border-b border-[var(--border)] pb-1">
+              {monthName}
+            </h4>
+            <div className="grid grid-cols-7 gap-1">
+              {["L", "M", "X", "J", "V", "S", "D"].map((l) => (
+                <div key={l} className="text-[9px] font-bold text-[var(--muted)] text-center mb-1">
+                  {l}
+                </div>
+              ))}
+              {days.map((day, i) => {
+                if (!day) return <div key={`empty-${i}`} className="aspect-square" />;
+                const dayNum = parseInt(day.date.split("-")[2]);
+                const hasPnl = day.pnl !== null;
+
+                return (
+                  <div
+                    key={day.date}
+                    className="aspect-square rounded-[3px] flex items-center justify-center text-[8px] border border-[var(--border)] flex-col leading-none transition-colors"
+                    title={hasPnl ? `${day.date}: $${day.pnl?.toFixed(2)}` : day.date}
+                    style={{
+                      backgroundColor: hasPnl ? pnlColor(day.pnl!, maxAbsPnl) : "transparent",
+                    }}
+                  >
+                    <span className={`font-bold ${hasPnl ? "text-[var(--foreground)]" : "text-[var(--muted)] opacity-30"}`}>
+                      {dayNum}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
