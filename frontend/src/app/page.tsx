@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import BacktestPanel from "@/components/BacktestPanel";
 import MetricsCard from "@/components/MetricsCard";
-import RollingEVChart from "@/components/RollingEVChart";
+import MaeScatterChart from "@/components/MaeScatterChart";
 import ResultsTabs from "@/components/ResultsTabs";
 import DaySelector from "@/components/DaySelector";
 import EquityCurveTab from "@/components/tabs/EquityCurveTab";
@@ -221,7 +221,7 @@ export default function Home() {
                 <div className="w-1/3 flex flex-col gap-4">
                   <MetricsCard metrics={result.aggregate_metrics} vertical />
                   <div className="flex-1" style={{ minHeight: 140 }}>
-                    <RollingEVChart trades={result.trades} riskR={riskRRef.current} isDarkMode={isDarkMode} />
+                    <MaeScatterChart trades={result.trades} isDarkMode={isDarkMode} />
                   </div>
                 </div>
               </div>

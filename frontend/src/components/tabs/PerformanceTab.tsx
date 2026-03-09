@@ -221,7 +221,9 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
         return tTime > startTime && tTime <= currentDate.getTime();
       });
 
-      if (windowTrades.length === 0) continue;
+      // Require a minimum number of trades (up to 5) to avoid massive initial spikes in Win Rate & Profit Factor
+      const minTradesReq = Math.min(5, Math.ceil(sortedTrades.length / 5));
+      if (windowTrades.length < minTradesReq) continue;
 
       let wins = 0;
       let gp = 0;

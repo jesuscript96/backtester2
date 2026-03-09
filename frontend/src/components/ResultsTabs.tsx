@@ -106,7 +106,7 @@ export default function ResultsTabs({
             )}
           </div>
         )}
-        {activeTab === "charts" && <ChartsTab trades={result.trades} />}
+        {activeTab === "charts" && <ChartsTab trades={result.trades} riskR={riskR} isDarkMode={isDarkMode} />}
         {activeTab === "portfolio" && (
           <PortfolioTab trades={result.trades} initCash={initCash} />
         )}

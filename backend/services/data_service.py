@@ -28,7 +28,10 @@ def list_strategies() -> list[dict]:
     )
     rows = []
     for _, r in df.iterrows():
-        definition = r["definition"] if isinstance(r["definition"], dict) else json.loads(r["definition"])
+        try:
+            definition = r["definition"] if isinstance(r["definition"], dict) else json.loads(r["definition"] or "{}")
+        except Exception:
+            definition = {}
         rows.append({
             "id": r["id"],
             "name": r["name"],
@@ -48,7 +51,10 @@ def get_strategy(strategy_id: str) -> dict | None:
     if df.empty:
         return None
     r = df.iloc[0]
-    definition = r["definition"] if isinstance(r["definition"], dict) else json.loads(r["definition"])
+    try:
+        definition = r["definition"] if isinstance(r["definition"], dict) else json.loads(r["definition"] or "{}")
+    except Exception:
+        definition = {}
     return {
         "id": r["id"],
         "name": r["name"],
