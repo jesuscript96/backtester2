@@ -5,8 +5,6 @@ from backend.services.data_service import (
     get_strategy,
     list_datasets,
     get_dataset,
-    create_dataset,
-    delete_dataset,
 )
 
 router = APIRouter(prefix="/api", tags=["data"])
@@ -54,12 +52,9 @@ def get_dataset_endpoint(dataset_id: str):
 
 @router.post("/datasets")
 def create_dataset_endpoint(req: CreateDatasetRequest):
-    if not req.pairs:
-        raise HTTPException(status_code=400, detail="Pairs list cannot be empty")
-    return create_dataset(req.name, [p.model_dump() for p in req.pairs])
+    raise HTTPException(status_code=501, detail="Datasets are now dynamic saved_queries and cannot be created here.")
 
 
 @router.delete("/datasets/{dataset_id}")
 def delete_dataset_endpoint(dataset_id: str):
-    delete_dataset(dataset_id)
-    return {"message": "Dataset deleted"}
+    raise HTTPException(status_code=501, detail="Datasets are now dynamic saved_queries and cannot be deleted here.")
