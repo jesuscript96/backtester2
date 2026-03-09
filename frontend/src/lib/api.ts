@@ -95,7 +95,7 @@ export interface AggregateMetrics {
   avg_return_per_day_pct: number;
   total_return_pct: number;
   avg_sharpe: number;
-  avg_max_dd_pct: number;
+  max_drawdown_pct: number;
   avg_profit_factor: number;
   avg_pnl: number;
   total_pnl: number;

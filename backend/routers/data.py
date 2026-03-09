@@ -54,12 +54,11 @@ def get_dataset_endpoint(dataset_id: str):
 
 @router.post("/datasets")
 def create_dataset_endpoint(req: CreateDatasetRequest):
-    if not req.pairs:
-        raise HTTPException(status_code=400, detail="Pairs list cannot be empty")
-    return create_dataset(req.name, [p.model_dump() for p in req.pairs])
+    # This endpoint is deprecated in the new my_db system
+    raise HTTPException(status_code=501, detail="Dataset creation is managed via saved_queries in the database.")
 
 
 @router.delete("/datasets/{dataset_id}")
 def delete_dataset_endpoint(dataset_id: str):
-    delete_dataset(dataset_id)
-    return {"message": "Dataset deleted"}
+    # This endpoint is deprecated in the new my_db system
+    raise HTTPException(status_code=501, detail="Dataset deletion is managed via the database.")

@@ -24,7 +24,7 @@ logger = logging.getLogger("backtester.data")
 def list_strategies() -> list[dict]:
     df = query_df(
         "SELECT id, name, description, definition, created_at, updated_at "
-        "FROM strategies ORDER BY updated_at DESC"
+        "FROM main.strategies ORDER BY updated_at DESC"
     )
     rows = []
     for _, r in df.iterrows():
@@ -45,7 +45,7 @@ def list_strategies() -> list[dict]:
 
 def get_strategy(strategy_id: str) -> dict | None:
     df = query_df(
-        "SELECT id, name, description, definition FROM strategies WHERE id = ?",
+        "SELECT id, name, description, definition FROM main.strategies WHERE id = ?",
         [strategy_id],
     )
     if df.empty:
@@ -68,62 +68,51 @@ def get_strategy(strategy_id: str) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def list_datasets() -> list[dict]:
+    # Returns saved_queries as datasets
     df = query_df("""
         SELECT 
-            d.id, 
-            d.name, 
-            COUNT(dp.ticker) AS pair_count, 
-            d.created_at,
-            MIN(dp.date) as min_date,
-            MAX(dp.date) as max_date
-        FROM datasets d
-        LEFT JOIN dataset_pairs dp ON d.id = dp.dataset_id
-        GROUP BY d.id, d.name, d.created_at
-        ORDER BY d.created_at DESC
+            id, 
+            name, 
+            NULL as pair_count, 
+            created_at,
+            NULL as min_date,
+            NULL as max_date
+        FROM main.saved_queries
+        ORDER BY created_at DESC
     """)
     if not df.empty:
+        # Convert to object type to allow strings and None values without coercion to NaN
+        df = df.astype(object)
         if "created_at" in df.columns:
-            df["created_at"] = df["created_at"].astype(str)
-        if "min_date" in df.columns:
-            df["min_date"] = df["min_date"].astype(str)
-        if "max_date" in df.columns:
-            df["max_date"] = df["max_date"].astype(str)
+            df["created_at"] = df["created_at"].apply(lambda x: str(x) if pd.notnull(x) else None)
+        # Replace NaN with None for JSON compliance
+        df = df.where(pd.notnull(df), None)
     return df.to_dict(orient="records")
 
 
 def get_dataset(dataset_id: str) -> dict | None:
-    ds = query_df("SELECT id, name, created_at FROM datasets WHERE id = ?", [dataset_id])
+    # Returns info about a saved_query
+    ds = query_df("SELECT id, name, created_at, filters FROM main.saved_queries WHERE id = ?", [dataset_id])
     if ds.empty:
         return None
-    pairs = query_df(
-        "SELECT ticker, date FROM dataset_pairs WHERE dataset_id = ? ORDER BY ticker, date",
-        [dataset_id],
-    )
     row = ds.iloc[0]
     return {
         "id": row["id"],
         "name": row["name"],
         "created_at": str(row["created_at"]),
-        "pairs": pairs.to_dict(orient="records"),
-        "pair_count": len(pairs),
+        "filters": row["filters"],
+        "pair_count": 0,
+        "min_date": None,
+        "max_date": None,
     }
 
 
 def create_dataset(name: str, pairs: list[dict]) -> dict:
-    ds_id = str(uuid.uuid4())
-    execute_sql("INSERT INTO datasets (id, name) VALUES (?, ?)", [ds_id, name])
-    for p in pairs:
-        execute_sql(
-            "INSERT INTO dataset_pairs (dataset_id, ticker, date) VALUES (?, ?, ?)",
-            [ds_id, p["ticker"], p["date"]],
-        )
-    return {"id": ds_id, "name": name, "pair_count": len(pairs)}
+    raise NotImplementedError("create_dataset is deprecated. Use saved_queries.")
 
 
 def delete_dataset(dataset_id: str) -> bool:
-    execute_sql("DELETE FROM dataset_pairs WHERE dataset_id = ?", [dataset_id])
-    execute_sql("DELETE FROM datasets WHERE id = ?", [dataset_id])
-    return True
+    raise NotImplementedError("delete_dataset is deprecated.")
 
 
 # ---------------------------------------------------------------------------
@@ -132,49 +121,93 @@ def delete_dataset(dataset_id: str) -> bool:
 
 def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Returns:
-        qualifying: daily stats from daily_metrics enriched with yesterday_high/low
-        intraday: raw 1m candles from intraday_1m (memory-optimised dtypes)
+    Fetches data using dynamic filters from saved_queries.
     """
     t0 = time.time()
-
-    qualifying_sql = """
-    WITH relevant_tickers AS (
-        SELECT DISTINCT ticker FROM dataset_pairs WHERE dataset_id = ?
-    ),
-    filtered_dm AS (
-        SELECT dm.*,
-               CAST(dm."timestamp" AS DATE) AS date
-        FROM daily_metrics dm
-        WHERE dm.ticker IN (SELECT ticker FROM relevant_tickers)
-    ),
-    enriched AS (
-        SELECT f.*,
-               LAG(f.rth_high) OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_high,
-               LAG(f.rth_low)  OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_low,
-               f.prev_close AS previous_close
-        FROM filtered_dm f
+    
+    # 1. Get filters
+    ds = query_df("SELECT filters FROM main.saved_queries WHERE id = ?", [dataset_id])
+    if ds.empty:
+        logger.error(f"Dataset {dataset_id} not found in saved_queries")
+        return pd.DataFrame(), pd.DataFrame()
+    
+    filters_json = ds.iloc[0]["filters"]
+    if isinstance(filters_json, str):
+        filters = json.loads(filters_json)
+    else:
+        filters = filters_json or {}
+    
+    start_date = filters.get("start_date")
+    end_date = filters.get("end_date")
+    rules = filters.get("rules", [])
+    
+    # 2. Build dynamic WHERE clause
+    where_parts = []
+    if start_date:
+        where_parts.append(f"CAST(\"timestamp\" AS DATE) >= '{start_date}'")
+    if end_date:
+        where_parts.append(f"CAST(\"timestamp\" AS DATE) <= '{end_date}'")
+        
+    for rule in rules:
+        field = rule.get("field")
+        op = rule.get("operator")
+        val = rule.get("value")
+        if field and op and val is not None:
+            # Map operators to SQL
+            sql_op = {
+                "GREATER_THAN": ">",
+                "LESS_THAN": "<",
+                "GREATER_THAN_OR_EQUAL": ">=",
+                "LESS_THAN_OR_EQUAL": "<=",
+                "EQUAL": "=",
+                "CONTAINS": "LIKE"
+            }.get(op, "=")
+            
+            # Simple sanitization/formatting
+            if isinstance(val, str):
+                if sql_op == "LIKE":
+                    val = f"'%{val}%'"
+                else:
+                    val = f"'{val}'"
+            
+            where_parts.append(f"{field} {sql_op} {val}")
+            
+    where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+    
+    # 3. Fetch qualifying data from daily_metrics
+    qualifying_sql = f"""
+    WITH enriched AS (
+        SELECT *,
+               CAST("timestamp" AS DATE) AS date,
+               LAG(rth_high) OVER (PARTITION BY ticker ORDER BY "timestamp") AS yesterday_high,
+               LAG(rth_low)  OVER (PARTITION BY ticker ORDER BY "timestamp") AS yesterday_low,
+               prev_close AS previous_close
+        FROM main.daily_metrics
     )
-    SELECT e.*
-    FROM dataset_pairs dp
-    INNER JOIN enriched e ON dp.ticker = e.ticker AND dp.date = e.date
-    WHERE dp.dataset_id = ?
+    SELECT * FROM enriched
+    WHERE {where_clause}
     """
-    qualifying = query_df(qualifying_sql, [dataset_id, dataset_id])
+    qualifying = query_df(qualifying_sql)
     t_q = time.time()
     logger.info(f"qualifying query: {len(qualifying)} rows ({round(t_q - t0, 2)}s)")
-
+    
     if qualifying.empty:
         return qualifying, pd.DataFrame()
-
-    intraday_sql = """
+        
+    # 4. Fetch intraday candles for matching (ticker, date)
+    # Use a temp table or CTE for performance if too many pairs
+    # For now, simple join
+    intraday_sql = f"""
     SELECT i.ticker, i.date, i."timestamp", i.open, i.high, i.low,
            i."close", i.volume
-    FROM intraday_1m i
-    INNER JOIN dataset_pairs dp ON i.ticker = dp.ticker AND i.date = dp.date
-    WHERE dp.dataset_id = ?
+    FROM main.intraday_1m i
+    INNER JOIN (
+        SELECT ticker, CAST("timestamp" AS DATE) as date
+        FROM main.daily_metrics
+        WHERE {where_clause}
+    ) dm ON i.ticker = dm.ticker AND i.date = dm.date
     """
-    intraday = query_df(intraday_sql, [dataset_id])
+    intraday = query_df(intraday_sql)
     t_i = time.time()
     logger.info(f"intraday query: {len(intraday)} rows ({round(t_i - t_q, 2)}s)")
 
@@ -189,24 +222,18 @@ def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         intraday["date"] = intraday["date"].astype("category")
 
     gc.collect()
-    if sys.platform == "linux":
-        try:
-            ctypes.CDLL("libc.so.6").malloc_trim(0)
-        except Exception:
-            pass
-
     return qualifying, intraday
 
 
 def fetch_day_candles(dataset_id: str, ticker: str, date: str) -> list[dict]:
+    # Need to verify if the day belongs to the saved_query (optional but good)
     sql = """
     SELECT i."timestamp", i.open, i.high, i.low, i."close", i.volume
-    FROM intraday_1m i
-    INNER JOIN dataset_pairs dp ON i.ticker = dp.ticker AND i.date = dp.date
-    WHERE dp.dataset_id = ? AND i.ticker = ? AND i.date = ?
+    FROM main.intraday_1m i
+    WHERE i.ticker = ? AND i.date = ?
     ORDER BY i."timestamp"
     """
-    df = query_df(sql, [dataset_id, ticker, date])
+    df = query_df(sql, [ticker, date])
     if df.empty:
         return []
 

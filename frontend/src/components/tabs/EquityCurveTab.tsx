@@ -29,7 +29,6 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
 
   type ViewMode = "$" | "%" | "R";
   const [viewMode, setViewMode] = useState<ViewMode>("$");
-  const [showMAE, setShowMAE] = useState(false);
 
   const openPositions = useMemo(() => {
     if (!globalEquity.length || !trades.length) return [];
@@ -56,40 +55,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     }));
   }, [globalEquity, trades]);
 
-  const maeOverlay = useMemo(() => {
-    if (!globalEquity.length || !trades.length) return [];
 
-    // Map each day's exact timestamp to the worst MAE of trades that occurred on that day
-    const dailyWorstMae = new Map<number, { mae: number; pnl: number; entryPrice: number; size: number }>();
-    for (const t of trades) {
-      // globalEquity timestamps are midnight UTC of the trade date
-      const dayTs = new Date(t.date + "T00:00:00Z").getTime() / 1000;
-      const current = dailyWorstMae.get(dayTs);
-      if (!current || t.mae < current.mae) {
-        dailyWorstMae.set(dayTs, { mae: t.mae, pnl: t.pnl, entryPrice: t.entry_price, size: t.size });
-      }
-    }
-
-    return globalEquity.map((p) => {
-      const timeSec = p.time as number;
-      const tradeInfo = dailyWorstMae.get(timeSec);
-
-      let val = p.value;
-      if (tradeInfo) {
-        // The equity before the trade was closed is `p.value - tradeInfo.pnl`
-        // The worst point during the trade was `Equity_Before + dollarMae`
-        const dollarMae = (tradeInfo.mae / 100) * (tradeInfo.entryPrice * tradeInfo.size);
-        val = (p.value - tradeInfo.pnl) + dollarMae;
-      }
-
-      if (viewMode === "%") {
-        val = ((val / initCash) - 1) * 100;
-      } else if (viewMode === "R") {
-        val = riskR > 0 ? (val - initCash) / riskR : 0;
-      }
-      return { time: p.time as Time, value: val };
-    });
-  }, [globalEquity, trades, viewMode, initCash, riskR]);
 
   useEffect(() => {
     if (!containerRef.current || !globalEquity.length) return;
@@ -149,15 +115,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       posSeries.setData(openPositions);
     }
 
-    if (maeOverlay.length) {
-      const maeSeries = chart.addSeries(LineSeries, {
-        color: isDarkMode ? "#f87171" : "#ef4444", // Reddish
-        lineWidth: 1,
-        lineStyle: LineStyle.Dotted,
-        visible: showMAE,
-      });
-      maeSeries.setData(maeOverlay);
-    }
+
 
 
     // --- Drawdown Chart ---
@@ -254,7 +212,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       chartRef.current = null;
       ddChartRef.current = null;
     };
-  }, [globalEquity, globalDrawdown, openPositions, maeOverlay, viewMode, initCash, riskR, isDarkMode, showMAE]);
+  }, [globalEquity, globalDrawdown, openPositions, viewMode, initCash, riskR, isDarkMode]);
 
   if (!globalEquity.length) {
     return <p className="text-sm text-[var(--muted)]">Sin datos de equity</p>;
@@ -310,16 +268,6 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowMAE(!showMAE)}
-              className={`px-3 py-1 rounded text-xs font-bold transition-all border ${showMAE
-                ? "bg-red-50 dark:bg-red-900/30 text-red-600 border-red-200 dark:border-red-800"
-                : "bg-[var(--card-bg)] text-[var(--muted)] border-[var(--border)] hover:bg-[var(--card-muted-bg)]"
-                }`}
-            >
-              MAE {showMAE ? "ON" : "OFF"}
-            </button>
-
             <div className="flex bg-[var(--sidebar-bg)] p-1 rounded-md text-xs border border-[var(--border)] ml-2">
               {(["$", "%", "R"] as ViewMode[]).map((mode) => (
                 <button

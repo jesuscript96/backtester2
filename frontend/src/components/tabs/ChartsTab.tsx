@@ -23,33 +23,81 @@ interface ChartsTabProps {
 
 const WEEKDAY_NAMES = ["Lun", "Mar", "Mie", "Jue", "Vie"];
 
+/**
+ * Enhanced Descriptive Statistics
+ */
+function calculateEnhancedStats(arr: number[]) {
+  if (!arr.length) return { n: 0, mean: 0, median: 0, stdDev: 0, max: 0, min: 0, skewness: 0, kurtosis: 0, q1: 0, q3: 0, range: 0, iqr: 0 };
+
+  const sorted = [...arr].sort((a, b) => a - b);
+  const n = arr.length;
+  const mean = arr.reduce((a, b) => a + b, 0) / n;
+
+  // Percentiles
+  const getPercentile = (p: number) => {
+    const pos = (n - 1) * p;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    if (sorted[base + 1] !== undefined) {
+      return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    } else {
+      return sorted[base];
+    }
+  };
+
+  const median = getPercentile(0.5);
+  const q1 = getPercentile(0.25);
+  const q3 = getPercentile(0.75);
+  const iqr = q3 - q1;
+  const max = sorted[n - 1];
+  const min = sorted[0];
+  const range = max - min;
+
+  // Standard Deviation
+  const variance = arr.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / n;
+  const stdDev = Math.sqrt(variance);
+
+  // Skewness & Kurtosis
+  let skewSum = 0;
+  let kurtSum = 0;
+  if (stdDev > 0) {
+    for (const x of arr) {
+      skewSum += Math.pow((x - mean) / stdDev, 3);
+      kurtSum += Math.pow((x - mean) / stdDev, 4);
+    }
+  }
+  const skewness = skewSum / n;
+  const kurtosis = (kurtSum / n) - 3; // Excess Kurtosis
+
+  return { n, mean, median, stdDev, max, min, skewness, kurtosis, q1, q3, range, iqr };
+}
+
 export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: ChartsTabProps) {
-  const rHistogram = useMemo(() => {
-    const rValues = trades
-      .map((t) => t.r_multiple)
-      .filter((r): r is number => r !== null);
-    if (!rValues.length) return [];
 
-    const bucketSize = 0.5;
-    const min = Math.floor(Math.min(...rValues) / bucketSize) * bucketSize;
-    const max = Math.ceil(Math.max(...rValues) / bucketSize) * bucketSize;
-    const buckets = new Map<number, number>();
-
-    for (let b = min; b <= max; b += bucketSize) {
-      buckets.set(parseFloat(b.toFixed(1)), 0);
-    }
-
-    for (const r of rValues) {
-      const bucket = parseFloat(
-        (Math.floor(r / bucketSize) * bucketSize).toFixed(1)
-      );
-      buckets.set(bucket, (buckets.get(bucket) || 0) + 1);
-    }
-
-    return Array.from(buckets.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([r, count]) => ({ r: `${r}R`, value: count, rNum: r }));
-  }, [trades]);
+  const StatsTable = ({ stats, title, isPct }: any) => {
+    if (!stats) return null;
+    return (
+      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-3 text-[11px] flex-1 text-[var(--foreground)] h-full shadow-sm">
+        <h4 className="font-bold border-b border-[var(--border)] pb-1 mb-2 uppercase text-[10px] text-[var(--muted)] tracking-wider">
+          {title}
+        </h4>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono">
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">N:</span><span>{stats.n}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Media:</span><span>{stats.mean.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mediana:</span><span>{stats.median.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Desv Std:</span><span>{stats.stdDev.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q1 (25%):</span><span>{stats.q1.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q3 (75%):</span><span>{stats.q3.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Máximo:</span><span>{stats.max.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mínimo:</span><span>{stats.min.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Rango:</span><span>{stats.range.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">IQR:</span><span>{stats.iqr.toFixed(2)}{isPct ? '%' : ''}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Asimetría:</span><span>{stats.skewness.toFixed(3)}</span></div>
+          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Curtosis:</span><span>{stats.kurtosis.toFixed(3)}</span></div>
+        </div>
+      </div>
+    );
+  };
 
   const pnlDistribution = useMemo(() => {
     const pnlPctCoords = trades.map(t => t.return_pct).filter((v): v is number => v !== undefined && v !== null);
@@ -59,16 +107,13 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
     const maxPnl = Math.max(...pnlPctCoords);
     const range = Math.max(0.1, maxPnl - minPnl);
 
-    const roughBucket = range / 20;
-    const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50, 100];
-    let bucketSize = steps[0];
-    for (const s of steps) {
-      if (roughBucket <= s) {
-        bucketSize = s;
-        break;
-      }
-    }
-    if (roughBucket > steps[steps.length - 1]) bucketSize = steps[steps.length - 1];
+    let bucketSize = 0.05;
+    if (range > 100) bucketSize = 5;
+    else if (range > 50) bucketSize = 2;
+    else if (range > 20) bucketSize = 1;
+    else if (range > 10) bucketSize = 0.5;
+    else if (range > 5) bucketSize = 0.25;
+    else if (range > 2) bucketSize = 0.1;
 
     const minBucket = Math.floor(minPnl / bucketSize) * bucketSize;
     const maxBucket = Math.ceil(maxPnl / bucketSize) * bucketSize;
@@ -88,32 +133,88 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
     const data = Array.from(buckets.entries())
       .sort((a, b) => a[0] - b[0])
       .map(([val, count]) => ({
-        label: `${val > 0 ? '+' : ''}${val}%`,
+        label: `${val > 0 ? '+' : ''}${val.toFixed(2)}%`,
         value: count,
         num: val
-      }));
+      }))
+      .filter(d => Math.abs(d.num) <= 100);
 
-    const n = pnlPctCoords.length;
-    const mean = pnlPctCoords.reduce((s, v) => s + v, 0) / n;
-    const variance = pnlPctCoords.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / n;
-    const stdDev = Math.sqrt(variance);
-
-    return { data, stats: { mean, stdDev, n } };
+    const stats = calculateEnhancedStats(pnlPctCoords);
+    return { data, stats };
   }, [trades]);
 
-  const evByHour = useMemo(() => {
-    const hourMap = new Map<number, { total: number; count: number }>();
+  const consecutiveRuns = useMemo(() => {
+    let currentRun = 0;
+    let isWinning: boolean | null = null;
+    const winRuns: number[] = [];
+    const lossRuns: number[] = [];
+
     for (const t of trades) {
-      const h = t.entry_hour;
-      if (!hourMap.has(h)) hourMap.set(h, { total: 0, count: 0 });
-      const m = hourMap.get(h)!;
-      m.total += t.pnl;
-      m.count++;
+      if (t.pnl > 0) {
+        if (isWinning === true) currentRun++;
+        else {
+          if (isWinning === false && currentRun > 0) lossRuns.push(currentRun);
+          isWinning = true;
+          currentRun = 1;
+        }
+      } else if (t.pnl < 0) {
+        if (isWinning === false) currentRun++;
+        else {
+          if (isWinning === true && currentRun > 0) winRuns.push(currentRun);
+          isWinning = false;
+          currentRun = 1;
+        }
+      }
     }
-    return Array.from(hourMap.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([hour, data]) => ({
-        hour: `${hour}:00`,
+    if (isWinning === true && currentRun > 0) winRuns.push(currentRun);
+    if (isWinning === false && currentRun > 0) lossRuns.push(currentRun);
+
+    const winFreq = new Map<number, number>();
+    const lossFreq = new Map<number, number>();
+    for (const r of winRuns) winFreq.set(r, (winFreq.get(r) || 0) + 1);
+    for (const r of lossRuns) lossFreq.set(r, (lossFreq.get(r) || 0) + 1);
+
+    const maxRun = Math.max(...winRuns, ...lossRuns, 0);
+    const data = [];
+    const displayMax = Math.min(12, maxRun);
+    for (let i = 1; i <= displayMax; i++) {
+      data.push({
+        length: i.toString(),
+        winRuns: winFreq.get(i) || 0,
+        lossRuns: lossFreq.get(i) || 0,
+        num: i
+      });
+    }
+
+    return {
+      data,
+      winStats: calculateEnhancedStats(winRuns),
+      lossStats: calculateEnhancedStats(lossRuns)
+    };
+  }, [trades]);
+
+  const evByTime30Min = useMemo(() => {
+    // Hour slots + 30 min slots
+    // entry_time example: "2024-01-01 09:30:00"
+    const timeMap = new Map<string, { total: number; count: number }>();
+
+    for (const t of trades) {
+      const d = new Date(t.entry_time);
+      const h = d.getHours();
+      const m = d.getMinutes();
+      const halfHour = m < 30 ? "00" : "30";
+      const key = `${String(h).padStart(2, '0')}:${halfHour}`;
+
+      if (!timeMap.has(key)) timeMap.set(key, { total: 0, count: 0 });
+      const entry = timeMap.get(key)!;
+      entry.total += t.pnl;
+      entry.count++;
+    }
+
+    return Array.from(timeMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([time, data]) => ({
+        time,
         ev: data.count > 0 ? data.total / data.count : 0,
         count: data.count,
       }));
@@ -144,143 +245,139 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
 
-      {/* 1. Rolling EV Chart (Moved from Main Page) */}
-      <div className="h-64">
+      {/* 1. Header Grid: Rolling EV left, EV Analysis right */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[320px]">
         <RollingEVChart trades={trades} riskR={riskR} isDarkMode={isDarkMode} />
-      </div>
 
-      {/* 2. PnL Gaussian Distribution */}
-      {pnlDistribution.data.length > 0 && pnlDistribution.stats && (
-        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide">
-              Distribución de Resultados PnL (%)
-            </h3>
-            <div className="flex gap-4 text-xs">
-              <span className="text-[var(--foreground)]"><span className="text-[var(--muted)]">Media:</span> {pnlDistribution.stats.mean.toFixed(2)}%</span>
-              <span className="text-[var(--foreground)]"><span className="text-[var(--muted)]">Desv Std (σ):</span> {pnlDistribution.stats.stdDev.toFixed(2)}%</span>
-              <span className="text-[var(--foreground)]"><span className="text-[var(--muted)]">N:</span> {pnlDistribution.stats.n} trades</span>
+        {/* EV por Hora (30min) y Día - Stacked in right column */}
+        <div className="flex flex-col gap-4 h-full">
+          {/* 30-min Time EV */}
+          <div className="flex-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors">
+            <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Tiempo (Intervalos 30m)</h2>
+            </div>
+            <div className="flex-1 p-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={evByTime30Min} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+                  <XAxis dataKey="time" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
+                  <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} />
+                  <ReferenceLine y={0} stroke="#94a3b8" />
+                  <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
+                    {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={pnlDistribution.data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: isDarkMode ? "#94a3b8" : "#999" }} />
-              <YAxis tick={{ fontSize: 11, fill: isDarkMode ? "#94a3b8" : "#999" }} allowDecimals={false} />
-              <Tooltip
-                formatter={(value) => [`${value} trades`, "Frecuencia"]}
-                contentStyle={{
-                  fontSize: 12,
-                  backgroundColor: isDarkMode ? '#1e293b' : '#fff',
-                  borderColor: isDarkMode ? '#334155' : '#e2e8f0',
-                  color: isDarkMode ? '#f8fafc' : '#334155'
-                }}
-              />
-              <ReferenceLine x="0%" stroke="#94a3b8" strokeDasharray="3 3" />
-              <Bar dataKey="value" radius={[2, 2, 0, 0]}>
-                {pnlDistribution.data.map((entry, idx) => (
-                  <Cell
-                    key={idx}
-                    fill={entry.num >= 0 ? "#10b981" : "#ef4444"}
-                    fillOpacity={0.8}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {/* Day EV */}
+          <div className="flex-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors">
+            <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Día</h2>
+            </div>
+            <div className="flex-1 p-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={evByDay} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
+                  <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v) => `$${v}`} />
+                  <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} />
+                  <ReferenceLine y={0} stroke="#94a3b8" />
+                  <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
+                    {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
-      )}
-
-      {rHistogram.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-3">
-            Distribucion R-Multiple
-          </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={rHistogram} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="r" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip
-                formatter={(value) => [`${value} trades`, "Frecuencia"]}
-                contentStyle={{ fontSize: 12 }}
-              />
-              <ReferenceLine x="0R" stroke="#94a3b8" strokeDasharray="3 3" />
-              <Bar dataKey="value" radius={[2, 2, 0, 0]}>
-                {rHistogram.map((entry, idx) => (
-                  <Cell
-                    key={idx}
-                    fill={entry.rNum >= 0 ? "#10b981" : "#ef4444"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      <div>
-        <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-3">
-          EV por Hora de Entrada
-        </h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={evByHour} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="hour" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
-            <Tooltip
-              formatter={(value, _name, props) => {
-                const v = Number(value);
-                const count = (props?.payload as { count?: number })?.count ?? 0;
-                return [`$${v.toFixed(2)} (${count} trades)`, "Avg PnL"];
-              }}
-              contentStyle={{ fontSize: 12 }}
-            />
-            <ReferenceLine y={0} stroke="#94a3b8" />
-            <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
-              {evByHour.map((entry, idx) => (
-                <Cell
-                  key={idx}
-                  fill={entry.ev >= 0 ? "#10b981" : "#ef4444"}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-3">
-          EV por Dia de la Semana
-        </h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={evByDay} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
-            <Tooltip
-              formatter={(value, _name, props) => {
-                const v = Number(value);
-                const count = (props?.payload as { count?: number })?.count ?? 0;
-                return [`$${v.toFixed(2)} (${count} trades)`, "Avg PnL"];
-              }}
-              contentStyle={{ fontSize: 12 }}
-            />
-            <ReferenceLine y={0} stroke="#94a3b8" />
-            <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
-              {evByDay.map((entry, idx) => (
-                <Cell
-                  key={idx}
-                  fill={entry.ev >= 0 ? "#10b981" : "#ef4444"}
-                  fillOpacity={0.8}
+      {/* 2. Distributions Parallel */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* PnL Distribution */}
+        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] overflow-hidden flex flex-col shadow-sm transition-colors h-[300px]">
+          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5">
+            <span className="text-[11px] font-semibold text-[var(--foreground)] tracking-wide uppercase">
+              Distribución de Retornos (PnL %)
+            </span>
+          </div>
+          <div className="flex-1 p-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={pnlDistribution.data} margin={{ top: 10, right: 10, left: -25, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 8, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                  axisLine={true}
+                  tickLine={false}
+                  interval="preserveStartEnd"
                 />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+                <YAxis
+                  tick={{ fontSize: 8, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: isDarkMode ? "#1e293b" : "#fff", fontSize: '10px', borderColor: 'var(--border)' }}
+                  cursor={{ fill: "rgba(0,0,0,0.05)" }}
+                />
+                <ReferenceLine x="0.00%" stroke="#94a3b8" strokeDasharray="3 3" />
+                <Bar dataKey="value" radius={[1, 1, 0, 0]}>
+                  {pnlDistribution.data.map((entry, index) => (
+                    <Cell key={index} fill={entry.num > 0 ? "#10b981" : entry.num < 0 ? "#ef4444" : "#94a3b8"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Consecutive Runs */}
+        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] overflow-hidden flex flex-col shadow-sm transition-colors h-[300px]">
+          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5 flex justify-between items-center">
+            <span className="text-[11px] font-semibold text-[var(--foreground)] tracking-wide uppercase">
+              Consecutive Runs Distribution
+            </span>
+            <div className="flex gap-2 text-[8px] text-[var(--muted)]">
+              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#10b981]"></div> W</div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#ef4444]"></div> L</div>
+            </div>
+          </div>
+          <div className="flex-1 p-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={consecutiveRuns.data} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+                <XAxis
+                  dataKey="length"
+                  tick={{ fontSize: 10, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                  axisLine={true}
+                />
+                <YAxis
+                  tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip contentStyle={{ backgroundColor: isDarkMode ? "#1e293b" : "#fff", fontSize: '10px', borderColor: 'var(--border)' }} />
+                <Bar dataKey="winRuns" name="Wins" fill="#10b981" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="lossRuns" name="Losses" fill="#ef4444" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
+
+      {/* 3. Combined Stats Below */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatsTable stats={pnlDistribution.stats} title="Estadística Descriptiva PnL" isPct={true} />
+        <StatsTable stats={consecutiveRuns.winStats} title="Descriptiva Rachas (W)" isPct={false} />
+        <StatsTable stats={consecutiveRuns.lossStats} title="Descriptiva Rachas (L)" isPct={false} />
+      </div>
+
     </div>
   );
 }

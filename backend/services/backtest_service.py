@@ -218,8 +218,8 @@ def run_backtest(
     )
 
     t4 = time.time()
-    aggregate = _aggregate_metrics(day_results, all_trades, risk_r)
     global_eq, global_dd = _compute_global_equity_and_drawdown(all_trades, init_cash)
+    aggregate = _aggregate_metrics(day_results, all_trades, global_dd, risk_r)
     logger.info(f"[AGG] aggregate+equity done ({round(time.time()-t4, 2)}s)")
 
     logger.info(
@@ -385,20 +385,24 @@ def _compute_global_equity_and_drawdown(
     if not daily_pnl:
         return [], []
 
-    # Sort by date and build cumulative equity
+    # Sort by date
     sorted_dates = sorted(daily_pnl.keys())
+    
+    # Construction: Point 0 = init_cash before any trades
+    # Point i = end of day i
+    equity_values = [init_cash]
     cumulative = init_cash
-    equity_values = []
     for d in sorted_dates:
         cumulative += daily_pnl[d]
         equity_values.append(cumulative)
 
     values = np.array(equity_values, dtype=np.float64)
 
-    # Convert date strings to UNIX timestamps (midnight UTC)
-    times = np.array(
-        [int(pd.Timestamp(d, tz="UTC").timestamp()) for d in sorted_dates], dtype=np.int64
-    )
+    # Use first date to infer a 'start' time (day before first trade)
+    first_dt = pd.Timestamp(sorted_dates[0], tz="UTC")
+    start_ts = int((first_dt - pd.Timedelta(days=1)).timestamp())
+    times = [start_ts] + [int(pd.Timestamp(d, tz="UTC").timestamp()) for d in sorted_dates]
+    times_arr = np.array(times, dtype=np.int64)
 
     running_max = np.maximum.accumulate(values)
     dd_pct = np.where(running_max > 0, (values / running_max - 1) * 100, 0.0)
@@ -407,10 +411,10 @@ def _compute_global_equity_and_drawdown(
     dd_rounded = np.round(dd_pct, 4)
 
     global_equity = [
-        {"time": int(t), "value": float(v)} for t, v in zip(times, values_rounded)
+        {"time": int(t), "value": float(v)} for t, v in zip(times_arr, values_rounded)
     ]
     global_drawdown = [
-        {"time": int(t), "value": float(d)} for t, d in zip(times, dd_rounded)
+        {"time": int(t), "value": float(d)} for t, d in zip(times_arr, dd_rounded)
     ]
 
     return global_equity, global_drawdown
@@ -494,11 +498,11 @@ def _extract_day_stats_from_values(
 # Aggregate metrics
 # ---------------------------------------------------------------------------
 
-def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: float = 100) -> dict:
+def _aggregate_metrics(day_results: list[dict], trades: list[dict], global_dd: list[dict], risk_r: float = 100) -> dict:
     empty = {
         "total_days": 0, "total_trades": 0, "win_rate_pct": 0,
         "avg_return_per_day_pct": 0, "total_return_pct": 0, "avg_sharpe": 0,
-        "avg_max_dd_pct": 0, "avg_profit_factor": 0, "avg_pnl": 0, "total_pnl": 0,
+        "max_drawdown_pct": 0, "avg_profit_factor": 0, "avg_pnl": 0, "total_pnl": 0,
         "sortino_ratio": 0, "calmar_ratio": 0, "dd_return_ratio": 0,
         "r_squared": 0, "avg_mae": 0, "max_profit_pct": 0,
         "avg_win": 0, "avg_loss": 0, "max_consecutive_wins": 0,
@@ -523,8 +527,17 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: floa
     sharpes = np.array([d.get("sharpe_ratio", 0) or 0 for d in day_results])
     avg_sharpe = float(sharpes.mean())
 
-    dds = np.array([d.get("max_drawdown_pct", 0) or 0 for d in day_results])
-    avg_dd = float(dds.mean())
+    # --- Drawdown Logic ---
+    # Global Max Drawdown (overall lowest point in portfolio equity curve)
+    global_drawdowns = np.array([d["value"] for d in global_dd]) if global_dd else np.array([0])
+    global_max_dd = float(global_drawdowns.min()) if len(global_drawdowns) else 0.0
+
+    # Also consider the worst-case intraday point from any single day
+    day_max_dds = np.array([d.get("max_drawdown_pct", 0) or 0 for d in day_results])
+    worst_day_dd = float(day_max_dds.min()) if len(day_max_dds) else 0.0
+    
+    # The absolute Max DD is the worst between global closed-equity DD and any intraday DD
+    final_max_dd = min(global_max_dd, worst_day_dd)
 
     pfs = [d.get("profit_factor") for d in day_results if d.get("profit_factor") is not None and d.get("profit_factor") > 0]
     avg_pf = float(np.mean(pfs)) if pfs else 0
@@ -545,12 +558,11 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: floa
     sortinos = np.array([d.get("sortino_ratio", 0) or 0 for d in day_results])
     sortino_ratio = float(sortinos.mean()) if len(sortinos) else 0
 
-    # Calmar = total return / max dd
-    min_dd = float(dds.min()) if len(dds) else 0
-    calmar_ratio = abs(total_return / min_dd) if min_dd != 0 else 0
+    # Calmar = total return / max dd (using the final/true max dd)
+    calmar_ratio = abs(total_return / final_max_dd) if final_max_dd != 0 else 0
 
     # DD/Return ratio
-    dd_return_ratio = abs(min_dd / total_return) if total_return != 0 else 0
+    dd_return_ratio = abs(final_max_dd / total_return) if total_return != 0 else 0
 
     # R-Squared (how linear the equity curve is)
     # Use day-end values to compute R² of cumulative returns
@@ -591,7 +603,7 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], risk_r: floa
         "avg_return_per_day_pct": round(avg_return, 4),
         "total_return_pct": round(total_return, 4),
         "avg_sharpe": round(avg_sharpe, 4),
-        "avg_max_dd_pct": round(avg_dd, 4),
+        "max_drawdown_pct": round(final_max_dd, 4),
         "avg_profit_factor": round(avg_pf, 4),
         "avg_pnl": round(avg_pnl, 2),
         "total_pnl": round(float(pnls.sum()), 2) if len(pnls) else 0,

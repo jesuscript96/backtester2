@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN", "")
-MOTHERDUCK_DB = os.getenv("MOTHERDUCK_DB", "Massive")
+MOTHERDUCK_DB = os.getenv("MOTHERDUCK_DB", "my_db")
 
 ALLOWED_ORIGINS = [
     o.strip()

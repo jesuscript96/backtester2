@@ -22,7 +22,7 @@ export default function MetricsCard({ metrics, vertical = false }: MetricsCardPr
     { label: "Calmar", value: (metrics.calmar_ratio ?? 0).toFixed(3) },
     { label: "R²", value: (metrics.r_squared ?? 0).toFixed(4) },
     { label: "DD/Return", value: (metrics.dd_return_ratio ?? 0).toFixed(3) },
-    { label: "Max DD", value: `${(metrics.avg_max_dd_pct ?? 0).toFixed(2)}%` },
+    { label: "Max DD", value: `${(metrics.max_drawdown_pct ?? 0).toFixed(2)}%` },
     { label: "Max Consec. Wins", value: String(metrics.max_consecutive_wins ?? 0) },
     { label: "Max Consec. Losses", value: String(metrics.max_consecutive_losses ?? 0) },
   ];
