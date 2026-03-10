@@ -309,6 +309,7 @@ def _enrich_trades(
             "size": t["size"],
             "exit_reason": t["exit_reason"],
             "mae": t["mae"],
+            "mfe": t.get("mfe", 0.0),
             "r_multiple": r_multiple,
             "entry_hour": entry_ts.hour,
             "entry_weekday": entry_ts.weekday(),

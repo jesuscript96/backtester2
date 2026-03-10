@@ -44,7 +44,8 @@ def simulate(
     entry_fee_amount = 0.0
     size = 0.0
     trail_extreme = 0.0
-    mae = 0.0  # Maximum Adverse Excursion (worst unrealized PnL during trade)
+    mae = 0.0  # Maximum Adverse Excursion
+    mfe = 0.0  # Maximum Favorable Excursion
 
     # Pre-calculate Kelly multiplier if needed
     kelly_f = 0.0
@@ -69,13 +70,18 @@ def simulate(
             exit_reason = "Signal"
             eff_exit_idx = i
 
-            # Track MAE (Maximum Adverse Excursion) as a percentage
+            # Track MAE and MFE as positive percentages based on absolute price excursions
             if is_long:
-                unrealized_pct = ((low[i] - entry_price) / entry_price) * 100
+                mae_pct = ((entry_price - low[i]) / entry_price) * 100
+                mfe_pct = ((high[i] - entry_price) / entry_price) * 100
             else:
-                unrealized_pct = ((entry_price - high[i]) / entry_price) * 100
-            if unrealized_pct < mae:
-                mae = unrealized_pct
+                mae_pct = ((high[i] - entry_price) / entry_price) * 100
+                mfe_pct = ((entry_price - low[i]) / entry_price) * 100
+                
+            if mae_pct > mae:
+                mae = mae_pct
+            if mfe_pct > mfe:
+                mfe = mfe_pct
 
             if is_long:
                 price_for_sl = low[i]
@@ -172,6 +178,7 @@ def simulate(
                     "size": round(size, 6),
                     "exit_reason": exit_reason,
                     "mae": round(mae, 4),
+                    "mfe": round(mfe, 4),
                 })
                 in_position = False
                 size = 0.0
@@ -239,6 +246,7 @@ def simulate(
             entry_idx = i + 1
             trail_extreme = entry_price
             mae = 0.0
+            mfe = 0.0
 
         # --- equity ---
         current_equity = init_cash + realized_pnl

@@ -73,20 +73,50 @@ def list_datasets() -> list[dict]:
         SELECT 
             id, 
             name, 
-            NULL as pair_count, 
-            created_at,
-            NULL as min_date,
-            NULL as max_date
+            filters,
+            created_at
         FROM my_db.main.saved_queries
         ORDER BY created_at DESC
     """)
-    if not df.empty:
-        # Convert to object type to allow strings and None values without coercion to NaN
-        df = df.astype(object)
-        if "created_at" in df.columns:
-            df["created_at"] = df["created_at"].apply(lambda x: str(x) if pd.notnull(x) else None)
-        # Replace NaN with None for JSON compliance
-        df = df.where(pd.notnull(df), None)
+    if df.empty:
+        return []
+
+    # Calculate pair_count, min_date, max_date for each
+    pair_counts = []
+    min_dates = []
+    max_dates = []
+    for _, row in df.iterrows():
+        filters_json = row["filters"]
+        if isinstance(filters_json, str):
+            try:
+                filters = json.loads(filters_json)
+            except Exception:
+                filters = {}
+        else:
+            filters = filters_json or {}
+            
+        min_dates.append(filters.get("start_date") or filters.get("date_from"))
+        max_dates.append(filters.get("end_date") or filters.get("date_to"))
+            
+        where_clause = _build_where_clause(filters)
+        try:
+            count_df = query_df(f"SELECT COUNT(*) as count FROM my_db.main.daily_metrics WHERE {where_clause}")
+            pair_counts.append(int(count_df.iloc[0]["count"]) if not count_df.empty else 0)
+        except Exception as e:
+            logger.error(f"Error calculating pair_count for dataset {row['id']}: {e}")
+            pair_counts.append(0)
+            
+    df["pair_count"] = pair_counts
+    df["min_date"] = min_dates
+    df["max_date"] = max_dates
+    df = df.drop(columns=["filters"])
+
+    # Convert to object type to allow strings and None values without coercion to NaN
+    df = df.astype(object)
+    if "created_at" in df.columns:
+        df["created_at"] = df["created_at"].apply(lambda x: str(x) if pd.notnull(x) else None)
+    # Replace NaN with None for JSON compliance
+    df = df.where(pd.notnull(df), None)
     return df.to_dict(orient="records")
 
 
@@ -96,14 +126,25 @@ def get_dataset(dataset_id: str) -> dict | None:
     if ds.empty:
         return None
     row = ds.iloc[0]
+    
+    filters_json = row["filters"]
+    if isinstance(filters_json, str):
+        filters = json.loads(filters_json)
+    else:
+        filters = filters_json or {}
+    
+    where_clause = _build_where_clause(filters)
+    count_df = query_df(f"SELECT COUNT(*) as count FROM my_db.main.daily_metrics WHERE {where_clause}")
+    pair_count = int(count_df.iloc[0]["count"]) if not count_df.empty else 0
+        
     return {
         "id": row["id"],
         "name": row["name"],
         "created_at": str(row["created_at"]) if pd.notnull(row["created_at"]) else None,
-        "filters": row["filters"] if isinstance(row["filters"], dict) else json.loads(row["filters"] or "{}"),
-        "pair_count": 0,
-        "min_date": None,
-        "max_date": None,
+        "filters": filters,
+        "pair_count": pair_count,
+        "min_date": filters.get("start_date") or filters.get("date_from"),
+        "max_date": filters.get("end_date") or filters.get("date_to"),
         "pairs": [], # No strict static pairs anymore, calculated at run time
     }
 
@@ -120,38 +161,30 @@ def delete_dataset(dataset_id: str) -> bool:
 # Data fetching for backtest
 # ---------------------------------------------------------------------------
 
-def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Fetches data using dynamic filters from saved_queries.
-    """
-    t0 = time.time()
-    
-    # 1. Get filters
-    ds = query_df("SELECT filters FROM my_db.main.saved_queries WHERE id = ?", [dataset_id])
-    if ds.empty:
-        logger.error(f"Dataset {dataset_id} not found in saved_queries")
-        return pd.DataFrame(), pd.DataFrame()
-    
-    filters_json = ds.iloc[0]["filters"]
-    if isinstance(filters_json, str):
-        filters = json.loads(filters_json)
-    else:
-        filters = filters_json or {}
-    
+def _build_where_clause(filters: dict) -> str:
     start_date = filters.get("start_date") or filters.get("date_from")
     end_date = filters.get("end_date") or filters.get("date_to")
     rules = filters.get("rules", [])
     
-    # 2. Build dynamic WHERE clause
+    min_gap_pct = filters.get("min_gap_pct")
+    max_gap_pct = filters.get("max_gap_pct")
+    min_pm_volume = filters.get("min_pm_volume")
+    
     where_parts = []
     if start_date:
         where_parts.append(f"CAST(\"timestamp\" AS DATE) >= '{start_date}'")
     if end_date:
         where_parts.append(f"CAST(\"timestamp\" AS DATE) <= '{end_date}'")
         
+    if min_gap_pct is not None:
+        where_parts.append(f"gap_pct >= {min_gap_pct}")
+    if max_gap_pct is not None:
+        where_parts.append(f"gap_pct <= {max_gap_pct}")
+    if min_pm_volume is not None:
+        where_parts.append(f"pm_volume >= {min_pm_volume}")
+        
     for rule in rules:
         field = rule.get("field") or rule.get("metric")
-        # Map metric names if needed (from BTT style to DB style)
         field_map = {
             "Open Price": "rth_open",
             "Close Price": "rth_close",
@@ -176,7 +209,6 @@ def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
         op = rule.get("operator")
         val = rule.get("value")
         if field and op and val is not None:
-            # Map operators to SQL
             sql_op = {
                 "GREATER_THAN": ">",
                 "LESS_THAN": "<",
@@ -184,23 +216,40 @@ def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
                 "LESS_THAN_OR_EQUAL": "<=",
                 "EQUAL": "=",
                 "CONTAINS": "LIKE"
-            }.get(op, op) # Default to op if it's already SQL style (like colleague's version)
+            }.get(op, op)
             
-            # Simple sanitization/formatting
             if isinstance(val, str):
                 if sql_op == "LIKE":
                     val = f"'%{val}%'"
                 else:
-                    # Check if it's numeric even if passed as string
                     try:
                         float(val)
-                        val = val
                     except ValueError:
                         val = f"'{val}'"
-            
             where_parts.append(f"{field} {sql_op} {val}")
             
-    where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+    return " AND ".join(where_parts) if where_parts else "1=1"
+
+
+def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Fetches data using dynamic filters from saved_queries.
+    """
+    t0 = time.time()
+    
+    # 1. Get filters
+    ds = query_df("SELECT filters FROM my_db.main.saved_queries WHERE id = ?", [dataset_id])
+    if ds.empty:
+        logger.error(f"Dataset {dataset_id} not found in saved_queries")
+        return pd.DataFrame(), pd.DataFrame()
+    
+    filters_json = ds.iloc[0]["filters"]
+    if isinstance(filters_json, str):
+        filters = json.loads(filters_json)
+    else:
+        filters = filters_json or {}
+    
+    where_clause = _build_where_clause(filters)
     
     # 3. Fetch qualifying data from daily_metrics
     qualifying_sql = f"""

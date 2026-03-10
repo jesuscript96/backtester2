@@ -10,7 +10,7 @@ ALLOWED_ORIGINS = [
     o.strip()
     for o in os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:3000,http://localhost:3001,https://backtester-psi.vercel.app",
+        "http://localhost:3000,http://localhost:3001,https://backtester-psi.vercel.app,https://backtester2-teal.vercel.app",
     ).split(",")
     if o.strip()
 ]
