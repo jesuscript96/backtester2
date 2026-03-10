@@ -13,7 +13,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { TradeRecord } from "@/lib/api";
-import RollingEVChart from "@/components/RollingEVChart";
+import MaeScatterChart from "@/components/MaeScatterChart";
 
 interface ChartsTabProps {
   trades: TradeRecord[];
@@ -249,7 +249,7 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
 
       {/* 1. Header Grid: Rolling EV left, EV Analysis right */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[320px]">
-        <RollingEVChart trades={trades} riskR={riskR} isDarkMode={isDarkMode} />
+        <MaeScatterChart trades={trades} isDarkMode={isDarkMode} />
 
         {/* EV por Hora (30min) y Día - Stacked in right column */}
         <div className="flex flex-col gap-4 h-full">

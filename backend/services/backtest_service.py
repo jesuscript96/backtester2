@@ -530,15 +530,16 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], global_dd: l
 
     # --- Drawdown Logic ---
     # Global Max Drawdown (overall lowest point in portfolio equity curve)
+    # The global_dd array contains positive percentages representing the drawdown amount
     global_drawdowns = np.array([d["value"] for d in global_dd]) if global_dd else np.array([0])
-    global_max_dd = float(global_drawdowns.min()) if len(global_drawdowns) else 0.0
+    global_max_dd = float(global_drawdowns.max()) if len(global_drawdowns) else 0.0
 
     # Also consider the worst-case intraday point from any single day
     day_max_dds = np.array([d.get("max_drawdown_pct", 0) or 0 for d in day_results])
-    worst_day_dd = float(day_max_dds.min()) if len(day_max_dds) else 0.0
+    worst_day_dd = float(day_max_dds.max()) if len(day_max_dds) else 0.0
     
     # The absolute Max DD is the worst between global closed-equity DD and any intraday DD
-    final_max_dd = min(global_max_dd, worst_day_dd)
+    final_max_dd = max(global_max_dd, worst_day_dd)
 
     pfs = [d.get("profit_factor") for d in day_results if d.get("profit_factor") is not None and d.get("profit_factor") > 0]
     avg_pf = float(np.mean(pfs)) if pfs else 0
@@ -575,9 +576,9 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], global_dd: l
     else:
         r_squared = 0
 
-    # MAE (Maximum Adverse Excursion) — worst case across all trades
+    # MAE (Maximum Adverse Excursion) — worst case across all trades. Note that MAE is a positive %
     maes = np.array([t.get("mae", 0) for t in trades]) if trades else np.array([])
-    max_mae = float(maes.min()) if len(maes) else 0
+    max_mae = float(maes.max()) if len(maes) else 0
 
     # Max profit run per day
     max_profit_pct = float(returns.max()) if len(returns) else 0
