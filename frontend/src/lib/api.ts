@@ -37,6 +37,7 @@ export interface TradeRecord {
   direction: string;
   status: string;
   size: number;
+  exit_reason: string;
   mae: number;
   mfe?: number;
   r_multiple: number | null;
