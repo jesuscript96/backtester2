@@ -219,7 +219,7 @@ def run_backtest(
 
     t4 = time.time()
     global_eq, global_dd = _compute_global_equity_and_drawdown(all_trades, init_cash)
-    aggregate = _aggregate_metrics(day_results, all_trades, global_dd, risk_r)
+    aggregate = _aggregate_metrics(day_results, all_trades, global_eq, global_dd, init_cash, risk_r)
     logger.info(f"[AGG] aggregate+equity done ({round(time.time()-t4, 2)}s)")
 
     logger.info(
@@ -499,7 +499,14 @@ def _extract_day_stats_from_values(
 # Aggregate metrics
 # ---------------------------------------------------------------------------
 
-def _aggregate_metrics(day_results: list[dict], trades: list[dict], global_dd: list[dict], risk_r: float = 100) -> dict:
+def _aggregate_metrics(
+    day_results: list[dict],
+    trades: list[dict],
+    global_eq: list[dict],
+    global_dd: list[dict],
+    init_cash: float,
+    risk_r: float = 100
+) -> dict:
     empty = {
         "total_days": 0, "total_trades": 0, "win_rate_pct": 0,
         "avg_return_per_day_pct": 0, "total_return_pct": 0, "avg_sharpe": 0,
@@ -523,26 +530,45 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], global_dd: l
 
     returns = np.array([d.get("total_return_pct", 0) or 0 for d in day_results])
     avg_return = float(returns.mean()) if len(returns) else 0
-    total_return = float(np.prod(1 + returns / 100) * 100 - 100) if len(returns) else 0
 
-    sharpes = np.array([d.get("sharpe_ratio", 0) or 0 for d in day_results])
-    avg_sharpe = float(sharpes.mean())
+    if global_eq and len(global_eq) > 0 and init_cash > 0:
+        total_return = ((global_eq[-1]["value"] / init_cash) - 1) * 100.0
+    else:
+        total_return = 0.0
+
+    # Sharpe and Sortino (based on global daily equity points)
+    if global_eq and len(global_eq) > 1:
+        eq_vals = np.array([d["value"] for d in global_eq])
+        # eq_vals[0] is init_cash, following values are end-of-day
+        daily_rets = np.diff(eq_vals) / np.where(eq_vals[:-1] != 0, eq_vals[:-1], 1.0)
+        std = float(np.std(daily_rets))
+        mean_r = float(np.mean(daily_rets))
+        avg_sharpe = (mean_r / std * np.sqrt(252)) if std > 0 else 0.0
+        
+        down_rets = daily_rets[daily_rets < 0]
+        down_std = float(np.std(down_rets))
+        sortino_ratio = (mean_r / down_std * np.sqrt(252)) if down_std > 0 else 0.0
+    else:
+        avg_sharpe = 0.0
+        sortino_ratio = 0.0
 
     # --- Drawdown Logic ---
     # Global Max Drawdown (overall lowest point in portfolio equity curve)
-    # The global_dd array contains positive percentages representing the drawdown amount
+    # The global_dd array contains negative percentages representing the drawdown amount
     global_drawdowns = np.array([d["value"] for d in global_dd]) if global_dd else np.array([0])
-    global_max_dd = float(global_drawdowns.max()) if len(global_drawdowns) else 0.0
+    global_max_dd = float(global_drawdowns.min()) if len(global_drawdowns) else 0.0
 
     # Also consider the worst-case intraday point from any single day
     day_max_dds = np.array([d.get("max_drawdown_pct", 0) or 0 for d in day_results])
-    worst_day_dd = float(day_max_dds.max()) if len(day_max_dds) else 0.0
+    worst_day_dd = float(day_max_dds.min()) if len(day_max_dds) else 0.0
     
     # The absolute Max DD is the worst between global closed-equity DD and any intraday DD
-    final_max_dd = max(global_max_dd, worst_day_dd)
+    final_max_dd = min(global_max_dd, worst_day_dd)
 
-    pfs = [d.get("profit_factor") for d in day_results if d.get("profit_factor") is not None and d.get("profit_factor") > 0]
-    avg_pf = float(np.mean(pfs)) if pfs else 0
+    # True Global Profit Factor
+    gross_profit = sum(t["pnl"] for t in trades if t["pnl"] > 0)
+    gross_loss = abs(sum(t["pnl"] for t in trades if t["pnl"] < 0))
+    avg_pf = float(gross_profit / gross_loss) if gross_loss > 0 else 0.0
 
     avg_pnl = float(pnls.mean()) if len(pnls) else 0
 
@@ -556,25 +582,21 @@ def _aggregate_metrics(day_results: list[dict], trades: list[dict], global_dd: l
     # Expectancy
     expectancy = avg_pnl
 
-    # Sortino (aggregate from daily sortinos)
-    sortinos = np.array([d.get("sortino_ratio", 0) or 0 for d in day_results])
-    sortino_ratio = float(sortinos.mean()) if len(sortinos) else 0
-
-    # Calmar = total return / max dd (using the final/true max dd)
-    calmar_ratio = abs(total_return / final_max_dd) if final_max_dd != 0 else 0
+    # Calmar = total return / abs(max dd)
+    calmar_ratio = (total_return / abs(final_max_dd)) if final_max_dd != 0 else 0.0
 
     # DD/Return ratio
-    dd_return_ratio = abs(final_max_dd / total_return) if total_return != 0 else 0
+    dd_return_ratio = (abs(final_max_dd) / total_return) if total_return != 0 else 0.0
 
     # R-Squared (how linear the equity curve is)
-    # Use day-end values to compute R² of cumulative returns
-    cum_returns = np.cumprod(1 + returns / 100) if len(returns) else np.array([])
-    if len(cum_returns) > 2:
-        x = np.arange(len(cum_returns))
-        correlation = np.corrcoef(x, cum_returns)[0, 1]
-        r_squared = float(correlation ** 2) if not np.isnan(correlation) else 0
+    # Use global equity values to compute R²
+    if global_eq and len(global_eq) > 2:
+        eq_vals = np.array([d["value"] for d in global_eq])
+        x = np.arange(len(eq_vals))
+        correlation = np.corrcoef(x, eq_vals)[0, 1]
+        r_squared = float(correlation ** 2) if not np.isnan(correlation) else 0.0
     else:
-        r_squared = 0
+        r_squared = 0.0
 
     # MAE (Maximum Adverse Excursion) — worst case across all trades. Note that MAE is a positive %
     maes = np.array([t.get("mae", 0) for t in trades]) if trades else np.array([])

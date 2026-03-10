@@ -13,7 +13,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { TradeRecord } from "@/lib/api";
-import MaeScatterChart from "@/components/MaeScatterChart";
+import RollingEVChart from "@/components/RollingEVChart";
 
 interface ChartsTabProps {
   trades: TradeRecord[];
@@ -248,50 +248,52 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
     <div className="space-y-6">
 
       {/* 1. Header Grid: Rolling EV left, EV Analysis right */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[320px]">
-        <MaeScatterChart trades={trades} isDarkMode={isDarkMode} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[250px] lg:h-[320px]">
 
-        {/* EV por Hora (30min) y Día - Stacked in right column */}
-        <div className="flex flex-col gap-4 h-full">
-          {/* 30-min Time EV */}
-          <div className="flex-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors">
-            <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Tiempo (Intervalos 30m)</h2>
-            </div>
-            <div className="flex-1 p-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={evByTime30Min} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
-                  <XAxis dataKey="time" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
-                  <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} />
-                  <ReferenceLine y={0} stroke="#94a3b8" />
-                  <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
-                    {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Rolling EV Column */}
+        <div className="flex-1 lg:col-span-1 border border-[var(--border)] rounded overflow-hidden shadow-sm h-full">
+          <RollingEVChart trades={trades} riskR={riskR} isDarkMode={isDarkMode} />
+        </div>
+
+        {/* 30-min Time EV */}
+        <div className="lg:col-span-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors h-full">
+          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Tiempo (Intervalos 30m)</h2>
           </div>
-          {/* Day EV */}
-          <div className="flex-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors">
-            <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Día</h2>
-            </div>
-            <div className="flex-1 p-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={evByDay} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
-                  <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} />
-                  <ReferenceLine y={0} stroke="#94a3b8" />
-                  <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
-                    {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="flex-1 p-2 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={evByTime30Min} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+                <XAxis dataKey="time" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
+                <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v: number) => `$${v}`} />
+                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} />
+                <ReferenceLine y={0} stroke="#94a3b8" />
+                <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
+                  {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Day EV */}
+        <div className="lg:col-span-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors h-full">
+          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Día</h2>
+          </div>
+          <div className="flex-1 p-2 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={evByDay} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
+                <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v: number) => `$${v}`} />
+                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} />
+                <ReferenceLine y={0} stroke="#94a3b8" />
+                <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
+                  {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
