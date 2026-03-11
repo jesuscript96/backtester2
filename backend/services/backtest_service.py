@@ -536,29 +536,56 @@ def _aggregate_metrics(
     total_closed = len(pnls)
     win_rate = (winning_trades / total_closed * 100) if total_closed > 0 else 0
 
-    returns = np.array([d.get("total_return_pct", 0) or 0 for d in day_results])
-    avg_return = float(returns.mean()) if len(returns) else 0
+    # Calculate Total Return against Initial Cash
+    # PnL / Init Cash gives the actual Return % for the period on the account size
+    total_pnl = float(pnls.sum()) if len(pnls) else 0.0
+    total_return = (total_pnl / init_cash) * 100.0 if init_cash > 0 else 0.0
 
-    if global_eq and len(global_eq) > 0 and init_cash > 0:
-        total_return = ((global_eq[-1]["value"] / init_cash) - 1) * 100.0
-    else:
-        total_return = 0.0
+    # Build a continuous daily equity curve for accurate annualized volatility
+    avg_sharpe = 0.0
+    sortino_ratio = 0.0
+    avg_return_per_day_pct = 0.0
 
-    # Sharpe and Sortino (based on global daily equity points)
-    if global_eq and len(global_eq) > 1:
-        eq_vals = np.array([d["value"] for d in global_eq])
-        # eq_vals[0] is init_cash, following values are end-of-day
-        daily_rets = np.diff(eq_vals) / np.where(eq_vals[:-1] != 0, eq_vals[:-1], 1.0)
-        std = float(np.std(daily_rets))
-        mean_r = float(np.mean(daily_rets))
-        avg_sharpe = (mean_r / std * np.sqrt(252)) if std > 0 else 0.0
-        
-        down_rets = daily_rets[daily_rets < 0]
-        down_std = float(np.std(down_rets))
-        sortino_ratio = (mean_r / down_std * np.sqrt(252)) if down_std > 0 else 0.0
-    else:
-        avg_sharpe = 0.0
-        sortino_ratio = 0.0
+    if total_days > 0 and trades:
+        try:
+            # Reconstruct daily PnL timeline
+            daily_pnls: dict[str, float] = {}
+            for t in trades:
+                d = t.get("date", "")
+                if d:
+                    daily_pnls[d] = daily_pnls.get(d, 0.0) + t.get("pnl", 0.0)
+            
+            sorted_dates = sorted(daily_pnls.keys())
+            first_date = pd.to_datetime(sorted_dates[0])
+            last_date = pd.to_datetime(sorted_dates[-1])
+            
+            # Create a dense date range spanning from first trade day to last trade day
+            all_dates = pd.date_range(start=first_date, end=last_date, freq='D')
+            
+            dense_eq = [init_cash]
+            current_eq = init_cash
+            
+            for d in all_dates:
+                d_str = d.strftime("%Y-%m-%d")
+                current_eq += daily_pnls.get(d_str, 0.0)
+                dense_eq.append(current_eq)
+                
+            eq_arr = np.array(dense_eq, dtype=np.float64)
+            daily_rets = np.diff(eq_arr) / np.where(eq_arr[:-1] != 0, eq_arr[:-1], 1.0)
+            
+            std = float(np.std(daily_rets))
+            mean_r = float(np.mean(daily_rets))
+            avg_return_per_day_pct = mean_r * 100.0
+            
+            # Annualize (approx 365 calendar days or 252 trading days. Using 365 since frequency is 'D')
+            avg_sharpe = (mean_r / std * np.sqrt(365)) if std > 0 else 0.0
+            
+            down_rets = daily_rets[daily_rets < 0]
+            down_std = float(np.std(down_rets)) if len(down_rets) > 0 else 0.0
+            sortino_ratio = (mean_r / down_std * np.sqrt(365)) if down_std > 0 else 0.0
+
+        except Exception as e:
+            logger.warning(f"Error computing dense metrics: {e}")
 
     # --- Drawdown Logic ---
     # Global Max Drawdown (overall lowest point in portfolio equity curve)
@@ -590,10 +617,10 @@ def _aggregate_metrics(
     # Expectancy
     expectancy = avg_pnl
 
-    # Calmar = total return / abs(max dd)
+    # Calmar = total return / abs(max dd) -> Using annualized return makes more sense, but simple total is standard here
     calmar_ratio = (total_return / abs(final_max_dd)) if final_max_dd != 0 else 0.0
 
-    # DD/Return ratio
+    # DD/Return ratio -> How much max DD to achieve Total Return
     dd_return_ratio = (abs(final_max_dd) / total_return) if total_return != 0 else 0.0
 
     # R-Squared (how linear the equity curve is)
@@ -611,6 +638,7 @@ def _aggregate_metrics(
     max_mae = float(maes.max()) if len(maes) else 0
 
     # Max profit run per day
+    returns = np.array([d.get("total_return_pct", 0) or 0 for d in day_results])
     max_profit_pct = float(returns.max()) if len(returns) else 0
 
     # Consecutive wins/losses
@@ -632,7 +660,7 @@ def _aggregate_metrics(
         "total_days": total_days,
         "total_trades": total_trades,
         "win_rate_pct": round(win_rate, 2),
-        "avg_return_per_day_pct": round(avg_return, 4),
+        "avg_return_per_day_pct": round(avg_return_per_day_pct, 4),
         "total_return_pct": round(total_return, 4),
         "avg_sharpe": round(avg_sharpe, 4),
         "max_drawdown_pct": round(final_max_dd, 4),

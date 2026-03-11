@@ -62,6 +62,9 @@ def simulate(
                 optimal_f = (win_rate * (b + 1) - 1) / b
                 kelly_f = max(0, optimal_f * risk_r)
 
+    # Locates tracking (daily maximum short size)
+    max_short_size_today = 0.0
+
     for i in range(n):
         # --- TEMPORARY PATCH FOR MISPRINTS ---
         # The user requested to ignore all entry and exit logic between 08:00 and 08:45
@@ -181,15 +184,22 @@ def simulate(
             if exit_triggered:
                 slip = exit_price * slippage
                 net_exit = (exit_price - slip) if is_long else (exit_price + slip)
-                exit_fee = abs(net_exit * size) * fees
-
+                
+                # Gross PnL
                 if is_long:
-                    pnl = (net_exit - entry_price) * size - exit_fee - entry_fee_amount
+                    gross_pnl = (net_exit - entry_price) * size
                 else:
-                    pnl = (entry_price - net_exit) * size - exit_fee - entry_fee_amount
+                    gross_pnl = (entry_price - net_exit) * size
+
+                # Fee based on Gross PnL (fee is a percentage fraction e.g. 0.01 for 1%)
+                fee_amount = abs(gross_pnl) * fees
+                
+                # Net PnL is Gross PnL minus Fees
+                pnl = gross_pnl - fee_amount
 
                 realized_pnl += pnl
-                capital_at_risk = entry_price * size + entry_fee_amount
+                # For capital at risk, we just use the entry capital required
+                capital_at_risk = entry_price * size
                 ret_pct = (pnl / capital_at_risk) * 100 if capital_at_risk > 0 else 0.0
 
                 trades.append({
@@ -208,7 +218,6 @@ def simulate(
                 })
                 in_position = False
                 size = 0.0
-                entry_fee_amount = 0.0
 
         # --- check entries ---
         if not in_position and entries[i] and i < n - 1 and not is_restricted:
@@ -220,9 +229,11 @@ def simulate(
             if look_ahead_prevention:
                 # Standard: enter on next open after signal
                 ep = open_[i + 1]
+                eff_entry_idx = i + 1
             else:
                 # Aggressive/Look-ahead: enter on current close
                 ep = close[i]
+                eff_entry_idx = i
 
             slip = ep * slippage
             entry_price = (ep + slip) if is_long else (ep - slip)
@@ -230,9 +241,7 @@ def simulate(
                 equity[i] = init_cash + realized_pnl
                 continue
 
-            entry_fee_rate = 1 + fees
-            
-            entry_fee_rate = 1 + fees
+            # Fees are now calculated purely on exit Gross PnL
             
             # Calculate Risk Amount ($)
             if risk_type == "PERCENT":
@@ -249,27 +258,25 @@ def simulate(
                 if dist > 0:
                     size = risk_amount / dist
                 else:
-                    size = risk_amount / (entry_price * entry_fee_rate)
+                    size = risk_amount / entry_price
             else:
                 # Traditional sizing: deploy risk_amount into the position
-                size = risk_amount / (entry_price * entry_fee_rate)
+                size = risk_amount / entry_price
 
             # Cap size by available cash
-            max_size = available_cash / (entry_price * entry_fee_rate)
+            max_size = available_cash / entry_price
             size = min(size, max_size)
 
             if size <= 0:
                 equity[i] = available_cash
                 continue
 
-            entry_fee_amount = abs(entry_price * size) * fees
-            # Apply locates cost (per 100 shares)
-            if locates_cost > 0:
-                entry_fee_amount += (size / 100.0) * locates_cost
+            # Track Max Short Size for Locates
+            if not is_long:
+                max_short_size_today = max(max_short_size_today, size)
 
-            realized_pnl -= entry_fee_amount
             in_position = True
-            entry_idx = i + 1
+            entry_idx = eff_entry_idx
             trail_extreme = entry_price
             mae = 0.0
             mfe = 0.0
@@ -284,6 +291,25 @@ def simulate(
             equity[i] = current_equity + unrealized
         else:
             equity[i] = current_equity
+
+    # Deduct Daily Locates Fee
+    import math
+    if max_short_size_today > 0 and locates_cost > 0:
+        blocks_of_100 = math.ceil(max_short_size_today / 100.0)
+        daily_locates_fee = blocks_of_100 * locates_cost
+        
+        # We subtract it from the final equity tally
+        # To ensure trade sum = equity curve change, we assign the deduction to the first short trade
+        for t in trades:
+            if t["direction"] == "Short":
+                t["pnl"] = round(t["pnl"] - daily_locates_fee, 4)
+                break
+                
+        # Update equity curve retroactively downwards so it reflects the end of day state
+        # In a perfect world we would apply it exactly when the short is taken, 
+        # but applying at EOF/assigning to trade PnL keeps accounting perfectly aligned
+        for i in range(len(equity)):
+            equity[i] -= daily_locates_fee
 
     # If we are using Kelly, we might want to return the updated stats for the NEXT day
     # But since simulate() is called per Ticker/Date, we handle global stats in backtest_service.py
