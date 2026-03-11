@@ -128,6 +128,13 @@ def run_backtest(
             )
             entries_arr = entries_arr & session_mask
 
+        # --- TEMPORARY PATCH FOR MISPRINTS ---
+        # 8:00 to 8:45 restriction to ignore misprints
+        import datetime
+        times = pd.to_datetime(mini_df["timestamp"]).dt.time
+        patch_mask = (times >= datetime.time(8, 0)) & (times < datetime.time(8, 45))
+        patch_mask = patch_mask.values
+
         # If after masking we have no entries, skip simulation
         if not np.any(entries_arr):
             del mini_df, signals
@@ -155,6 +162,7 @@ def run_backtest(
                 sl_trail=signals["sl_trail"],
                 tp_stop=signals["tp_stop"],
                 accumulate=signals.get("accept_reentries", False),
+                patch_mask=patch_mask,
             )
         except Exception as exc:
             logger.warning(f"[STREAM] day {ticker} {date} failed: {exc}")

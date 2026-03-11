@@ -30,6 +30,7 @@ def simulate(
     accumulate: bool = False,
     locates_cost: float = 0.0,
     look_ahead_prevention: bool = True,
+    patch_mask: np.ndarray | None = None,
 ) -> dict:
     n = len(close)
     is_long = direction == "longonly"
@@ -62,6 +63,12 @@ def simulate(
                 kelly_f = max(0, optimal_f * risk_r)
 
     for i in range(n):
+        # --- TEMPORARY PATCH FOR MISPRINTS ---
+        # The user requested to ignore all entry and exit logic between 08:00 and 08:45
+        # as a temporary workaround for misprints in the data. This will be removed in the future.
+        is_restricted = patch_mask[i] if patch_mask is not None else False
+        skip_exits = is_restricted and i != n - 1
+
         # ... existing logic ...
         # --- check exits before entries ---
         if in_position:
@@ -71,17 +78,18 @@ def simulate(
             eff_exit_idx = i
 
             # Track MAE and MFE as positive percentages based on absolute price excursions
-            if is_long:
-                mae_pct = ((entry_price - low[i]) / entry_price) * 100
-                mfe_pct = ((high[i] - entry_price) / entry_price) * 100
-            else:
-                mae_pct = ((high[i] - entry_price) / entry_price) * 100
-                mfe_pct = ((entry_price - low[i]) / entry_price) * 100
-                
-            if mae_pct > mae:
-                mae = mae_pct
-            if mfe_pct > mfe:
-                mfe = mfe_pct
+            if not is_restricted:
+                if is_long:
+                    mae_pct = ((entry_price - low[i]) / entry_price) * 100
+                    mfe_pct = ((high[i] - entry_price) / entry_price) * 100
+                else:
+                    mae_pct = ((high[i] - entry_price) / entry_price) * 100
+                    mfe_pct = ((entry_price - low[i]) / entry_price) * 100
+                    
+                if mae_pct > mae:
+                    mae = mae_pct
+                if mfe_pct > mfe:
+                    mfe = mfe_pct
 
             if is_long:
                 price_for_sl = low[i]
@@ -91,7 +99,7 @@ def simulate(
                 price_for_tp = low[i]
 
             # stop-loss / trailing stop
-            if sl_stop is not None:
+            if sl_stop is not None and not skip_exits:
                 if sl_trail:
                     if is_long:
                         trail_extreme = max(trail_extreme, high[i])
@@ -122,7 +130,7 @@ def simulate(
                             exit_reason = "SL"
 
             # take-profit
-            if not exit_triggered and tp_stop is not None:
+            if not exit_triggered and tp_stop is not None and not skip_exits:
                 if is_long:
                     tp_level = entry_price * (1 + tp_stop)
                     if price_for_tp >= tp_level:
@@ -137,7 +145,7 @@ def simulate(
                         exit_reason = "TP"
 
             # signal exit
-            if not exit_triggered and exits[i]:
+            if not exit_triggered and exits[i] and not skip_exits:
                 exit_triggered = True
                 if look_ahead_prevention and i < n - 1:
                     exit_price = open_[i + 1]
@@ -185,7 +193,7 @@ def simulate(
                 entry_fee_amount = 0.0
 
         # --- check entries ---
-        if not in_position and entries[i] and i < n - 1:
+        if not in_position and entries[i] and i < n - 1 and not is_restricted:
             available_cash = init_cash + realized_pnl
             if available_cash <= 0:
                 equity[i] = init_cash + realized_pnl
