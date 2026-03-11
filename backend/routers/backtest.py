@@ -49,6 +49,19 @@ def run_backtest_endpoint(req: BacktestRequest):
     strategy = get_strategy(req.strategy_id)
     if not strategy:
         raise HTTPException(status_code=404, detail="Strategy not found")
+
+    # Validate SL exists when size_by_sl is requested
+    if req.size_by_sl:
+        rm = strategy["definition"].get("risk_management", {})
+        has_hard_stop = rm.get("use_hard_stop") and rm.get("hard_stop", {}).get("value", 0) > 0
+        has_trailing = rm.get("trailing_stop", {}).get("active", False)
+        if not has_hard_stop and not has_trailing:
+            raise HTTPException(
+                status_code=400,
+                detail="La estrategia no tiene configurado un Stop Loss. "
+                       "Desactiva 'Size por Distancia al SL' o añade un Stop Loss a la estrategia.",
+            )
+
     logger.info(f"  strategy loaded ({round(time.time()-t0, 2)}s)")
 
     try:
