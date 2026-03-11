@@ -151,6 +151,8 @@ export default function TradesTab({ trades }: TradesTabProps) {
               <SortHeader label="Size" field="size" align="right" />
               <SortHeader label="PnL" field="pnl" align="right" />
               <SortHeader label="R" field="r_multiple" align="right" />
+              <SortHeader label="MAE (%)" field="mae" align="right" />
+              <SortHeader label="MFE (%)" field="mfe" align="right" />
               <SortHeader label="Exit" field="exit_reason" />
             </tr>
           </thead>
@@ -189,6 +191,12 @@ export default function TradesTab({ trades }: TradesTabProps) {
                     }`}
                 >
                   {t.r_multiple !== null ? `${t.r_multiple.toFixed(2)}R` : "—"}
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono text-[var(--danger)]">
+                  {t.mae != null ? `${t.mae.toFixed(2)}%` : "—"}
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono text-[var(--success)]">
+                  {t.mfe != null ? `${t.mfe.toFixed(2)}%` : "—"}
                 </td>
                 <td className="px-3 py-1.5">
                   <span

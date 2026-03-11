@@ -77,20 +77,6 @@ def simulate(
             exit_reason = "Signal"
             eff_exit_idx = i
 
-            # Track MAE and MFE as positive percentages based on absolute price excursions
-            if not is_restricted:
-                if is_long:
-                    mae_pct = ((entry_price - low[i]) / entry_price) * 100
-                    mfe_pct = ((high[i] - entry_price) / entry_price) * 100
-                else:
-                    mae_pct = ((high[i] - entry_price) / entry_price) * 100
-                    mfe_pct = ((entry_price - low[i]) / entry_price) * 100
-                    
-                if mae_pct > mae:
-                    mae = mae_pct
-                if mfe_pct > mfe:
-                    mfe = mfe_pct
-
             if is_long:
                 price_for_sl = low[i]
                 price_for_tp = high[i]
@@ -143,6 +129,38 @@ def simulate(
                         exit_triggered = True
                         exit_price = max(tp_level, low[i])
                         exit_reason = "TP"
+
+            # Track MAE and MFE as positive percentages based on absolute price excursions
+            # We calculate this *before* forcing 'EOD' exits so we don't accidentally ignore wicks.
+            # But we calculate it *after* setting exit_price for intrabar STOPS so we can bound the excursions.
+            if not is_restricted:
+                bound_low = low[i]
+                bound_high = high[i]
+                
+                if exit_triggered and exit_reason in ["SL", "Trailing", "TP"]:
+                    # Do not let the recorded excursion go further than the executed stop/TP price
+                    if exit_reason in ["SL", "Trailing"]:
+                        if is_long:
+                            bound_low = max(low[i], exit_price)
+                        else:
+                            bound_high = min(high[i], exit_price)
+                    elif exit_reason == "TP":
+                        if is_long:
+                            bound_high = min(high[i], exit_price)
+                        else:
+                            bound_low = max(low[i], exit_price)
+
+                if is_long:
+                    mae_pct = ((entry_price - bound_low) / entry_price) * 100
+                    mfe_pct = ((bound_high - entry_price) / entry_price) * 100
+                else:
+                    mae_pct = ((bound_high - entry_price) / entry_price) * 100
+                    mfe_pct = ((entry_price - bound_low) / entry_price) * 100
+                    
+                if mae_pct > mae:
+                    mae = mae_pct
+                if mfe_pct > mfe:
+                    mfe = mfe_pct
 
             # signal exit
             if not exit_triggered and exits[i] and not skip_exits:
