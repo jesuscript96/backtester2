@@ -40,6 +40,7 @@ def run_backtest(
     risk_type: str = "FIXED",
     size_by_sl: bool = False,
     fees: float = 0.0,
+    fee_type: str = "PERCENT",
     slippage: float = 0.0,
     market_sessions: list[str] | None = None,
     custom_start_time: str | None = None,
@@ -66,7 +67,8 @@ def run_backtest(
             "global_drawdown": [],
         }
 
-    grouped = intraday_df.groupby(["ticker", "date"])
+    # Group by Date then Ticker to ensure chronological global compounding across all tickers
+    grouped = intraday_df.groupby(["date", "ticker"])
     n_groups = grouped.ngroups
     logger.info(f"[INIT] groupby done, {n_groups} groups")
 
@@ -88,7 +90,11 @@ def run_backtest(
         "avg_loss": 0.0
     }
 
-    for (ticker_raw, date_raw), day_df in grouped:
+    global_realized_pnl = 0.0
+    current_date = None
+    daily_pnl = 0.0
+
+    for (date_raw, ticker_raw), day_df in grouped:
         scanned += 1
         day_df = day_df.sort_values("timestamp").reset_index(drop=True)
         if len(day_df) < 5:
@@ -96,6 +102,18 @@ def run_backtest(
 
         ticker = str(ticker_raw)
         date = str(date_raw)[:10]
+        
+        # When moving to a new day, add the previous day's PnL to the global pool
+        if current_date is None:
+            current_date = date
+        elif date != current_date:
+            global_realized_pnl += daily_pnl
+            daily_pnl = 0.0
+            current_date = date
+
+        # Base cash for this sim run is initial + accumulated global PnL
+        compounding_cash = init_cash + global_realized_pnl
+        
         arrays = {
             "open": day_df["open"].values.astype(np.float64),
             "high": day_df["high"].values.astype(np.float64),
@@ -104,10 +122,32 @@ def run_backtest(
             "volume": day_df["volume"].values,
             "timestamp": day_df["timestamp"].values,
         }
+        # Invert lookup from (ticker, date) to match original format
         daily_stats = qual_lookup.get((ticker_raw, date_raw), {})
         del day_df
 
         mini_df = pd.DataFrame(arrays)
+
+        # --- Trim DataFrame to the selected market session window ---
+        # This ensures that the simulator's "last candle" (n-1) IS the session
+        # boundary, so EOD exits happen at the end of the selected session.
+        if market_sessions and "all" not in market_sessions:
+            session_mask = _get_market_sessions_mask(
+                mini_df["timestamp"], market_sessions, custom_start_time, custom_end_time
+            )
+            mini_df = mini_df[session_mask].reset_index(drop=True)
+            if len(mini_df) < 2:
+                del mini_df
+                continue
+            # Rebuild arrays from trimmed DataFrame
+            arrays = {
+                "open": mini_df["open"].values.astype(np.float64),
+                "high": mini_df["high"].values.astype(np.float64),
+                "low": mini_df["low"].values.astype(np.float64),
+                "close": mini_df["close"].values.astype(np.float64),
+                "volume": mini_df["volume"].values,
+                "timestamp": mini_df["timestamp"].values,
+            }
 
         try:
             signals = translate_strategy(mini_df, strategy_def, daily_stats)
@@ -120,13 +160,6 @@ def run_backtest(
 
         entries_arr = signals["entries"].values if hasattr(signals["entries"], "values") else np.asarray(signals["entries"])
         exits_arr = signals["exits"].values if hasattr(signals["exits"], "values") else np.asarray(signals["exits"])
-
-        # Apply market session mask to entries
-        if market_sessions and "all" not in market_sessions:
-            session_mask = _get_market_sessions_mask(
-                mini_df["timestamp"], market_sessions, custom_start_time, custom_end_time
-            )
-            entries_arr = entries_arr & session_mask
 
         # --- TEMPORARY PATCH FOR MISPRINTS ---
         # 8:00 to 8:45 restriction to ignore misprints
@@ -149,12 +182,13 @@ def run_backtest(
                 entries=entries_arr,
                 exits=exits_arr,
                 direction=signals["direction"],
-                init_cash=init_cash,
+                init_cash=compounding_cash,
                 risk_r=risk_r,
                 risk_type=risk_type,
                 size_by_sl=size_by_sl,
                 prev_stats=running_stats, # Pass stats for Kelly
                 fees=fees,
+                fee_type=fee_type,
                 slippage=slippage,
                 locates_cost=locates_cost,
                 look_ahead_prevention=look_ahead_prevention,
@@ -181,6 +215,7 @@ def run_backtest(
         # Update running stats for Kelly Criterion
         for t in raw_trades:
             pnl = t["pnl"]
+            daily_pnl += pnl  # Track today's PnL to roll over into tomorrow's compounding base
             if pnl > 0:
                 running_stats["win_count"] += 1
                 running_stats["total_win_pnl"] += pnl
@@ -216,6 +251,9 @@ def run_backtest(
                 f"[STREAM] {days_with_entries} days processed, "
                 f"{scanned}/{n_groups} scanned ({round(time.time()-t1, 2)}s)"
             )
+
+    # Final sweep of daily_pnl if the last day generated trades
+    global_realized_pnl += daily_pnl
 
     del grouped, intraday_df, qual_lookup
     gc.collect()

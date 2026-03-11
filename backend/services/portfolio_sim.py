@@ -23,6 +23,7 @@ def simulate(
     size_by_sl: bool = False,
     prev_stats: dict | None = None,
     fees: float = 0.0,
+    fee_type: str = "PERCENT",  # "PERCENT" or "FLAT"
     slippage: float = 0.0,
     sl_stop: float | None = None,
     sl_trail: bool = False,
@@ -191,8 +192,13 @@ def simulate(
                 else:
                     gross_pnl = (entry_price - net_exit) * size
 
-                # Fee based on Gross PnL (fee is a percentage fraction e.g. 0.01 for 1%)
-                fee_amount = abs(gross_pnl) * fees
+                # Fee calculation depends on fee_type
+                if fee_type == "FLAT":
+                    # Flat $ fee: charged once for entry + once for exit = 2x
+                    fee_amount = fees * 2
+                else:
+                    # Percentage fee: applied on the gross PnL
+                    fee_amount = abs(gross_pnl) * fees
                 
                 # Net PnL is Gross PnL minus Fees
                 pnl = gross_pnl - fee_amount
@@ -246,8 +252,13 @@ def simulate(
             # Calculate Risk Amount ($)
             if risk_type == "PERCENT":
                 risk_amount = available_cash * (risk_r / 100.0)
-            elif risk_type == "KELLY" and kelly_f > 0:
-                risk_amount = available_cash * kelly_f
+            elif risk_type == "KELLY":
+                if kelly_f > 0:
+                    risk_amount = available_cash * kelly_f
+                else:
+                    # Kelly has no data yet (first days) — use a moderate 
+                    # bootstrap of 5% of equity so we can start building stats
+                    risk_amount = available_cash * 0.05
             else:
                 risk_amount = risk_r
 

@@ -174,6 +174,7 @@ export async function runBacktest(params: {
   risk_type?: string;     // "FIXED" or "PERCENT"
   size_by_sl?: boolean;   // true if sizing by stop loss distance
   fees: number;
+  fee_type?: string;      // "PERCENT" or "FLAT"
   slippage: number;
   start_date?: string;
   end_date?: string;

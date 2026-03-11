@@ -21,6 +21,7 @@ interface BacktestPanelProps {
     look_ahead_prevention?: boolean;
     risk_type?: string;
     size_by_sl?: boolean;
+    fee_type?: string;
   }) => void;
   loading: boolean;
   isDarkMode?: boolean;
@@ -45,6 +46,7 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
   const [lookAheadPrevention, setLookAheadPrevention] = useState(true);
   const [riskType, setRiskType] = useState<"FIXED" | "PERCENT" | "KELLY">("FIXED");
   const [sizeBySl, setSizeBySl] = useState(false);
+  const [feeType, setFeeType] = useState<"PERCENT" | "FLAT">("PERCENT");
   const [loadingData, setLoadingData] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
@@ -96,7 +98,8 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
       strategy_id: selectedStrategy,
       init_cash: initCash,
       risk_r: riskR,
-      fees: fees / 100,
+      fees: feeType === "PERCENT" ? fees / 100 : fees,
+      fee_type: feeType,
       slippage: slippage / 100,
       start_date: startDate,
       end_date: endDate,
@@ -226,9 +229,19 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-medium mb-1 text-[var(--muted)]">
-                Fees (%)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-[var(--muted)]">
+                  Fees {feeType === "PERCENT" ? "(%)" : "($)"}
+                </label>
+                <select
+                  value={feeType}
+                  onChange={(e) => setFeeType(e.target.value as "PERCENT" | "FLAT")}
+                  className="text-[10px] bg-transparent text-[var(--muted)] hover:text-[var(--foreground)] outline-none cursor-pointer"
+                >
+                  <option value="PERCENT">%</option>
+                  <option value="FLAT">$</option>
+                </select>
+              </div>
               <input
                 type="number"
                 step="0.01"

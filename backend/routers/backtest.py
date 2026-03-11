@@ -21,7 +21,10 @@ class BacktestRequest(BaseModel):
     strategy_id: str
     init_cash: float = 10000.0
     risk_r: float = 100.0
+    risk_type: str = "FIXED"
+    size_by_sl: bool = False
     fees: float = 0.0
+    fee_type: str = "PERCENT"
     slippage: float = 0.0
     start_date: str | None = None
     end_date: str | None = None
@@ -90,7 +93,10 @@ def run_backtest_endpoint(req: BacktestRequest):
             strategy_def=strategy["definition"],
             init_cash=req.init_cash,
             risk_r=req.risk_r,
+            risk_type=req.risk_type,
+            size_by_sl=req.size_by_sl,
             fees=req.fees,
+            fee_type=req.fee_type,
             slippage=req.slippage,
             market_sessions=req.market_sessions,
             custom_start_time=req.custom_start_time,
