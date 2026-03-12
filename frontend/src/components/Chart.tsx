@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   createChart,
   CandlestickSeries,
@@ -14,13 +14,67 @@ import {
 import { createSeriesMarkers } from "lightweight-charts";
 import type { CandleData, TradeRecord, EquityPoint } from "@/lib/api";
 import {
+  getIndicatorDef,
+  createDefaultParams,
+  type ActiveIndicator,
+} from "@/lib/indicatorRegistry";
+import IndicatorDropdown from "./IndicatorDropdown";
+import {
   calculateSMA,
   calculateEMA,
+  calculateWMA,
+  calculateVWAP,
+  calculateLinearRegression,
+  calculateZigZag,
+  calculateIchimoku,
+  calculateParabolicSAR,
+  calculateDonchian,
+  calculateBollingerBands,
+  calculateOpeningRange,
   calculateRSI,
+  calculateStochastic,
+  calculateMomentum,
+  calculateCCI,
+  calculateROC,
   calculateMACD,
+  calculateDMI,
+  calculateWilliamsR,
+  calculateADX,
   calculateATR,
+  calculateOBV,
+  calculateAccDist,
+  calculateVolume,
+  calculateRVOL,
+  calculateAccumulatedVolume,
+  calculateHeikinAshi,
 } from "@/lib/indicators";
 
+// ---------------------------------------------------------------------------
+// Color palettes for multi-instance indicators
+// ---------------------------------------------------------------------------
+const OVERLAY_PALETTES: Record<string, string[]> = {
+  SMA: ["#f59e0b", "#d97706", "#b45309", "#78350f", "#92400e", "#451a03"],
+  EMA: ["#a855f7", "#9333ea", "#7e22ce", "#581c87", "#6b21a8", "#4c1d95"],
+  WMA: ["#f97316", "#ea580c", "#c2410c", "#9a3412", "#7c2d12", "#431407"],
+  LINEAR_REGRESSION: ["#84cc16", "#65a30d", "#4d7c0f", "#3f6212"],
+  RSI: ["#3b82f6", "#2563eb", "#1d4ed8", "#1e3a8a"],
+  ATR: ["#8b5cf6", "#7c3aed", "#6d28d9", "#4c1d95"],
+  MOMENTUM: ["#10b981", "#059669", "#047857", "#065f46"],
+  CCI: ["#ec4899", "#db2777", "#be185d", "#9d174d"],
+  ROC: ["#ef4444", "#dc2626", "#b91c1c", "#991b1b"],
+  WILLIAMS_R: ["#f97316", "#ea580c", "#c2410c", "#9a3412"],
+  ADX: ["#14b8a6", "#0d9488", "#0f766e", "#115e59"],
+};
+
+function getSeriesColor(indicatorId: string, instanceIndex: number): string {
+  const palette = OVERLAY_PALETTES[indicatorId];
+  if (palette) return palette[instanceIndex % palette.length];
+  return ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"][instanceIndex % 5];
+}
+
+// ---------------------------------------------------------------------------
+// Props & Component
+// ---------------------------------------------------------------------------
 interface ChartProps {
   candles: CandleData[];
   trades: TradeRecord[];
@@ -31,180 +85,160 @@ interface ChartProps {
 
 export default function Chart({ candles, trades, equity, ticker, date }: ChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const rsiContainerRef = useRef<HTMLDivElement>(null);
-  const macdContainerRef = useRef<HTMLDivElement>(null);
-  const atrContainerRef = useRef<HTMLDivElement>(null);
+  const panelContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const subChartsRef = useRef<IChartApi[]>([]);
 
-  // Custom hook for local storage persistence
-  function useLocalStorage<T>(key: string, initialValue: T) {
-    const [storedValue, setStoredValue] = useState<T>(() => {
-      if (typeof window === "undefined") return initialValue;
-      try {
-        const item = window.localStorage.getItem(key);
-        return item ? JSON.parse(item) : initialValue;
-      } catch (error) {
-        console.warn(`Error reading localStorage key "${key}":`, error);
-        return initialValue;
-      }
-    });
+  // ---------------------------------------------------------------------------
+  // Persistent indicator state
+  // ---------------------------------------------------------------------------
+  const [activeIndicators, setActiveIndicators] = useState<ActiveIndicator[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = window.localStorage.getItem("chart_active_indicators_v2");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
-    const setValue = (value: T | ((val: T) => T)) => {
-      try {
-        const valueToStore = value instanceof Function ? value(storedValue) : value;
-        setStoredValue(valueToStore);
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        }
-      } catch (error) {
-        console.warn(`Error setting localStorage key "${key}":`, error);
-      }
-    };
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("chart_active_indicators_v2", JSON.stringify(activeIndicators));
+    }
+  }, [activeIndicators]);
 
-    return [storedValue, setValue] as const;
-  }
+  // Handlers
+  const handleAdd = useCallback((indicatorId: string) => {
+    const def = getIndicatorDef(indicatorId);
+    if (!def) return;
 
-  // Array-based indicator states
-  type IndicatorItem = { id: string; period: number };
-  const [smas, setSmas] = useLocalStorage<IndicatorItem[]>("chart_smas", []);
-  const [emas, setEmas] = useLocalStorage<IndicatorItem[]>("chart_emas", []);
-  const [rsis, setRsis] = useLocalStorage<IndicatorItem[]>("chart_rsis", []);
-  const [atrs, setAtrs] = useLocalStorage<IndicatorItem[]>("chart_atrs", []);
+    const existing = activeIndicators.filter(a => a.indicatorId === indicatorId);
+    if (!def.multi && existing.length > 0) {
+      // Toggle off
+      setActiveIndicators(prev => prev.filter(a => a.indicatorId !== indicatorId));
+      return;
+    }
 
-  // Non-period indicators
-  const [showMACD, setShowMACD] = useLocalStorage<boolean>("chart_macd", false);
-  const [showVWAP, setShowVWAP] = useLocalStorage<boolean>("chart_vwap", false);
+    setActiveIndicators(prev => [
+      ...prev,
+      {
+        indicatorId,
+        instanceId: Math.random().toString(36).substring(2, 9),
+        params: createDefaultParams(def),
+      },
+    ]);
+  }, [activeIndicators]);
 
-  // Layout booleans
-  const hasRSI = rsis.length > 0;
-  const hasMACD = showMACD;
-  const hasATR = atrs.length > 0;
+  const handleAddInstance = useCallback((indicatorId: string) => {
+    const def = getIndicatorDef(indicatorId);
+    if (!def) return;
+    setActiveIndicators(prev => [
+      ...prev,
+      {
+        indicatorId,
+        instanceId: Math.random().toString(36).substring(2, 9),
+        params: createDefaultParams(def),
+      },
+    ]);
+  }, []);
 
-  // Generic helpers for arrays
-  const addIndicator = (
-    setter: React.Dispatch<React.SetStateAction<IndicatorItem[]>>,
-    defaultPeriod: number
-  ) => {
-    setter((prev) => [...prev, { id: Math.random().toString(36).substring(7), period: defaultPeriod }]);
-  };
+  const handleRemove = useCallback((instanceId: string) => {
+    setActiveIndicators(prev => prev.filter(a => a.instanceId !== instanceId));
+  }, []);
 
-  const removeIndicator = (
-    setter: React.Dispatch<React.SetStateAction<IndicatorItem[]>>,
-    idToRemove: string
-  ) => {
-    setter((prev) => prev.filter((i) => i.id !== idToRemove));
-  };
-
-  const updateIndicator = (
-    setter: React.Dispatch<React.SetStateAction<IndicatorItem[]>>,
-    idToUpdate: string,
-    newPeriod: number
-  ) => {
-    setter((prev) =>
-      prev.map((i) => (i.id === idToUpdate ? { ...i, period: newPeriod } : i))
+  const handleUpdateParam = useCallback((instanceId: string, paramName: string, value: number) => {
+    setActiveIndicators(prev =>
+      prev.map(a =>
+        a.instanceId === instanceId
+          ? { ...a, params: { ...a.params, [paramName]: value } }
+          : a
+      )
     );
-  };
+  }, []);
 
+  // Compute panels needed
+  const panelIndicators = activeIndicators.filter(a => {
+    const def = getIndicatorDef(a.indicatorId);
+    return def && def.displayMode === "panel";
+  });
+  // Group panel indicators by type (same type shares a panel if multi)
+  const panelGroups: { indicatorId: string; instances: ActiveIndicator[] }[] = [];
+  const panelMap = new Map<string, ActiveIndicator[]>();
+  for (const pi of panelIndicators) {
+    if (!panelMap.has(pi.indicatorId)) panelMap.set(pi.indicatorId, []);
+    panelMap.get(pi.indicatorId)!.push(pi);
+  }
+  for (const [id, insts] of panelMap) panelGroups.push({ indicatorId: id, instances: insts });
+
+  // ---------------------------------------------------------------------------
+  // Chart rendering effect
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!chartContainerRef.current || candles.length === 0) return;
 
-    // Cleanup previous charts
-    if (chartRef.current) {
-      chartRef.current.remove();
-      chartRef.current = null;
-    }
-    for (const sc of subChartsRef.current) {
-      try { sc.remove(); } catch { }
-    }
+    // Cleanup
+    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
+    for (const sc of subChartsRef.current) { try { sc.remove(); } catch { /* */ } }
     subChartsRef.current = [];
 
     const sorted = [...candles].sort((a, b) => a.time - b.time);
     const deduped = sorted.filter((c, i) => i === 0 || c.time !== sorted[i - 1].time);
 
-    const candleData: CandlestickData<Time>[] = deduped.map((c) => ({
-      time: c.time as Time,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
+    const candleData: CandlestickData<Time>[] = deduped.map(c => ({
+      time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close,
     }));
 
     // ========== MAIN CHART ==========
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 400,
-      layout: {
-        background: { color: "#ffffff" },
-        textColor: "#333",
-      },
-      grid: {
-        vertLines: { color: "#f0f0f0" },
-        horzLines: { color: "#f0f0f0" },
-      },
+      layout: { background: { color: "#ffffff" }, textColor: "#333" },
+      grid: { vertLines: { color: "#f0f0f0" }, horzLines: { color: "#f0f0f0" } },
       crosshair: { mode: 0 },
       rightPriceScale: { borderColor: "#e2e8f0" },
-      timeScale: {
-        borderColor: "#e2e8f0",
-        timeVisible: true,
-        secondsVisible: false,
-      },
+      timeScale: { borderColor: "#e2e8f0", timeVisible: true, secondsVisible: false },
     });
     chartRef.current = chart;
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#10b981",
-      downColor: "#ef4444",
-      borderDownColor: "#ef4444",
-      borderUpColor: "#10b981",
-      wickDownColor: "#ef4444",
-      wickUpColor: "#10b981",
+      upColor: "#10b981", downColor: "#ef4444",
+      borderDownColor: "#ef4444", borderUpColor: "#10b981",
+      wickDownColor: "#ef4444", wickUpColor: "#10b981",
     });
     candleSeries.setData(candleData);
 
-    // Volume
+    // Volume on main chart
     const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: "volume" },
-      priceScaleId: "volume",
+      priceFormat: { type: "volume" }, priceScaleId: "volume",
     });
-    chart.priceScale("volume").applyOptions({
-      scaleMargins: { top: 0.85, bottom: 0 },
-    });
-    volumeSeries.setData(
-      deduped.map((c) => ({
-        time: c.time as Time,
-        value: c.volume,
-        color: c.close >= c.open ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)",
-      }))
-    );
+    chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+    volumeSeries.setData(deduped.map(c => ({
+      time: c.time as Time,
+      value: c.volume,
+      color: c.close >= c.open ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)",
+    })));
 
-    // Trade markers — use epoch timestamps for correct placement
+    // Trade markers
     if (trades.length > 0) {
-      // Build a lookup: epoch timestamp → candle index in deduped
       const timeToIdx = new Map<number, number>();
-      for (let i = 0; i < deduped.length; i++) {
-        timeToIdx.set(deduped[i].time as number, i);
-      }
+      for (let i = 0; i < deduped.length; i++) timeToIdx.set(deduped[i].time as number, i);
 
       const markers: SeriesMarker<Time>[] = [];
       for (const t of trades) {
-        // Find entry candle by timestamp
-        const entryEpoch = t.entry_time_epoch;
-        if (entryEpoch && timeToIdx.has(entryEpoch)) {
+        if (t.entry_time_epoch && timeToIdx.has(t.entry_time_epoch)) {
           const isLong = t.direction.toLowerCase().includes("long");
           markers.push({
-            time: entryEpoch as unknown as Time,
+            time: t.entry_time_epoch as unknown as Time,
             position: isLong ? "belowBar" : "aboveBar",
             color: isLong ? "#10b981" : "#ef4444",
             shape: isLong ? "arrowUp" : "arrowDown",
             text: `${isLong ? "L" : "S"} $${t.entry_price.toFixed(2)}`,
           });
         }
-        // Find exit candle by timestamp
-        const exitEpoch = t.exit_time_epoch;
-        if (exitEpoch && timeToIdx.has(exitEpoch) && t.status === "Closed") {
+        if (t.exit_time_epoch && timeToIdx.has(t.exit_time_epoch) && t.status === "Closed") {
           markers.push({
-            time: exitEpoch as unknown as Time,
+            time: t.exit_time_epoch as unknown as Time,
             position: "aboveBar",
             color: t.pnl >= 0 ? "#10b981" : "#ef4444",
             shape: "circle",
@@ -216,144 +250,365 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
       createSeriesMarkers(candleSeries, markers);
     }
 
-    // --- OVERLAY INDICATORS (SMA, EMA, VWAP) ---
-    const smaColors = ["#f59e0b", "#d97706", "#b45309", "#78350f"];
-    smas.forEach((sma, idx) => {
-      const smaData = calculateSMA(candles, sma.period);
-      if (smaData.length > 0) {
-        const series = chart.addSeries(LineSeries, { color: smaColors[idx % smaColors.length], lineWidth: 2 });
-        series.setData(smaData);
-      }
+    // ========== OVERLAY INDICATORS ==========
+    const overlayIndicators = activeIndicators.filter(a => {
+      const def = getIndicatorDef(a.indicatorId);
+      return def && def.displayMode === "overlay";
     });
 
-    const emaColors = ["#a855f7", "#9333ea", "#7e22ce", "#581c87"];
-    emas.forEach((ema, idx) => {
-      const emaData = calculateEMA(candles, ema.period);
-      if (emaData.length > 0) {
-        const series = chart.addSeries(LineSeries, { color: emaColors[idx % emaColors.length], lineWidth: 2 });
-        series.setData(emaData);
-      }
-    });
+    // Track instance index per indicator type for coloring
+    const overlayCounters: Record<string, number> = {};
 
-    if (showVWAP) {
-      // Use backend-computed VWAP (session-aware, matches strategy engine)
-      const vwapData = deduped
-        .filter((c) => c.vwap != null)
-        .map((c) => ({ time: c.time as Time, value: c.vwap as number }));
-      if (vwapData.length > 0) {
-        const series = chart.addSeries(LineSeries, { color: "#d4a017", lineWidth: 2 });
-        series.setData(vwapData);
+    for (const ai of overlayIndicators) {
+      const idx = overlayCounters[ai.indicatorId] ?? 0;
+      overlayCounters[ai.indicatorId] = idx + 1;
+      const color = getSeriesColor(ai.indicatorId, idx);
+
+      switch (ai.indicatorId) {
+        case "SMA": {
+          const d = calculateSMA(candles, ai.params.period ?? 20);
+          if (d.length > 0) { const s = chart.addSeries(LineSeries, { color, lineWidth: 2 }); s.setData(d); }
+          break;
+        }
+        case "EMA": {
+          const d = calculateEMA(candles, ai.params.period ?? 20);
+          if (d.length > 0) { const s = chart.addSeries(LineSeries, { color, lineWidth: 2 }); s.setData(d); }
+          break;
+        }
+        case "WMA": {
+          const d = calculateWMA(candles, ai.params.period ?? 20);
+          if (d.length > 0) { const s = chart.addSeries(LineSeries, { color, lineWidth: 2 }); s.setData(d); }
+          break;
+        }
+        case "VWAP": {
+          const d = calculateVWAP(candles);
+          if (d.length > 0) { const s = chart.addSeries(LineSeries, { color: "#d4a017", lineWidth: 2 }); s.setData(d); }
+          break;
+        }
+        case "LINEAR_REGRESSION": {
+          const d = calculateLinearRegression(candles, ai.params.period ?? 14);
+          if (d.length > 0) { const s = chart.addSeries(LineSeries, { color, lineWidth: 2 }); s.setData(d); }
+          break;
+        }
+        case "ZIGZAG": {
+          const d = calculateZigZag(candles, ai.params.reversal ?? 5);
+          if (d.length > 1) { const s = chart.addSeries(LineSeries, { color: "#e11d48", lineWidth: 2 }); s.setData(d); }
+          break;
+        }
+        case "ICHIMOKU": {
+          const d = calculateIchimoku(candles, ai.params.tenkan ?? 9, ai.params.kijun ?? 26, ai.params.senkou_b ?? 52);
+          if (d.length > 0) {
+            // Cloud (Kumo) shading using a CandlestickSeries trick
+            const cloudSeries = chart.addSeries(CandlestickSeries, {
+              upColor: "rgba(16, 185, 129, 0.15)",
+              downColor: "rgba(239, 68, 68, 0.15)",
+              borderVisible: false,
+              wickVisible: false,
+              lastValueVisible: false,
+              priceLineVisible: false,
+            });
+            const cloudData = d.filter(p => p.senkouA !== null && p.senkouB !== null).map(p => ({
+              time: p.time,
+              open: p.senkouA!,
+              close: p.senkouB!,
+              high: Math.max(p.senkouA!, p.senkouB!),
+              low: Math.min(p.senkouA!, p.senkouB!),
+            }));
+            cloudSeries.setData(cloudData);
+
+            // Tenkan-sen
+            const tenkanData = d.filter(p => p.tenkan !== null).map(p => ({ time: p.time, value: p.tenkan! }));
+            if (tenkanData.length) { chart.addSeries(LineSeries, { color: "#2563eb", lineWidth: 1 }).setData(tenkanData); }
+            // Kijun-sen
+            const kijunData = d.filter(p => p.kijun !== null).map(p => ({ time: p.time, value: p.kijun! }));
+            if (kijunData.length) { chart.addSeries(LineSeries, { color: "#dc2626", lineWidth: 1 }).setData(kijunData); }
+            // Senkou A
+            const senkouAData = d.filter(p => p.senkouA !== null).map(p => ({ time: p.time, value: p.senkouA! }));
+            if (senkouAData.length) { chart.addSeries(LineSeries, { color: "rgba(16, 185, 129, 0.5)", lineWidth: 1 }).setData(senkouAData); }
+            // Senkou B
+            const senkouBData = d.filter(p => p.senkouB !== null).map(p => ({ time: p.time, value: p.senkouB! }));
+            if (senkouBData.length) { chart.addSeries(LineSeries, { color: "rgba(239, 68, 68, 0.5)", lineWidth: 1 }).setData(senkouBData); }
+            // Chikou
+            const chikouData = d.filter(p => p.chikou !== null).map(p => ({ time: p.time, value: p.chikou! }));
+            if (chikouData.length) { chart.addSeries(LineSeries, { color: "#7c3aed", lineWidth: 1, lineStyle: 2 }).setData(chikouData); }
+          }
+          break;
+        }
+        case "PARABOLIC_SAR": {
+          const d = calculateParabolicSAR(candles, ai.params.minAF ?? 0.02, ai.params.maxAF ?? 0.2);
+          if (d.length > 0) {
+            const s = chart.addSeries(LineSeries, {
+              color: "transparent", lineWidth: 1,
+              pointMarkersVisible: true, pointMarkersRadius: 2,
+              lastValueVisible: false, priceLineVisible: false,
+            });
+            // We use a dummy LineSeries with transparent line and visible markers
+            s.setData(d.map(p => ({ ...p, color: "#06b6d4" })));
+          }
+          break;
+        }
+        case "DONCHIAN": {
+          const d = calculateDonchian(candles, ai.params.period ?? 20);
+          if (d.length > 0) {
+            const sU = chart.addSeries(LineSeries, { color: "#0ea5e9", lineWidth: 1 });
+            sU.setData(d.map(p => ({ time: p.time, value: p.upper })));
+            const sL = chart.addSeries(LineSeries, { color: "#0ea5e9", lineWidth: 1 });
+            sL.setData(d.map(p => ({ time: p.time, value: p.lower })));
+            const sM = chart.addSeries(LineSeries, { color: "#0ea5e9", lineWidth: 1, lineStyle: 2 });
+            sM.setData(d.map(p => ({ time: p.time, value: p.middle })));
+          }
+          break;
+        }
+        case "BOLLINGER": {
+          const d = calculateBollingerBands(candles, ai.params.period ?? 20, ai.params.stdDev ?? 2);
+          if (d.length > 0) {
+            const sU = chart.addSeries(LineSeries, { color: "#6366f1", lineWidth: 1 });
+            sU.setData(d.map(p => ({ time: p.time, value: p.upper })));
+            const sL = chart.addSeries(LineSeries, { color: "#6366f1", lineWidth: 1 });
+            sL.setData(d.map(p => ({ time: p.time, value: p.lower })));
+            const sM = chart.addSeries(LineSeries, { color: "#6366f1", lineWidth: 1, lineStyle: 2 });
+            sM.setData(d.map(p => ({ time: p.time, value: p.middle })));
+          }
+          break;
+        }
+        case "OPENING_RANGE": {
+          const d = calculateOpeningRange(candles, ai.params.minutes ?? 5);
+          if (d.length > 0) {
+            const sU = chart.addSeries(LineSeries, { color: "#d946ef", lineWidth: 1 });
+            sU.setData(d.map(p => ({ time: p.time, value: p.upper })));
+            const sL = chart.addSeries(LineSeries, { color: "#d946ef", lineWidth: 1 });
+            sL.setData(d.map(p => ({ time: p.time, value: p.lower })));
+          }
+          break;
+        }
       }
     }
 
     chart.timeScale().fitContent();
 
-    // Helper to create a sub-chart for oscillators
-    const createSubChart = (
-      container: HTMLDivElement,
-      height: number = 120
-    ): IChartApi => {
+    // ========== PANEL SUB-CHARTS ==========
+    const createSubChart = (container: HTMLDivElement, height: number = 120): IChartApi => {
       const subChart = createChart(container, {
-        width: container.clientWidth,
-        height,
-        layout: {
-          background: { color: "#fafafa" },
-          textColor: "#666",
-          fontSize: 10,
-        },
-        grid: {
-          vertLines: { color: "#f0f0f0" },
-          horzLines: { color: "#eee" },
-        },
+        width: container.clientWidth, height,
+        layout: { background: { color: "#fafafa" }, textColor: "#666", fontSize: 10 },
+        grid: { vertLines: { color: "#f0f0f0" }, horzLines: { color: "#eee" } },
         crosshair: { mode: 0 },
         rightPriceScale: { borderColor: "#e2e8f0" },
-        timeScale: {
-          borderColor: "#e2e8f0",
-          timeVisible: true,
-          secondsVisible: false,
-          visible: false, // Hide time axis on sub-charts (main chart shows it)
-        },
+        timeScale: { borderColor: "#e2e8f0", timeVisible: true, secondsVisible: false, visible: false },
       });
-
-      // Sync time scales
-      chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+      chart.timeScale().subscribeVisibleLogicalRangeChange(range => {
         if (range) subChart.timeScale().setVisibleLogicalRange(range);
       });
-      subChart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+      subChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
         if (range) chart.timeScale().setVisibleLogicalRange(range);
       });
-
       subChartsRef.current.push(subChart);
       return subChart;
     };
 
-    // ========== RSI SUB-CHART ==========
-    if (hasRSI && rsiContainerRef.current) {
-      const rsiChart = createSubChart(rsiContainerRef.current);
-      const rsiColors = ["#3b82f6", "#2563eb", "#1d4ed8", "#1e3a8a"];
+    // Render panel groups
+    if (panelContainerRef.current) {
+      // Clear panel container
+      panelContainerRef.current.innerHTML = "";
 
-      let boundsCreated = false;
-      rsis.forEach((rsi, idx) => {
-        const rsiData = calculateRSI(candles, rsi.period);
-        if (rsiData.length > 0) {
-          const rsiSeries = rsiChart.addSeries(LineSeries, {
-            color: rsiColors[idx % rsiColors.length],
-            lineWidth: 2,
-          });
-          rsiSeries.setData(rsiData);
-          if (!boundsCreated) {
-            rsiSeries.createPriceLine({ price: 70, color: "#ef4444", lineWidth: 1, lineStyle: 2 });
-            rsiSeries.createPriceLine({ price: 30, color: "#10b981", lineWidth: 1, lineStyle: 2 });
-            boundsCreated = true;
+      for (const group of panelGroups) {
+        const def = getIndicatorDef(group.indicatorId);
+        if (!def) continue;
+
+        // Create wrapper
+        const wrapper = document.createElement("div");
+        wrapper.className = "border-t border-gray-200";
+
+        // Label
+        const label = document.createElement("div");
+        label.className = "px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 tracking-wider";
+        label.textContent = def.label + " " + group.instances.map(i => {
+          const paramStr = def.params.map(p => i.params[p.name]).join(",");
+          return paramStr ? `(${paramStr})` : "";
+        }).join(" ");
+        wrapper.appendChild(label);
+
+        // Chart container
+        const chartDiv = document.createElement("div");
+        chartDiv.style.width = "100%";
+        chartDiv.style.height = "120px";
+        wrapper.appendChild(chartDiv);
+        panelContainerRef.current.appendChild(wrapper);
+
+        const subChart = createSubChart(chartDiv);
+        let instanceIdx = 0;
+
+        for (const inst of group.instances) {
+          const clr = getSeriesColor(inst.indicatorId, instanceIdx++);
+
+          switch (inst.indicatorId) {
+            case "RSI": {
+              const d = calculateRSI(candles, inst.params.period ?? 14);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: clr, lineWidth: 2 });
+                s.setData(d);
+                if (instanceIdx === 1) {
+                  s.createPriceLine({ price: 70, color: "#ef4444", lineWidth: 1, lineStyle: 2 });
+                  s.createPriceLine({ price: 30, color: "#10b981", lineWidth: 1, lineStyle: 2 });
+                }
+              }
+              break;
+            }
+            case "STOCHASTIC": {
+              const d = calculateStochastic(candles, inst.params.kPeriod ?? 14, inst.params.dPeriod ?? 3, inst.params.dSlow ?? 3);
+              if (d.length > 0) {
+                const sK = subChart.addSeries(LineSeries, { color: "#3b82f6", lineWidth: 2 });
+                sK.setData(d.map(p => ({ time: p.time, value: p.k })));
+                const sD = subChart.addSeries(LineSeries, { color: "#f59e0b", lineWidth: 1 });
+                sD.setData(d.map(p => ({ time: p.time, value: p.d })));
+                if (instanceIdx === 1) {
+                  sK.createPriceLine({ price: 80, color: "#ef4444", lineWidth: 1, lineStyle: 2 });
+                  sK.createPriceLine({ price: 20, color: "#10b981", lineWidth: 1, lineStyle: 2 });
+                }
+              }
+              break;
+            }
+            case "MOMENTUM": {
+              const d = calculateMomentum(candles, inst.params.period ?? 10);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: clr, lineWidth: 2 });
+                s.setData(d);
+                s.createPriceLine({ price: 0, color: "#9ca3af", lineWidth: 1, lineStyle: 2 });
+              }
+              break;
+            }
+            case "CCI": {
+              const d = calculateCCI(candles, inst.params.period ?? 20);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: clr, lineWidth: 2 });
+                s.setData(d);
+                s.createPriceLine({ price: 100, color: "#ef4444", lineWidth: 1, lineStyle: 2 });
+                s.createPriceLine({ price: -100, color: "#10b981", lineWidth: 1, lineStyle: 2 });
+              }
+              break;
+            }
+            case "ROC": {
+              const d = calculateROC(candles, inst.params.period ?? 12);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: clr, lineWidth: 2 });
+                s.setData(d);
+                s.createPriceLine({ price: 0, color: "#9ca3af", lineWidth: 1, lineStyle: 2 });
+              }
+              break;
+            }
+            case "MACD": {
+              const d = calculateMACD(candles, inst.params.fast ?? 12, inst.params.slow ?? 26, inst.params.signal ?? 9);
+              if (d.length > 0) {
+                const sM = subChart.addSeries(LineSeries, { color: "#2563eb", lineWidth: 2 });
+                sM.setData(d.map(p => ({ time: p.time, value: p.macd })));
+                const sS = subChart.addSeries(LineSeries, { color: "#f59e0b", lineWidth: 1 });
+                sS.setData(d.map(p => ({ time: p.time, value: p.signal })));
+                const sH = subChart.addSeries(HistogramSeries, {});
+                sH.setData(d.map(p => ({
+                  time: p.time, value: p.histogram,
+                  color: p.histogram >= 0 ? "rgba(16,185,129,0.5)" : "rgba(239,68,68,0.5)",
+                })));
+              }
+              break;
+            }
+            case "DMI": {
+              const d = calculateDMI(candles, inst.params.diPeriod ?? 14, inst.params.adxPeriod ?? 14);
+              if (d.length > 0) {
+                const sP = subChart.addSeries(LineSeries, { color: "#16a34a", lineWidth: 2 });
+                sP.setData(d.map(p => ({ time: p.time, value: p.plusDI })));
+                const sM = subChart.addSeries(LineSeries, { color: "#dc2626", lineWidth: 2 });
+                sM.setData(d.map(p => ({ time: p.time, value: p.minusDI })));
+                const sA = subChart.addSeries(LineSeries, { color: "#6366f1", lineWidth: 1, lineStyle: 2 });
+                sA.setData(d.map(p => ({ time: p.time, value: p.adx })));
+              }
+              break;
+            }
+            case "WILLIAMS_R": {
+              const d = calculateWilliamsR(candles, inst.params.period ?? 14);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: clr, lineWidth: 2 });
+                s.setData(d);
+                s.createPriceLine({ price: -20, color: "#ef4444", lineWidth: 1, lineStyle: 2 });
+                s.createPriceLine({ price: -80, color: "#10b981", lineWidth: 1, lineStyle: 2 });
+              }
+              break;
+            }
+            case "ADX": {
+              const d = calculateADX(candles, inst.params.period ?? 14);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: clr, lineWidth: 2 });
+                s.setData(d);
+                s.createPriceLine({ price: 25, color: "#9ca3af", lineWidth: 1, lineStyle: 2 });
+              }
+              break;
+            }
+            case "ATR": {
+              const d = calculateATR(candles, inst.params.period ?? 14);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: clr, lineWidth: 2 });
+                s.setData(d);
+              }
+              break;
+            }
+            case "OBV": {
+              const d = calculateOBV(candles);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: "#06b6d4", lineWidth: 2 });
+                s.setData(d);
+              }
+              break;
+            }
+            case "VOL_AD": {
+              const d = calculateAccDist(candles);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: "#84cc16", lineWidth: 2 });
+                s.setData(d);
+              }
+              break;
+            }
+            case "VOLUME": {
+              const d = calculateVolume(candles);
+              if (d.length > 0) {
+                const s = subChart.addSeries(HistogramSeries, { priceFormat: { type: "volume" } });
+                s.setData(d);
+              }
+              break;
+            }
+            case "RVOL": {
+              const d = calculateRVOL(candles, inst.params.period ?? 14);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: "#f59e0b", lineWidth: 2 });
+                s.setData(d);
+                s.createPriceLine({ price: 1, color: "#9ca3af", lineWidth: 1, lineStyle: 2 });
+              }
+              break;
+            }
+            case "ACCUMULATED_VOLUME": {
+              const d = calculateAccumulatedVolume(candles);
+              if (d.length > 0) {
+                const s = subChart.addSeries(LineSeries, { color: "#10b981", lineWidth: 2 });
+                s.setData(d);
+              }
+              break;
+            }
+            case "HEIKIN_ASHI": {
+              const d = calculateHeikinAshi(candles);
+              if (d.length > 0) {
+                const s = subChart.addSeries(CandlestickSeries, {
+                  upColor: "#10b981", downColor: "#ef4444",
+                  borderDownColor: "#ef4444", borderUpColor: "#10b981",
+                  wickDownColor: "#ef4444", wickUpColor: "#10b981",
+                });
+                s.setData(d.map(p => ({
+                  time: p.time, open: p.open, high: p.high, low: p.low, close: p.close,
+                })));
+              }
+              break;
+            }
           }
         }
-      });
-      rsiChart.timeScale().fitContent();
-    }
-
-    // ========== MACD SUB-CHART ==========
-    if (hasMACD && macdContainerRef.current) {
-      const macdChart = createSubChart(macdContainerRef.current);
-      const macdData = calculateMACD(candles);
-      if (macdData.length > 0) {
-        const macdSeries = macdChart.addSeries(LineSeries, {
-          color: "#2563eb",
-          lineWidth: 2,
-        });
-        macdSeries.setData(macdData.map(d => ({ time: d.time, value: d.macd })));
-
-        const signalSeries = macdChart.addSeries(LineSeries, {
-          color: "#f59e0b",
-          lineWidth: 1,
-        });
-        signalSeries.setData(macdData.map(d => ({ time: d.time, value: d.signal })));
-
-        const histSeries = macdChart.addSeries(HistogramSeries, {});
-        histSeries.setData(macdData.map(d => ({
-          time: d.time,
-          value: d.histogram,
-          color: d.histogram >= 0 ? "rgba(16,185,129,0.5)" : "rgba(239,68,68,0.5)"
-        })));
+        subChart.timeScale().fitContent();
       }
-      macdChart.timeScale().fitContent();
-    }
-
-    // ========== ATR SUB-CHART ==========
-    if (hasATR && atrContainerRef.current) {
-      const atrChart = createSubChart(atrContainerRef.current);
-      const atrColors = ["#8b5cf6", "#7c3aed", "#6d28d9", "#4c1d95"];
-
-      atrs.forEach((atr, idx) => {
-        const atrData = calculateATR(candles, atr.period);
-        if (atrData.length > 0) {
-          const atrSeries = atrChart.addSeries(LineSeries, {
-            color: atrColors[idx % atrColors.length],
-            lineWidth: 2,
-          });
-          atrSeries.setData(atrData);
-        }
-      });
-      atrChart.timeScale().fitContent();
     }
 
     // Resize handler
@@ -371,14 +626,12 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      for (const sc of subChartsRef.current) {
-        try { sc.remove(); } catch { }
-      }
+      for (const sc of subChartsRef.current) { try { sc.remove(); } catch { /* */ } }
       subChartsRef.current = [];
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles, trades, equity, smas, emas, rsis, atrs, showMACD, showVWAP, hasRSI, hasMACD, hasATR]);
+  }, [candles, trades, equity, activeIndicators, panelGroups]);
 
   return (
     <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden">
@@ -391,157 +644,20 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
           <span className="text-xs px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">1m</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {/* SMA */}
-          <div className="flex items-center gap-1 bg-[var(--card-bg)] border border-[var(--border)] rounded overflow-hidden">
-            <button
-              onClick={() => (smas.length === 0 ? addIndicator(setSmas, 20) : setSmas([]))}
-              className={`px-2 py-1 font-medium transition-colors ${smas.length > 0 ? "bg-amber-100 text-amber-800" : "text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
-            >
-              SMA
-            </button>
-            {smas.map((sma) => (
-              <div key={sma.id} className="flex items-center bg-amber-50 pl-1">
-                <input
-                  type="number"
-                  value={sma.period}
-                  onChange={(e) => updateIndicator(setSmas, sma.id, Number(e.target.value))}
-                  className="w-10 bg-transparent text-amber-900 outline-none"
-                  min={1}
-                />
-                <button onClick={() => removeIndicator(setSmas, sma.id)} className="px-1 text-amber-500 hover:text-amber-700">×</button>
-              </div>
-            ))}
-            {smas.length > 0 && (
-              <button onClick={() => addIndicator(setSmas, 50)} className="px-1.5 py-1 text-amber-600 hover:bg-amber-100 border-l border-gray-200">+</button>
-            )}
-          </div>
-
-          {/* EMA */}
-          <div className="flex items-center gap-1 bg-[var(--card-bg)] border border-[var(--border)] rounded overflow-hidden">
-            <button
-              onClick={() => (emas.length === 0 ? addIndicator(setEmas, 20) : setEmas([]))}
-              className={`px-2 py-1 font-medium transition-colors ${emas.length > 0 ? "bg-purple-100 text-purple-800" : "text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
-            >
-              EMA
-            </button>
-            {emas.map((ema) => (
-              <div key={ema.id} className="flex items-center bg-purple-50 pl-1">
-                <input
-                  type="number"
-                  value={ema.period}
-                  onChange={(e) => updateIndicator(setEmas, ema.id, Number(e.target.value))}
-                  className="w-10 bg-transparent text-purple-900 outline-none"
-                  min={1}
-                />
-                <button onClick={() => removeIndicator(setEmas, ema.id)} className="px-1 text-purple-500 hover:text-purple-700">×</button>
-              </div>
-            ))}
-            {emas.length > 0 && (
-              <button onClick={() => addIndicator(setEmas, 50)} className="px-1.5 py-1 text-purple-600 hover:bg-purple-100 border-l border-gray-200">+</button>
-            )}
-          </div>
-
-          {/* RSI */}
-          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
-            <button
-              onClick={() => (rsis.length === 0 ? addIndicator(setRsis, 14) : setRsis([]))}
-              className={`px-2 py-1 font-medium transition-colors ${rsis.length > 0 ? "bg-blue-100 text-blue-800" : "text-gray-600 hover:bg-gray-100"}`}
-            >
-              RSI
-            </button>
-            {rsis.map((rsi) => (
-              <div key={rsi.id} className="flex items-center bg-blue-50 pl-1">
-                <input
-                  type="number"
-                  value={rsi.period}
-                  onChange={(e) => updateIndicator(setRsis, rsi.id, Number(e.target.value))}
-                  className="w-10 bg-transparent text-blue-900 outline-none"
-                  min={1}
-                />
-                <button onClick={() => removeIndicator(setRsis, rsi.id)} className="px-1 text-blue-500 hover:text-blue-700">×</button>
-              </div>
-            ))}
-            {rsis.length > 0 && (
-              <button onClick={() => addIndicator(setRsis, 14)} className="px-1.5 py-1 text-blue-600 hover:bg-blue-100 border-l border-gray-200">+</button>
-            )}
-          </div>
-
-          {/* MACD */}
-          <button
-            onClick={() => setShowMACD(!showMACD)}
-            className={`px-2 py-1 border rounded font-medium transition-colors ${showMACD ? "border-blue-500 bg-blue-50 text-blue-700" : "border-[var(--border)] bg-[var(--card-bg)] text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
-          >
-            MACD
-          </button>
-
-          {/* ATR */}
-          <div className="flex items-center gap-1 bg-white border border-gray-300 rounded overflow-hidden">
-            <button
-              onClick={() => (atrs.length === 0 ? addIndicator(setAtrs, 14) : setAtrs([]))}
-              className={`px-2 py-1 font-medium transition-colors ${atrs.length > 0 ? "bg-violet-100 text-violet-800" : "text-gray-600 hover:bg-gray-100"}`}
-            >
-              ATR
-            </button>
-            {atrs.map((atr) => (
-              <div key={atr.id} className="flex items-center bg-violet-50 pl-1">
-                <input
-                  type="number"
-                  value={atr.period}
-                  onChange={(e) => updateIndicator(setAtrs, atr.id, Number(e.target.value))}
-                  className="w-10 bg-transparent text-violet-900 outline-none"
-                  min={1}
-                />
-                <button onClick={() => removeIndicator(setAtrs, atr.id)} className="px-1 text-violet-500 hover:text-violet-700">×</button>
-              </div>
-            ))}
-            {atrs.length > 0 && (
-              <button onClick={() => addIndicator(setAtrs, 14)} className="px-1.5 py-1 text-violet-600 hover:bg-violet-100 border-l border-gray-200">+</button>
-            )}
-          </div>
-
-          {/* VWAP */}
-          <button
-            onClick={() => setShowVWAP(!showVWAP)}
-            className={`px-2 py-1 border rounded font-medium transition-colors ${showVWAP ? "border-pink-500 bg-pink-50 text-pink-700" : "border-[var(--border)] bg-[var(--card-bg)] text-[var(--muted)] hover:bg-[var(--sidebar-bg)]"}`}
-          >
-            VWAP
-          </button>
-        </div>
+        <IndicatorDropdown
+          activeIndicators={activeIndicators}
+          onAdd={handleAdd}
+          onRemove={handleRemove}
+          onAddInstance={handleAddInstance}
+          onUpdateParam={handleUpdateParam}
+        />
       </div>
 
       {/* MAIN CHART */}
       <div ref={chartContainerRef} style={{ width: "100%", height: "400px" }} />
 
-      {/* RSI SUB-CHART */}
-      {hasRSI && (
-        <div className="border-t border-gray-200">
-          <div className="px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 tracking-wider flex items-center gap-1">
-            RSI {rsis.map(r => <span key={r.id} className="bg-blue-100 text-blue-700 px-1 rounded">{r.period}</span>)}
-          </div>
-          <div ref={rsiContainerRef} style={{ width: "100%", height: "120px" }} />
-        </div>
-      )}
-
-      {/* MACD SUB-CHART */}
-      {hasMACD && (
-        <div className="border-t border-gray-200">
-          <div className="px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-            MACD (12,26,9)
-          </div>
-          <div ref={macdContainerRef} style={{ width: "100%", height: "120px" }} />
-        </div>
-      )}
-
-      {/* ATR SUB-CHART */}
-      {hasATR && (
-        <div className="border-t border-gray-200">
-          <div className="px-3 py-0.5 bg-gray-50 text-[10px] font-semibold text-gray-500 tracking-wider flex items-center gap-1">
-            ATR {atrs.map(a => <span key={a.id} className="bg-violet-100 text-violet-700 px-1 rounded">{a.period}</span>)}
-          </div>
-          <div ref={atrContainerRef} style={{ width: "100%", height: "120px" }} />
-        </div>
-      )}
+      {/* PANEL SUB-CHARTS (rendered via DOM manipulation in effect) */}
+      <div ref={panelContainerRef} />
     </div>
   );
 }
