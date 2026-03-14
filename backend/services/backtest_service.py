@@ -195,6 +195,7 @@ def run_backtest(
                 sl_stop=signals["sl_stop"],
                 sl_trail=signals["sl_trail"],
                 tp_stop=signals["tp_stop"],
+                trail_pct=signals.get("trail_pct"),
                 accumulate=signals.get("accept_reentries", False),
                 patch_mask=patch_mask,
             )
@@ -369,14 +370,25 @@ def _compute_r_multiple(
 ) -> float | None:
     rm = strategy_def.get("risk_management", {})
     sl_pct = None
+    
+    # Priority 1: Hard Stop (This is the fixed risk floor)
     if rm.get("use_hard_stop"):
         sl_cfg = rm.get("hard_stop") or {}
         sl_pct = sl_cfg.get("value")
+    
+    # Priority 2: Trailing Stop (Only if no hard stop is defined)
+    if (not sl_pct or sl_pct <= 0) and rm.get("trailing_stop", {}).get("active"):
+        trailing = rm["trailing_stop"]
+        if trailing.get("type") == "Percentage":
+            sl_pct = trailing.get("buffer_pct")
+
     if not sl_pct or sl_pct <= 0:
         return None
-    r_risk = entry_price * (sl_pct / 100)
+
+    r_risk = entry_price * (sl_pct / 100.0)
     if r_risk <= 0:
         return None
+    
     is_long = "long" in direction.lower()
     pnl_per_share = (exit_price - entry_price) if is_long else (entry_price - exit_price)
     return round(pnl_per_share / r_risk, 2)

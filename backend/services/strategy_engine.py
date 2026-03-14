@@ -54,7 +54,7 @@ def translate_strategy(
         exits = exits.reindex(df.index, method="ffill").fillna(False)
 
     risk_cache: dict = entry_cache if entry_tf == "1m" else {}
-    sl_stop, sl_trail, tp_stop = _parse_risk_management(risk, df, daily_stats, risk_cache)
+    sl_stop, sl_trail, tp_stop, trail_pct = _parse_risk_management(risk, df, daily_stats, risk_cache)
 
     return {
         "entries": entries.astype(bool),
@@ -63,6 +63,7 @@ def translate_strategy(
         "sl_stop": sl_stop,
         "sl_trail": sl_trail,
         "tp_stop": tp_stop,
+        "trail_pct": trail_pct,
         "accept_reentries": risk.get("accept_reentries", False),
     }
 
@@ -95,13 +96,13 @@ def _evaluate_condition_group(
 ) -> pd.Series:
     """Recursively evaluate a ConditionGroup with AND/OR logic."""
     if not group:
-        return pd.Series(True, index=df.index)
+        return pd.Series(False, index=df.index)
 
     operator = group.get("operator", "AND")
     conditions = group.get("conditions", [])
 
     if not conditions:
-        return pd.Series(True, index=df.index)
+        return pd.Series(False, index=df.index)
 
     results = []
     for cond in conditions:
@@ -113,7 +114,7 @@ def _evaluate_condition_group(
         results.append(result)
 
     if not results:
-        return pd.Series(True, index=df.index)
+        return pd.Series(False, index=df.index)
 
     combined = results[0]
     for r in results[1:]:
@@ -140,7 +141,7 @@ def _evaluate_single_condition(
     elif cond_type == "candle_pattern":
         return _eval_candle_pattern(cond, df)
     else:
-        return pd.Series(True, index=df.index)
+        return pd.Series(False, index=df.index)
 
 
 def _eval_indicator_comparison(
@@ -244,10 +245,11 @@ def _parse_risk_management(
     df: pd.DataFrame,
     daily_stats: dict | None,
     cache: dict | None = None,
-) -> tuple[float | None, bool, float | None]:
+) -> tuple[float | None, bool, float | None, float | None]:
     sl_stop = None
     sl_trail = False
     tp_stop = None
+    trail_pct = None
 
     if risk.get("use_hard_stop") and risk.get("hard_stop"):
         hs = risk["hard_stop"]
@@ -271,11 +273,11 @@ def _parse_risk_management(
     if trailing.get("active"):
         sl_trail = True
         if trailing.get("type") == "Percentage" and trailing.get("buffer_pct"):
-            sl_stop = trailing["buffer_pct"] / 100.0
+            trail_pct = trailing["buffer_pct"] / 100.0
 
     if risk.get("use_take_profit") and risk.get("take_profit"):
         tp = risk["take_profit"]
         if tp.get("type") == "Percentage":
             tp_stop = tp.get("value", 0) / 100.0
 
-    return sl_stop, sl_trail, tp_stop
+    return sl_stop, sl_trail, tp_stop, trail_pct

@@ -29,6 +29,7 @@ def simulate(
     sl_trail: bool = False,
     tp_stop: float | None = None,
     accumulate: bool = False,
+    trail_pct: float | None = None,
     locates_cost: float = 0.0,
     look_ahead_prevention: bool = True,
     patch_mask: np.ndarray | None = None,
@@ -48,6 +49,7 @@ def simulate(
     trail_extreme = 0.0
     mae = 0.0  # Maximum Adverse Excursion
     mfe = 0.0  # Maximum Favorable Excursion
+    trail_activated = False
 
     # Pre-calculate Kelly multiplier if needed
     kelly_f = 0.0
@@ -65,6 +67,9 @@ def simulate(
 
     # Locates tracking (daily maximum short size)
     max_short_size_today = 0.0
+
+    total_trades = 0
+    prev_signal = False
 
     for i in range(n):
         # --- TEMPORARY PATCH FOR MISPRINTS ---
@@ -89,35 +94,63 @@ def simulate(
                 price_for_tp = low[i]
 
             # stop-loss / trailing stop
-            if sl_stop is not None and not skip_exits:
-                if sl_trail:
+            if not skip_exits:
+                # 1. Hard Stop Logic
+                if sl_stop is not None:
+                    if is_long:
+                        hard_sl_price = entry_price * (1 - sl_stop)
+                        if price_for_sl <= hard_sl_price:
+                            exit_triggered = True
+                            exit_price = max(hard_sl_price, low[i])
+                            exit_reason = "SL"
+                    else:
+                        hard_sl_price = entry_price * (1 + sl_stop)
+                        if price_for_sl >= hard_sl_price:
+                            exit_triggered = True
+                            exit_price = min(hard_sl_price, high[i])
+                            exit_reason = "SL"
+
+                # 2. Trailing Stop Logic (Profit-Locked Profit Protector)
+                if sl_trail and trail_pct is not None:
                     if is_long:
                         trail_extreme = max(trail_extreme, high[i])
-                        sl_level = trail_extreme * (1 - sl_stop)
-                        if price_for_sl <= sl_level:
-                            exit_triggered = True
-                            exit_price = max(sl_level, low[i])
-                            exit_reason = "Trailing"
+                        # Activation: Only activates if price touched Entry * (1 + TrailingPct)
+                        if not trail_activated:
+                            if trail_extreme >= entry_price * (1 + trail_pct):
+                                trail_activated = True
+                        
+                        if trail_activated:
+                            # Trail at distance, but PROTECT the profit (floor = entry_price)
+                            # This ensures we never exit at a loss via 'Trailing' reason
+                            calculated_trail_stop = trail_extreme * (1 - trail_pct)
+                            trail_sl_price = max(entry_price, calculated_trail_stop)
+                            
+                            if price_for_sl <= trail_sl_price:
+                                # Only trigger Trailing if it's better than hard SL (safety check)
+                                hard_sl_price = entry_price * (1 - sl_stop) if sl_stop is not None else -1e18
+                                if trail_sl_price > hard_sl_price:
+                                    exit_triggered = True
+                                    exit_price = max(trail_sl_price, low[i])
+                                    exit_reason = "Trailing"
                     else:
                         trail_extreme = min(trail_extreme, low[i])
-                        sl_level = trail_extreme * (1 + sl_stop)
-                        if price_for_sl >= sl_level:
-                            exit_triggered = True
-                            exit_price = min(sl_level, high[i])
-                            exit_reason = "Trailing"
-                else:
-                    if is_long:
-                        sl_level = entry_price * (1 - sl_stop)
-                        if price_for_sl <= sl_level:
-                            exit_triggered = True
-                            exit_price = max(sl_level, low[i])
-                            exit_reason = "SL"
-                    else:
-                        sl_level = entry_price * (1 + sl_stop)
-                        if price_for_sl >= sl_level:
-                            exit_triggered = True
-                            exit_price = min(sl_level, high[i]) 
-                            exit_reason = "SL"
+                        # Activation: Only activates if price touched Entry * (1 - TrailingPct)
+                        if not trail_activated:
+                            if trail_extreme <= entry_price * (1 - trail_pct):
+                                trail_activated = True
+                        
+                        if trail_activated:
+                            # Trail at distance, but floor = entry_price for Short
+                            calculated_trail_stop = trail_extreme * (1 + trail_pct)
+                            trail_sl_price = min(entry_price, calculated_trail_stop)
+                            
+                            if price_for_sl >= trail_sl_price:
+                                # Only trigger Trailing if it's better than hard SL
+                                hard_sl_price = entry_price * (1 + sl_stop) if sl_stop is not None else 1e18
+                                if trail_sl_price < hard_sl_price:
+                                    exit_triggered = True
+                                    exit_price = min(trail_sl_price, high[i])
+                                    exit_reason = "Trailing"
 
             # take-profit
             if not exit_triggered and tp_stop is not None and not skip_exits:
@@ -226,71 +259,89 @@ def simulate(
                 size = 0.0
 
         # --- check entries ---
-        if not in_position and entries[i] and i < n - 1 and not is_restricted:
-            available_cash = init_cash + realized_pnl
-            if available_cash <= 0:
-                equity[i] = init_cash + realized_pnl
-                continue
-
-            if look_ahead_prevention:
-                # Standard: enter on next open after signal
-                ep = open_[i + 1]
-                eff_entry_idx = i + 1
-            else:
-                # Aggressive/Look-ahead: enter on current close
-                ep = close[i]
-                eff_entry_idx = i
-
-            slip = ep * slippage
-            entry_price = (ep + slip) if is_long else (ep - slip)
-            if entry_price <= 0:
-                equity[i] = init_cash + realized_pnl
-                continue
-
-            # Fees are now calculated purely on exit Gross PnL
+        # Edge Detection: only enter when signal turns from False to True.
+        # This prevents re-entering in the same 'signal block'.
+        current_signal = bool(entries[i])
+        is_signal_trigger = current_signal and not prev_signal
+        
+        if not in_position and is_signal_trigger and i < n - 1 and not is_restricted:
+            # Re-entry logic:
+            # If accumulate is False, we only allow one trade per ticker per day.
+            can_enter = True
+            if not accumulate and total_trades > 0:
+                can_enter = False
             
-            # Calculate Risk Amount ($)
-            if risk_type == "PERCENT":
-                risk_amount = available_cash * (risk_r / 100.0)
-            elif risk_type == "KELLY":
-                if kelly_f > 0:
-                    risk_amount = available_cash * kelly_f
-                else:
-                    # Kelly has no data yet (first days) — use a moderate 
-                    # bootstrap of 5% of equity so we can start building stats
-                    risk_amount = available_cash * 0.05
-            else:
-                risk_amount = risk_r
+            if can_enter:
+                available_cash = init_cash + realized_pnl
+                if available_cash <= 0:
+                    equity[i] = init_cash + realized_pnl
+                    prev_signal = current_signal # Update for next loop
+                    continue
 
-            if size_by_sl and sl_stop is not None and sl_stop > 0:
-                # Distance-based sizing: lose exactly risk_amount if SL is hit
-                # Distance = price * sl_pct
-                dist = entry_price * sl_stop
-                if dist > 0:
-                    size = risk_amount / dist
+                if look_ahead_prevention:
+                    # Standard: enter on next open after signal
+                    ep = open_[i + 1]
+                    eff_entry_idx = i + 1
                 else:
+                    # Aggressive/Look-ahead: enter on current close
+                    ep = close[i]
+                    eff_entry_idx = i
+
+                slip = ep * slippage
+                entry_price = (ep + slip) if is_long else (ep - slip)
+                if entry_price <= 0:
+                    equity[i] = init_cash + realized_pnl
+                    prev_signal = current_signal # Update for next loop
+                    continue
+
+                # Fees are now calculated purely on exit Gross PnL
+                
+                # Calculate Risk Amount ($)
+                if risk_type == "PERCENT":
+                    risk_amount = available_cash * (risk_r / 100.0)
+                elif risk_type == "KELLY":
+                    if kelly_f > 0:
+                        risk_amount = available_cash * kelly_f
+                    else:
+                        # Kelly has no data yet (first days) — use a moderate 
+                        # bootstrap of 5% of equity so we can start building stats
+                        risk_amount = available_cash * 0.05
+                else:
+                    risk_amount = risk_r
+
+                if size_by_sl and sl_stop is not None and sl_stop > 0:
+                    # Distance-based sizing: lose exactly risk_amount if SL is hit
+                    # Distance = price * sl_pct
+                    dist = entry_price * sl_stop
+                    if dist > 0:
+                        size = risk_amount / dist
+                    else:
+                        size = risk_amount / entry_price
+                else:
+                    # Traditional sizing: deploy risk_amount into the position
                     size = risk_amount / entry_price
-            else:
-                # Traditional sizing: deploy risk_amount into the position
-                size = risk_amount / entry_price
 
-            # Cap size by available cash
-            max_size = available_cash / entry_price
-            size = min(size, max_size)
+                # Cap size by available cash
+                max_size = available_cash / entry_price
+                size = min(size, max_size)
 
-            if size <= 0:
-                equity[i] = available_cash
-                continue
+                if size > 0:
+                    # Track Max Short Size for Locates
+                    if not is_long:
+                        max_short_size_today = max(max_short_size_today, size)
 
-            # Track Max Short Size for Locates
-            if not is_long:
-                max_short_size_today = max(max_short_size_today, size)
-
-            in_position = True
-            entry_idx = eff_entry_idx
-            trail_extreme = entry_price
-            mae = 0.0
-            mfe = 0.0
+                    in_position = True
+                    entry_idx = eff_entry_idx
+                    trail_extreme = entry_price
+                    trail_activated = False
+                    mae = 0.0
+                    mfe = 0.0
+                    total_trades += 1
+                else:
+                    equity[i] = available_cash
+        
+        # Always update signal state for next bar's edge detection
+        prev_signal = current_signal
 
         # --- equity ---
         current_equity = init_cash + realized_pnl
