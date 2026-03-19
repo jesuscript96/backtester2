@@ -23,6 +23,8 @@ export default function Home() {
   const initCashRef = useRef(10000);
   const riskRRef = useRef(100);
   const datasetIdRef = useRef("");
+  const strategyIdRef = useRef("");
+  const backtestParamsRef = useRef<Record<string, unknown>>({});
 
   const [dayCandles, setDayCandles] = useState<DayCandles | null>(null);
   const [candlesLoading, setCandlesLoading] = useState(false);
@@ -48,6 +50,16 @@ export default function Home() {
     initCashRef.current = params.init_cash;
     riskRRef.current = params.risk_r;
     datasetIdRef.current = params.dataset_id;
+    strategyIdRef.current = params.strategy_id;
+    backtestParamsRef.current = {
+      init_cash: params.init_cash,
+      risk_r: params.risk_r,
+      fees: params.fees,
+      slippage: params.slippage,
+      start_date: params.start_date,
+      end_date: params.end_date,
+      market_sessions: params.market_sessions,
+    };
 
     try {
       const data = await runBacktest(params);
@@ -235,6 +247,9 @@ export default function Home() {
                 currentTrades={currentTrades || []}
                 currentEquity={currentEquity?.equity || []}
                 isDarkMode={isDarkMode}
+                strategyId={strategyIdRef.current}
+                datasetId={datasetIdRef.current}
+                backtestParams={backtestParamsRef.current}
               />
             </>
           )}

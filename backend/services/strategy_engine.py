@@ -154,26 +154,12 @@ def _eval_indicator_comparison(
     target_cfg = cond.get("target", {})
     comparator = cond.get("comparator", "GREATER_THAN")
 
-    source_series = compute_indicator(
-        name=source_cfg.get("name", "Close"),
-        df=df,
-        period=source_cfg.get("period"),
-        offset=source_cfg.get("offset", 0),
-        daily_stats=daily_stats,
-        cache=cache,
-    )
+    source_series = _compute_from_config(source_cfg, df, daily_stats, cache)
 
     if isinstance(target_cfg, (int, float)):
         target_series = pd.Series(float(target_cfg), index=df.index)
     elif isinstance(target_cfg, dict):
-        target_series = compute_indicator(
-            name=target_cfg.get("name", "Close"),
-            df=df,
-            period=target_cfg.get("period"),
-            offset=target_cfg.get("offset", 0),
-            daily_stats=daily_stats,
-            cache=cache,
-        )
+        target_series = _compute_from_config(target_cfg, df, daily_stats, cache)
     else:
         target_series = pd.Series(float(target_cfg), index=df.index)
 
@@ -186,22 +172,41 @@ def _eval_price_level_distance(
     daily_stats: dict | None,
     cache: dict | None = None,
 ) -> pd.Series:
-    source_name = cond.get("source", "Close")
-    level_name = cond.get("level", "Pre-Market High")
+    source_cfg = cond.get("source", {})
+    level_cfg = cond.get("level", {})
     comparator = cond.get("comparator", "DISTANCE_LESS_THAN")
     value_pct = cond.get("value_pct", 1.0)
+    position = cond.get("position", "any")
 
-    source_series = compute_indicator(name=source_name, df=df, daily_stats=daily_stats, cache=cache)
-    level_series = compute_indicator(name=level_name, df=df, daily_stats=daily_stats, cache=cache)
+    # Parse source/level as IndicatorConfig objects (or string fallback)
+    if isinstance(source_cfg, str):
+        source_cfg = {"name": source_cfg}
+    if isinstance(level_cfg, str):
+        level_cfg = {"name": level_cfg}
+
+    source_series = _compute_from_config(source_cfg, df, daily_stats, cache)
+    level_series = _compute_from_config(level_cfg, df, daily_stats, cache)
 
     distance_pct = abs(source_series - level_series) / level_series.replace(0, np.nan) * 100
 
-    if comparator == "DISTANCE_LESS_THAN":
-        return distance_pct <= value_pct
-    elif comparator == "DISTANCE_GREATER_THAN":
-        return distance_pct >= value_pct
+    # Apply position filter
+    if position == "above":
+        position_mask = source_series > level_series
+    elif position == "below":
+        position_mask = source_series < level_series
+    else:  # "any"
+        position_mask = pd.Series(True, index=df.index)
+
+    # Normalize comparator aliases
+    comp = comparator.upper().replace("DISTANCE_", "")
+    if comp in ("LT", "LESS_THAN"):
+        dist_mask = distance_pct <= value_pct
+    elif comp in ("GT", "GREATER_THAN"):
+        dist_mask = distance_pct >= value_pct
     else:
-        return _apply_comparator(distance_pct, pd.Series(value_pct, index=df.index), comparator)
+        dist_mask = distance_pct <= value_pct
+
+    return dist_mask & position_mask
 
 
 def _eval_candle_pattern(cond: dict, df: pd.DataFrame) -> pd.Series:
@@ -210,6 +215,34 @@ def _eval_candle_pattern(cond: dict, df: pd.DataFrame) -> pd.Series:
         pattern=cond.get("pattern", "GREEN_VOLUME"),
         lookback=cond.get("lookback", 0),
         consecutive_count=cond.get("consecutive_count", 1),
+    )
+
+
+def _compute_from_config(
+    cfg: dict,
+    df: pd.DataFrame,
+    daily_stats: dict | None,
+    cache: dict | None = None,
+) -> pd.Series:
+    """Compute an indicator from a full IndicatorConfig dict."""
+    if not cfg:
+        return df["close"]
+    return compute_indicator(
+        name=cfg.get("name", "Close"),
+        df=df,
+        period=cfg.get("period"),
+        period2=cfg.get("period2"),
+        period3=cfg.get("period3"),
+        std_dev=cfg.get("stdDev"),
+        multiplier=cfg.get("multiplier"),
+        offset=cfg.get("offset", 0),
+        days_lookback=cfg.get("days_lookback"),
+        calc_on_heikin=cfg.get("calc_on_heikin", False),
+        time_hour=cfg.get("time_hour"),
+        time_minute=cfg.get("time_minute"),
+        time_condition=cfg.get("time_condition"),
+        daily_stats=daily_stats,
+        cache=cache,
     )
 
 
@@ -233,9 +266,9 @@ def _apply_comparator(
     elif comparator == "CROSSES_BELOW":
         return (source.shift(1) >= target.shift(1)) & (source < target)
     elif comparator == "DISTANCE_GREATER_THAN":
-        return abs(source - target) / target.replace(0, np.nan) * 100 > target
+        return abs(source - target) / target.replace(0, np.nan) * 100 >= target
     elif comparator == "DISTANCE_LESS_THAN":
-        return abs(source - target) / target.replace(0, np.nan) * 100 < target
+        return abs(source - target) / target.replace(0, np.nan) * 100 <= target
     else:
         return source > target
 

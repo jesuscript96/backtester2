@@ -111,6 +111,7 @@ def list_datasets() -> list[dict]:
     df["max_date"] = max_dates
     df = df.drop(columns=["filters"])
 
+
     # Convert to object type to allow strings and None values without coercion to NaN
     df = df.astype(object)
     if "created_at" in df.columns:

@@ -4,7 +4,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import data, backtest
+from backend.routers import data, backtest, optimization
 from backend.config import ALLOWED_ORIGINS
 
 logging.basicConfig(
@@ -24,6 +24,7 @@ app.add_middleware(
 
 app.include_router(data.router)
 app.include_router(backtest.router)
+app.include_router(optimization.router)
 
 
 @app.on_event("startup")

@@ -198,3 +198,87 @@ export async function fetchDayCandles(
   });
   return data;
 }
+
+// --- Optimization Surface ---
+
+export interface OptimizationParam {
+  id: string;
+  label: string;
+  current_value: number;
+  category: string;
+  path: string;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface OptimizationParamConfig {
+  id: string;
+  label: string;
+  path: string;
+  min: number;
+  max: number;
+  steps: number;
+}
+
+export interface PlateauAnalysis {
+  peak: { value: number | null; coordinates: Record<string, number> };
+  robust_plateau: {
+    mean_value: number | null;
+    std_value: number | null;
+    size: number;
+    profit_factor: number | null;
+    return_dd: number | null;
+    total_return: number | null;
+  };
+  local_stability: {
+    best_value: number | null;
+    coordinates: Record<string, number>;
+    profit_factor: number | null;
+    return_dd: number | null;
+  };
+  robust_center: {
+    coordinates: Record<string, number>;
+    degradation_from_peak: number | null;
+  };
+}
+
+export interface OptimizationResult {
+  params: { id: string; label: string; values: number[] }[];
+  grid: number[][];
+  metric: string;
+  metric_label: string;
+  details: Record<string, number>[];
+  shape: number[];
+  plateau_analysis: PlateauAnalysis;
+  elapsed_seconds: number;
+}
+
+export async function fetchOptimizationParams(
+  strategy_id: string
+): Promise<{ parameters: OptimizationParam[]; strategy_name: string }> {
+  const { data } = await api.post("/optimization/parameters", { strategy_id });
+  return data;
+}
+
+export async function runOptimizationSurface(params: {
+  strategy_id: string;
+  dataset_id: string;
+  metric: string;
+  param_configs: OptimizationParamConfig[];
+  init_cash?: number;
+  risk_r?: number;
+  risk_type?: string;
+  size_by_sl?: boolean;
+  fees?: number;
+  fee_type?: string;
+  slippage?: number;
+  start_date?: string;
+  end_date?: string;
+  market_sessions?: string[];
+  look_ahead_prevention?: boolean;
+}): Promise<OptimizationResult> {
+  const { data } = await api.post("/optimization/surface", params);
+  return data;
+}
+

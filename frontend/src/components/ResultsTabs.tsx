@@ -6,7 +6,7 @@ import PerformanceTab from "@/components/tabs/PerformanceTab";
 import CalendarTab from "@/components/tabs/CalendarTab";
 import TradesTab from "@/components/tabs/TradesTab";
 import ChartsTab from "@/components/tabs/ChartsTab";
-import PortfolioTab from "@/components/tabs/PortfolioTab";
+import OptimizationSurfaceTab from "@/components/tabs/OptimizationSurfaceTab";
 import Chart from "@/components/Chart";
 
 const TABS = [
@@ -15,7 +15,7 @@ const TABS = [
   { id: "trades", label: "Trades" },
   { id: "analysis", label: "Análisis por trade" },
   { id: "charts", label: "Charts" },
-  { id: "portfolio", label: "Portfolio" },
+  { id: "optimization", label: "Op. Surface" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -29,6 +29,9 @@ interface ResultsTabsProps {
   currentTrades: TradeRecord[];
   currentEquity: EquityPoint[];
   isDarkMode?: boolean;
+  strategyId?: string;
+  datasetId?: string;
+  backtestParams?: Record<string, unknown>;
 }
 
 export default function ResultsTabs({
@@ -40,6 +43,9 @@ export default function ResultsTabs({
   currentTrades,
   currentEquity,
   isDarkMode = false,
+  strategyId = "",
+  datasetId = "",
+  backtestParams = {},
 }: ResultsTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>("performance");
 
@@ -107,8 +113,13 @@ export default function ResultsTabs({
           </div>
         )}
         {activeTab === "charts" && <ChartsTab trades={result.trades} riskR={riskR} isDarkMode={isDarkMode} />}
-        {activeTab === "portfolio" && (
-          <PortfolioTab trades={result.trades} initCash={initCash} />
+        {activeTab === "optimization" && (
+          <OptimizationSurfaceTab
+            strategyId={strategyId}
+            datasetId={datasetId}
+            isDarkMode={isDarkMode}
+            backtestParams={backtestParams}
+          />
         )}
       </div>
     </div>
