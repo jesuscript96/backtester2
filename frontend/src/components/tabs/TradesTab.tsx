@@ -13,6 +13,7 @@ type SortDir = "asc" | "desc";
 const EXIT_COLORS: Record<string, string> = {
   SL: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   TP: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  "Partial TP": "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
   Trailing: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
   Signal: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
   EOD: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",

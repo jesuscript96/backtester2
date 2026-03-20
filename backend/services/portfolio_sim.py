@@ -33,6 +33,7 @@ def simulate(
     locates_cost: float = 0.0,
     look_ahead_prevention: bool = True,
     patch_mask: np.ndarray | None = None,
+    partial_take_profits: list | None = None,
 ) -> dict:
     n = len(close)
     is_long = direction == "longonly"
@@ -50,6 +51,8 @@ def simulate(
     mae = 0.0  # Maximum Adverse Excursion
     mfe = 0.0  # Maximum Favorable Excursion
     trail_activated = False
+    original_size = 0.0  # Track original position size for partial TPs
+    partial_tp_hits: list[bool] = []  # Track which partial TP levels have been hit
 
     # Pre-calculate Kelly multiplier if needed
     kelly_f = 0.0
@@ -64,6 +67,9 @@ def simulate(
                 # We use risk_r as the "Kelly Fraction" (e.g. 0.5 for half-kelly)
                 optimal_f = (win_rate * (b + 1) - 1) / b
                 kelly_f = max(0, optimal_f * risk_r)
+
+    # Risk amount tracking for reporting
+    risk_amount = risk_r
 
     # Locates tracking (daily maximum short size)
     max_short_size_today = 0.0
@@ -152,8 +158,8 @@ def simulate(
                                     exit_price = min(trail_sl_price, high[i])
                                     exit_reason = "Trailing"
 
-            # take-profit
-            if not exit_triggered and tp_stop is not None and not skip_exits:
+            # take-profit (full mode — only if partial TPs are NOT configured)
+            if not exit_triggered and tp_stop is not None and not partial_take_profits and not skip_exits:
                 if is_long:
                     tp_level = entry_price * (1 + tp_stop)
                     if price_for_tp >= tp_level:
@@ -166,6 +172,104 @@ def simulate(
                         exit_triggered = True
                         exit_price = max(tp_level, low[i])
                         exit_reason = "TP"
+
+            # --- Partial Take-Profits ---
+            if not exit_triggered and partial_take_profits and not skip_exits:
+                for pt_idx, pt in enumerate(partial_take_profits):
+                    if partial_tp_hits[pt_idx]:
+                        continue  # Already hit
+                    dist_frac = pt["distance_pct"]
+                    cap_frac = pt["capital_pct"]
+                    if is_long:
+                        pt_level = entry_price * (1 + dist_frac)
+                        if price_for_tp >= pt_level:
+                            # Partial exit
+                            partial_tp_hits[pt_idx] = True
+                            # If it gapped above target at open, take the open, else the target
+                            pt_exit_price = max(pt_level, open_[i])
+                            pt_exit_price = min(pt_exit_price, high[i]) # Bound by high
+                            
+                            slip = pt_exit_price * slippage
+                            net_pt_exit = pt_exit_price - slip
+                            # Close cap_frac of original position
+                            pt_size = original_size * cap_frac
+                            pt_size = min(pt_size, size)  # Can't close more than remaining
+                            if pt_size > 0:
+                                gross_pnl = (net_pt_exit - entry_price) * pt_size
+                                if fee_type == "FLAT":
+                                    fee_amount = fees * 2
+                                else:
+                                    fee_amount = abs(gross_pnl) * fees
+                                pnl = gross_pnl - fee_amount
+                                realized_pnl += pnl
+                                capital_at_risk = entry_price * pt_size
+                                ret_pct = (pnl / capital_at_risk) * 100 if capital_at_risk > 0 else 0.0
+                                trades.append({
+                                    "entry_idx": entry_idx,
+                                    "exit_idx": i,
+                                    "entry_price": round(entry_price, 6),
+                                    "exit_price": round(net_pt_exit, 6),
+                                    "pnl": round(pnl, 4),
+                                    "return_pct": round(ret_pct, 4),
+                                    "direction": "Long" if is_long else "Short",
+                                    "status": "Closed",
+                                    "size": round(pt_size, 6),
+                                    "exit_reason": "Partial TP",
+                                    "mae": round(mae, 4),
+                                    "mfe": round(mfe, 4),
+                                })
+                                size -= pt_size
+                                if size <= 0.0001:
+                                    # All position closed via partial TPs
+                                    in_position = False
+                                    size = 0.0
+                                    break
+                    else:
+                        pt_level = entry_price * (1 - dist_frac)
+                        if price_for_tp <= pt_level:
+                            partial_tp_hits[pt_idx] = True
+                            # If it gapped below target at open, take the open, else the target
+                            pt_exit_price = min(pt_level, open_[i])
+                            pt_exit_price = max(pt_exit_price, low[i]) # Bound by low
+                            
+                            slip = pt_exit_price * slippage
+                            net_pt_exit = pt_exit_price + slip
+                            pt_size = original_size * cap_frac
+                            pt_size = min(pt_size, size)
+                            if pt_size > 0:
+                                gross_pnl = (entry_price - net_pt_exit) * pt_size
+                                if fee_type == "FLAT":
+                                    fee_amount = fees * 2
+                                else:
+                                    fee_amount = abs(gross_pnl) * fees
+                                pnl = gross_pnl - fee_amount
+                                realized_pnl += pnl
+                                capital_at_risk = entry_price * pt_size
+                                ret_pct = (pnl / capital_at_risk) * 100 if capital_at_risk > 0 else 0.0
+                                trades.append({
+                                    "entry_idx": entry_idx,
+                                    "exit_idx": i,
+                                    "entry_price": round(entry_price, 6),
+                                    "exit_price": round(net_pt_exit, 6),
+                                    "pnl": round(pnl, 4),
+                                    "return_pct": round(ret_pct, 4),
+                                    "direction": "Long" if is_long else "Short",
+                                    "status": "Closed",
+                                    "size": round(pt_size, 6),
+                                    "exit_reason": "Partial TP",
+                                    "mae": round(mae, 4),
+                                    "mfe": round(mfe, 4),
+                                })
+                                size -= pt_size
+                                if size <= 0.0001:
+                                    in_position = False
+                                    size = 0.0
+                                    break
+                # If all position was closed via partials, skip the rest of exit logic
+                if not in_position:
+                    equity[i] = init_cash + realized_pnl
+                    prev_signal = bool(entries[i])
+                    continue
 
             # Track MAE and MFE as positive percentages based on absolute price excursions
             # We calculate this *before* forcing 'EOD' exits so we don't accidentally ignore wicks.
@@ -336,6 +440,8 @@ def simulate(
                     trail_activated = False
                     mae = 0.0
                     mfe = 0.0
+                    original_size = size
+                    partial_tp_hits = [False] * len(partial_take_profits) if partial_take_profits else []
                     total_trades += 1
                 else:
                     equity[i] = available_cash
@@ -373,6 +479,14 @@ def simulate(
         for i in range(len(equity)):
             equity[i] -= daily_locates_fee
 
-    # If we are using Kelly, we might want to return the updated stats for the NEXT day
-    # But since simulate() is called per Ticker/Date, we handle global stats in backtest_service.py
-    return {"equity": equity, "trades": trades}
+    # Always update signal state for next bar's edge detection
+    prev_signal = current_signal
+
+    # Finalize result
+    results = {"equity": equity, "trades": trades}
+    if risk_type in ["PERCENT", "KELLY"]:
+        results["last_risk_amount"] = risk_amount
+    else:
+        results["last_risk_amount"] = risk_r
+        
+    return results

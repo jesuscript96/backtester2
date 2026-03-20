@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   createChart,
   CandlestickSeries,
@@ -73,6 +73,48 @@ function getSeriesColor(indicatorId: string, instanceIndex: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Candle aggregation (frontend-only, no backend changes)
+// ---------------------------------------------------------------------------
+type Timeframe = "1m" | "5m" | "15m" | "1h";
+const TIMEFRAME_MINUTES: Record<Timeframe, number> = { "1m": 1, "5m": 5, "15m": 15, "1h": 60 };
+
+function aggregateCandles(candles: CandleData[], tf: Timeframe): CandleData[] {
+  if (tf === "1m" || candles.length === 0) return candles;
+  const minutes = TIMEFRAME_MINUTES[tf];
+  const buckets = new Map<number, CandleData[]>();
+  for (const c of candles) {
+    // Round down to nearest bucket boundary (epoch seconds)
+    const bucketKey = Math.floor(c.time / (minutes * 60)) * (minutes * 60);
+    if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
+    buckets.get(bucketKey)!.push(c);
+  }
+  const result: CandleData[] = [];
+  for (const [bucketTime, group] of buckets) {
+    result.push({
+      time: bucketTime,
+      open: group[0].open,
+      high: Math.max(...group.map(c => c.high)),
+      low: Math.min(...group.map(c => c.low)),
+      close: group[group.length - 1].close,
+      volume: group.reduce((sum, c) => sum + c.volume, 0),
+    });
+  }
+  return result.sort((a, b) => a.time - b.time);
+}
+
+/** Find the closest candle time for a given epoch timestamp */
+function snapToCandle(epoch: number, candleTimes: number[]): number | null {
+  if (candleTimes.length === 0) return null;
+  let best = candleTimes[0];
+  let bestDist = Math.abs(epoch - best);
+  for (const t of candleTimes) {
+    const d = Math.abs(epoch - t);
+    if (d < bestDist) { best = t; bestDist = d; }
+  }
+  return best;
+}
+
+// ---------------------------------------------------------------------------
 // Props & Component
 // ---------------------------------------------------------------------------
 interface ChartProps {
@@ -84,6 +126,8 @@ interface ChartProps {
 }
 
 export default function Chart({ candles, trades, equity, ticker, date }: ChartProps) {
+  const [timeframe, setTimeframe] = useState<Timeframe>("1m");
+  const aggregatedCandles = useMemo(() => aggregateCandles(candles, timeframe), [candles, timeframe]);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const panelContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -182,7 +226,7 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
     for (const sc of subChartsRef.current) { try { sc.remove(); } catch { /* */ } }
     subChartsRef.current = [];
 
-    const sorted = [...candles].sort((a, b) => a.time - b.time);
+    const sorted = [...aggregatedCandles].sort((a, b) => a.time - b.time);
     const deduped = sorted.filter((c, i) => i === 0 || c.time !== sorted[i - 1].time);
 
     const candleData: CandlestickData<Time>[] = deduped.map(c => ({
@@ -219,26 +263,29 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
       color: c.close >= c.open ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)",
     })));
 
-    // Trade markers
+    // Trade markers — snap to nearest aggregated candle time
     if (trades.length > 0) {
-      const timeToIdx = new Map<number, number>();
-      for (let i = 0; i < deduped.length; i++) timeToIdx.set(deduped[i].time as number, i);
+      const candleTimes = deduped.map(c => c.time as number);
+      const candleTimeSet = new Set(candleTimes);
 
       const markers: SeriesMarker<Time>[] = [];
       for (const t of trades) {
-        if (t.entry_time_epoch && timeToIdx.has(t.entry_time_epoch)) {
+        const entrySnap = timeframe === "1m" ? t.entry_time_epoch : snapToCandle(t.entry_time_epoch, candleTimes);
+        const exitSnap = timeframe === "1m" ? t.exit_time_epoch : snapToCandle(t.exit_time_epoch, candleTimes);
+
+        if (entrySnap && candleTimeSet.has(entrySnap)) {
           const isLong = t.direction.toLowerCase().includes("long");
           markers.push({
-            time: t.entry_time_epoch as unknown as Time,
+            time: entrySnap as unknown as Time,
             position: isLong ? "belowBar" : "aboveBar",
             color: isLong ? "#10b981" : "#ef4444",
             shape: isLong ? "arrowUp" : "arrowDown",
             text: `${isLong ? "L" : "S"} $${t.entry_price.toFixed(2)}`,
           });
         }
-        if (t.exit_time_epoch && timeToIdx.has(t.exit_time_epoch) && t.status === "Closed") {
+        if (exitSnap && candleTimeSet.has(exitSnap) && t.status === "Closed") {
           markers.push({
-            time: t.exit_time_epoch as unknown as Time,
+            time: exitSnap as unknown as Time,
             position: "aboveBar",
             color: t.pnl >= 0 ? "#10b981" : "#ef4444",
             shape: "circle",
@@ -631,7 +678,7 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles, trades, equity, activeIndicators, panelGroups]);
+  }, [aggregatedCandles, trades, equity, activeIndicators, panelGroups, timeframe]);
 
   return (
     <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden">
@@ -641,7 +688,21 @@ export default function Chart({ candles, trades, equity, ticker, date }: ChartPr
         <div className="flex items-center gap-3">
           <span className="font-semibold text-sm">{ticker}</span>
           <span className="text-xs text-[var(--muted)]">{date}</span>
-          <span className="text-xs px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">1m</span>
+          <div className="flex gap-0.5 bg-gray-100 rounded p-0.5">
+            {(["1m", "5m", "15m", "1h"] as Timeframe[]).map(tf => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={`text-xs px-2 py-0.5 rounded font-medium transition-colors ${
+                  timeframe === tf
+                    ? "bg-[var(--accent)] text-white shadow-sm"
+                    : "text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
         </div>
 
         <IndicatorDropdown

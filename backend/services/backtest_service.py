@@ -198,6 +198,7 @@ def run_backtest(
                 trail_pct=signals.get("trail_pct"),
                 accumulate=signals.get("accept_reentries", False),
                 patch_mask=patch_mask,
+                partial_take_profits=signals.get("partial_take_profits"),
             )
         except Exception as exc:
             logger.warning(f"[STREAM] day {ticker} {date} failed: {exc}")
@@ -233,7 +234,21 @@ def run_backtest(
         timestamps = pd.Series(pd.to_datetime(arrays["timestamp"]))
         ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
 
-        trades_records = _enrich_trades(raw_trades, timestamps, ticker, date, strategy_def)
+        # --- Calculate Risk Unit for "R" reporting ---
+        if risk_type == "FIXED":
+            risk_unit_dollar = risk_r
+        elif risk_type == "PERCENT":
+            risk_unit_dollar = compounding_cash * (risk_r / 100.0)
+        elif risk_type == "KELLY":
+            # In Kelly, 1R is the risk amount calculated by the formula
+            # For reporting purposes, we use the risk amount used in the actual simulation
+            risk_unit_dollar = sim_result.get("last_risk_amount", risk_r) 
+        else:
+            risk_unit_dollar = risk_r
+
+        trades_records = _enrich_trades(
+            raw_trades, timestamps, ticker, date, strategy_def, risk_unit_dollar
+        )
 
         equity = _extract_equity_from_values(eq_vals, timestamps)
 
@@ -318,6 +333,7 @@ def _enrich_trades(
     ticker: str,
     date: str,
     strategy_def: dict,
+    risk_unit_dollar: float,
 ) -> list[dict]:
     if not raw_trades:
         return []
@@ -333,9 +349,7 @@ def _enrich_trades(
         entry_ts = timestamps.iloc[ei]
         exit_ts = timestamps.iloc[xi]
 
-        r_multiple = _compute_r_multiple(
-            t["entry_price"], t["exit_price"], t["direction"], strategy_def
-        )
+        r_multiple = _compute_r_multiple(t["pnl"], risk_unit_dollar)
 
         result.append({
             "ticker": ticker,
@@ -365,33 +379,14 @@ def _enrich_trades(
 
 
 
-def _compute_r_multiple(
-    entry_price: float, exit_price: float, direction: str, strategy_def: dict
-) -> float | None:
-    rm = strategy_def.get("risk_management", {})
-    sl_pct = None
-    
-    # Priority 1: Hard Stop (This is the fixed risk floor)
-    if rm.get("use_hard_stop"):
-        sl_cfg = rm.get("hard_stop") or {}
-        sl_pct = sl_cfg.get("value")
-    
-    # Priority 2: Trailing Stop (Only if no hard stop is defined)
-    if (not sl_pct or sl_pct <= 0) and rm.get("trailing_stop", {}).get("active"):
-        trailing = rm["trailing_stop"]
-        if trailing.get("type") == "Percentage":
-            sl_pct = trailing.get("buffer_pct")
-
-    if not sl_pct or sl_pct <= 0:
+def _compute_r_multiple(pnl: float, risk_unit_dollar: float) -> float | None:
+    """
+    R-multiple is simply the PnL of the (partial) trade 
+    divided by the 1R risk unit used for the whole trade.
+    """
+    if risk_unit_dollar <= 0:
         return None
-
-    r_risk = entry_price * (sl_pct / 100.0)
-    if r_risk <= 0:
-        return None
-    
-    is_long = "long" in direction.lower()
-    pnl_per_share = (exit_price - entry_price) if is_long else (entry_price - exit_price)
-    return round(pnl_per_share / r_risk, 2)
+    return round(pnl / risk_unit_dollar, 2)
 
 
 # ---------------------------------------------------------------------------

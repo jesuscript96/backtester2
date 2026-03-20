@@ -3,9 +3,12 @@ Translates a strategy JSON definition into boolean signal arrays.
 Recursively evaluates ConditionGroups (AND/OR) to produce entry/exit signals.
 """
 
+import logging
 import numpy as np
 import pandas as pd
 from backend.services.indicators import compute_indicator, detect_candle_pattern
+
+logger = logging.getLogger("backtester.strategy_engine")
 
 
 def translate_strategy(
@@ -54,7 +57,7 @@ def translate_strategy(
         exits = exits.reindex(df.index, method="ffill").fillna(False)
 
     risk_cache: dict = entry_cache if entry_tf == "1m" else {}
-    sl_stop, sl_trail, tp_stop, trail_pct = _parse_risk_management(risk, df, daily_stats, risk_cache)
+    sl_stop, sl_trail, tp_stop, trail_pct, partial_tps = _parse_risk_management(risk, df, daily_stats, risk_cache)
 
     return {
         "entries": entries.astype(bool),
@@ -65,6 +68,7 @@ def translate_strategy(
         "tp_stop": tp_stop,
         "trail_pct": trail_pct,
         "accept_reentries": risk.get("accept_reentries", False),
+        "partial_take_profits": partial_tps,
     }
 
 
@@ -162,6 +166,17 @@ def _eval_indicator_comparison(
         target_series = _compute_from_config(target_cfg, df, daily_stats, cache)
     else:
         target_series = pd.Series(float(target_cfg), index=df.index)
+
+    # Log consecutive indicator evaluations for debugging
+    source_name = source_cfg.get("name", "") if isinstance(source_cfg, dict) else ""
+    if "Consecutive" in source_name:
+        valid_vals = source_series.dropna()
+        if len(valid_vals) > 0:
+            logger.info(
+                f"[CONSECUTIVE] {source_name}: max={valid_vals.max():.0f}, "
+                f"last={valid_vals.iloc[-1]:.0f}, "
+                f"compare {comparator} {target_cfg if isinstance(target_cfg, (int, float)) else 'indicator'}"
+            )
 
     return _apply_comparator(source_series, target_series, comparator)
 
@@ -266,9 +281,20 @@ def _apply_comparator(
     elif comparator == "CROSSES_BELOW":
         return (source.shift(1) >= target.shift(1)) & (source < target)
     elif comparator == "DISTANCE_GREATER_THAN":
-        return abs(source - target) / target.replace(0, np.nan) * 100 >= target
+        # BUG FIX: This comparator requires a value_pct threshold.
+        # When used in indicator_comparison mode, there is no value_pct available.
+        # These conditions should use price_level_distance type instead.
+        logger.warning(
+            "DISTANCE_GREATER_THAN used in indicator_comparison — this comparator "
+            "requires 'price_level_distance' condition type with value_pct. Returning False."
+        )
+        return pd.Series(False, index=source.index)
     elif comparator == "DISTANCE_LESS_THAN":
-        return abs(source - target) / target.replace(0, np.nan) * 100 <= target
+        logger.warning(
+            "DISTANCE_LESS_THAN used in indicator_comparison — this comparator "
+            "requires 'price_level_distance' condition type with value_pct. Returning False."
+        )
+        return pd.Series(False, index=source.index)
     else:
         return source > target
 
@@ -278,11 +304,12 @@ def _parse_risk_management(
     df: pd.DataFrame,
     daily_stats: dict | None,
     cache: dict | None = None,
-) -> tuple[float | None, bool, float | None, float | None]:
+) -> tuple[float | None, bool, float | None, float | None, list | None]:
     sl_stop = None
     sl_trail = False
     tp_stop = None
     trail_pct = None
+    partial_tps = None
 
     if risk.get("use_hard_stop") and risk.get("hard_stop"):
         hs = risk["hard_stop"]
@@ -308,9 +335,29 @@ def _parse_risk_management(
         if trailing.get("type") == "Percentage" and trailing.get("buffer_pct"):
             trail_pct = trailing["buffer_pct"] / 100.0
 
-    if risk.get("use_take_profit") and risk.get("take_profit"):
+    # --- Take Profit ---
+    tp_mode = risk.get("take_profit_mode", "Full")
+
+    if tp_mode == "Partial" and risk.get("partial_take_profits"):
+        # Partial Take-Profits: array of {distance_pct, capital_pct}
+        raw_pts = risk["partial_take_profits"]
+        partial_tps = []
+        for pt in raw_pts:
+            dist = pt.get("distance_pct", 0)
+            cap = pt.get("capital_pct", 0)
+            if dist > 0 and cap > 0:
+                partial_tps.append({
+                    "distance_pct": dist / 100.0,  # Convert to fraction
+                    "capital_pct": cap / 100.0,
+                })
+        # Sort by distance ascending so nearest TP triggers first
+        partial_tps.sort(key=lambda x: x["distance_pct"])
+        if not partial_tps:
+            partial_tps = None
+        # tp_stop stays None — partial mode doesn't use a single TP
+    elif risk.get("use_take_profit") and risk.get("take_profit"):
         tp = risk["take_profit"]
         if tp.get("type") == "Percentage":
             tp_stop = tp.get("value", 0) / 100.0
 
-    return sl_stop, sl_trail, tp_stop, trail_pct
+    return sl_stop, sl_trail, tp_stop, trail_pct, partial_tps
