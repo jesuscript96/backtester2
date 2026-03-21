@@ -340,6 +340,8 @@ def _compute_raw(
     if name == "Volume":
         return volume.astype(float)
     if name in ("Day Open", "Current Open"):
+        if "rth_open" in ds and not pd.isna(ds["rth_open"]):
+            return pd.Series(float(ds["rth_open"]), index=close.index)
         return pd.Series(float(open_.iloc[0]) if len(open_) > 0 else np.nan, index=close.index)
     if name == "Bar Open":
         return open_
