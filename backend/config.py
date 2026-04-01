@@ -20,3 +20,12 @@ ALLOWED_ORIGINS = [
     ).split(",")
     if o.strip()
 ]
+
+# Ensure critical frontend URLs are always allowed regardless of .env misconfiguration
+_required_origins = [
+    "https://backtester-psi.vercel.app",
+    "https://backtester2-teal.vercel.app"
+]
+for origin in _required_origins:
+    if origin not in ALLOWED_ORIGINS:
+        ALLOWED_ORIGINS.append(origin)
