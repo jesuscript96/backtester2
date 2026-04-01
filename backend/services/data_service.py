@@ -297,46 +297,57 @@ def fetch_dataset_data(dataset_id: str, req_start_date: str | None = None, req_e
         
     # 4. Fetch intraday candles for matching (ticker, date)
     # We'll build a query with the valid pairs
-    pairs_list = qualifying[["ticker", "date"]].values.tolist()
-    intraday_partition = ""
+    # 4. Fetch intraday candles using simple range + ticker filter.
+    # Exact (ticker, date) pair matching is done in pandas AFTER the download.
+    # This avoids massive SQL VALUES/IN clauses that hang DuckDB with 1000+ pairs.
+    unique_tickers = qualifying["ticker"].unique().tolist()
+
+    if len(unique_tickers) > 5000:
+        ticker_filter = "1=1"
+    else:
+        ticker_filter = "i.ticker IN ('" + "', '".join(unique_tickers) + "')"
+
+    # Use date range instead of IN clause — much simpler SQL, DuckDB handles better
+    if df_from and df_to:
+        date_range_filter = f"i.date >= '{df_from}' AND i.date <= '{df_to}'"
+    elif df_from:
+        date_range_filter = f"i.date >= '{df_from}'"
+    elif df_to:
+        date_range_filter = f"i.date <= '{df_to}'"
+    else:
+        date_range_filter = "1=1"
+
+    # Add hive partition pushdown for year (avoids scanning irrelevant parquet files)
+    year_filter = "1=1"
     try:
-        conds = []
-        if df_from: conds.append(f"i.year >= {int(df_from[:4])}")
-        if df_to: conds.append(f"i.year <= {int(df_to[:4])}")
-        if conds:
-            intraday_partition = "WHERE " + " AND ".join(conds)
+        if df_from and df_to:
+            year_filter = f"i.year >= {int(df_from[:4])} AND i.year <= {int(df_to[:4])}"
+        elif df_from:
+            year_filter = f"i.year >= {int(df_from[:4])}"
+        elif df_to:
+            year_filter = f"i.year <= {int(df_to[:4])}"
     except Exception:
         pass
 
-    pairs_sql_values = ", ".join([f"('{t}', '{d}')" for t, d in pairs_list])
-
-    unique_tickers = qualifying["ticker"].unique().tolist()
-    unique_dates = qualifying["date"].astype(str).unique().tolist()
-    
-    # Cap the lengths strictly for SQL parser stability, though DuckDB usually handles thousands fine
-    if len(unique_tickers) > 5000:
-        ticker_filter = "1=1" 
-    else:
-        ticker_filter = "i.ticker IN ('" + "', '".join(unique_tickers) + "')"
-        
-    date_filter = "i.date IN ('" + "', '".join(unique_dates) + "')"
-
     intraday_sql = f"""
-    WITH valid_pairs(ticker, date) AS (
-        VALUES {pairs_sql_values}
-    )
     SELECT i.ticker, i.date, i."timestamp", i.open, i.high, i.low,
            i."close", i.volume
     FROM {im_source} i
-    INNER JOIN valid_pairs vp ON i.ticker = vp.ticker AND i.date = CAST(vp.date AS DATE)
-    WHERE ( {ticker_filter} ) AND ( {date_filter} )
+    WHERE ( {ticker_filter} ) AND ( {date_range_filter} ) AND ( {year_filter} )
     """
-    if intraday_partition:
-        intraday_sql += f" {intraday_partition.replace('WHERE', 'AND')} "
 
+    logger.info(f"intraday SQL: {len(unique_tickers)} tickers, range {df_from} -> {df_to}")
     intraday = query_df(intraday_sql)
     t_i = time.time()
-    logger.info(f"intraday query: {len(intraday)} rows ({round(t_i - t_q, 2)}s)")
+    logger.info(f"intraday raw query: {len(intraday)} rows ({round(t_i - t_q, 2)}s)")
+
+    # Filter to exact (ticker, date) pairs from qualifying using pandas merge
+    if not intraday.empty and not qualifying.empty:
+        valid_pairs = qualifying[["ticker", "date"]].drop_duplicates().copy()
+        valid_pairs["date"] = valid_pairs["date"].astype(str)
+        intraday["date"] = intraday["date"].astype(str)
+        intraday = intraday.merge(valid_pairs, on=["ticker", "date"], how="inner")
+        logger.info(f"intraday after pair filter: {len(intraday)} rows")
 
     for col in ("open", "high", "low", "close"):
         if col in intraday.columns:
