@@ -36,11 +36,22 @@ def on_startup():
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    import asyncio
+    from fastapi.responses import JSONResponse
     start = time.time()
-    response = await call_next(request)
-    elapsed = round(time.time() - start, 2)
-    logger.info(f"{request.method} {request.url.path} -> {response.status_code} ({elapsed}s)")
-    return response
+    try:
+        response = await asyncio.wait_for(call_next(request), timeout=150.0)
+        elapsed = round(time.time() - start, 2)
+        logger.info(f"{request.method} {request.url.path} -> {response.status_code} ({elapsed}s)")
+        return response
+    except asyncio.TimeoutError:
+        elapsed = round(time.time() - start, 2)
+        logger.error(f"{request.method} {request.url.path} -> TIMEOUT after {elapsed}s")
+        return JSONResponse({"detail": "Request timed out"}, status_code=504)
+    except Exception as e:
+        elapsed = round(time.time() - start, 2)
+        logger.error(f"{request.method} {request.url.path} -> ERROR after {elapsed}s: {e}")
+        return JSONResponse({"detail": "Internal server error"}, status_code=500)
 
 
 @app.get("/api/health")
