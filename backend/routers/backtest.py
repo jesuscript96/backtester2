@@ -66,7 +66,7 @@ def run_backtest_endpoint(req: BacktestRequest):
 
     try:
         t_fetch = time.time()
-        qualifying, intraday = fetch_dataset_data(req.dataset_id)
+        qualifying, intraday = fetch_dataset_data(req.dataset_id, req.start_date, req.end_date)
         
         # Filter by date range if provided
         if req.start_date:

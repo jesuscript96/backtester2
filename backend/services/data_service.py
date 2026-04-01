@@ -24,7 +24,7 @@ logger = logging.getLogger("backtester.data")
 def list_strategies() -> list[dict]:
     df = query_df(
         "SELECT id, name, description, definition, created_at, updated_at "
-        "FROM my_db.main.strategies ORDER BY updated_at DESC"
+        "FROM strategies ORDER BY updated_at DESC"
     )
     rows = []
     for _, r in df.iterrows():
@@ -45,7 +45,7 @@ def list_strategies() -> list[dict]:
 
 def get_strategy(strategy_id: str) -> dict | None:
     df = query_df(
-        "SELECT id, name, description, definition FROM my_db.main.strategies WHERE id = ?",
+        "SELECT id, name, description, definition FROM strategies WHERE id = ?",
         [strategy_id],
     )
     if df.empty:
@@ -75,7 +75,7 @@ def list_datasets() -> list[dict]:
             name, 
             filters,
             created_at
-        FROM my_db.main.saved_queries
+        FROM saved_queries
         ORDER BY created_at DESC
     """)
     if df.empty:
@@ -100,7 +100,7 @@ def list_datasets() -> list[dict]:
             
         where_clause = _build_where_clause(filters)
         try:
-            count_df = query_df(f"SELECT COUNT(*) as count FROM my_db.main.daily_metrics WHERE {where_clause}")
+            count_df = query_df(f"SELECT COUNT(*) as count FROM daily_metrics WHERE {where_clause}")
             pair_counts.append(int(count_df.iloc[0]["count"]) if not count_df.empty else 0)
         except Exception as e:
             logger.error(f"Error calculating pair_count for dataset {row['id']}: {e}")
@@ -123,7 +123,7 @@ def list_datasets() -> list[dict]:
 
 def get_dataset(dataset_id: str) -> dict | None:
     # Returns info about a saved_query
-    ds = query_df("SELECT id, name, created_at, filters FROM my_db.main.saved_queries WHERE id = ?", [dataset_id])
+    ds = query_df("SELECT id, name, created_at, filters FROM saved_queries WHERE id = ?", [dataset_id])
     if ds.empty:
         return None
     row = ds.iloc[0]
@@ -135,7 +135,7 @@ def get_dataset(dataset_id: str) -> dict | None:
         filters = filters_json or {}
     
     where_clause = _build_where_clause(filters)
-    count_df = query_df(f"SELECT COUNT(*) as count FROM my_db.main.daily_metrics WHERE {where_clause}")
+    count_df = query_df(f"SELECT COUNT(*) as count FROM daily_metrics WHERE {where_clause}")
     pair_count = int(count_df.iloc[0]["count"]) if not count_df.empty else 0
         
     return {
@@ -173,9 +173,9 @@ def _build_where_clause(filters: dict) -> str:
     
     where_parts = []
     if start_date:
-        where_parts.append(f"CAST(\"timestamp\" AS DATE) >= '{start_date}'")
+        where_parts.append(f"CAST('timestamp' AS DATE) >= '{start_date}'".replace("'timestamp'", '"timestamp"'))
     if end_date:
-        where_parts.append(f"CAST(\"timestamp\" AS DATE) <= '{end_date}'")
+        where_parts.append(f"CAST('timestamp' AS DATE) <= '{end_date}'".replace("'timestamp'", '"timestamp"'))
         
     if min_gap_pct is not None:
         where_parts.append(f"gap_pct >= {min_gap_pct}")
@@ -232,35 +232,65 @@ def _build_where_clause(filters: dict) -> str:
     return " AND ".join(where_parts) if where_parts else "1=1"
 
 
-def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def fetch_dataset_data(dataset_id: str, req_start_date: str | None = None, req_end_date: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Fetches data using dynamic filters from saved_queries.
     """
     t0 = time.time()
     
-    # 1. Get filters
-    ds = query_df("SELECT filters FROM my_db.main.saved_queries WHERE id = ?", [dataset_id])
+    # 1. Look up the saved_query filters
+    ds = query_df("SELECT filters FROM saved_queries WHERE id = ?", [dataset_id])
     if ds.empty:
         logger.error(f"Dataset {dataset_id} not found in saved_queries")
         return pd.DataFrame(), pd.DataFrame()
+        
+    ds_filters = ds.iloc[0]["filters"]
+    if ds_filters and not isinstance(ds_filters, dict):
+        ds_filters = json.loads(ds_filters)
+    if not ds_filters:
+        ds_filters = {}
+        
+    if req_start_date: ds_filters["start_date"] = req_start_date
+    if req_end_date: ds_filters["end_date"] = req_end_date
+        
+    df_from = ds_filters.get("start_date") or ds_filters.get("date_from")
+    df_to = ds_filters.get("end_date") or ds_filters.get("date_to")
     
-    filters_json = ds.iloc[0]["filters"]
-    if isinstance(filters_json, str):
-        filters = json.loads(filters_json)
+    years_to_fetch = set()
+    if df_from and df_to:
+        try:
+            sy, ey = int(df_from[:4]), int(df_to[:4])
+            for y in range(sy, ey + 1):
+                years_to_fetch.add(y)
+        except Exception:
+            pass
+            
+    from backend.config import GCS_BUCKET
+    if years_to_fetch:
+        dm_paths = "[" + ", ".join([f"'gs://{GCS_BUCKET}/cold_storage/daily_metrics/year={y}/month=*/*.parquet'" for y in sorted(years_to_fetch)]) + "]"
+        im_paths = "[" + ", ".join([f"'gs://{GCS_BUCKET}/cold_storage/intraday_1m/year={y}/month=*/*.parquet'" for y in sorted(years_to_fetch)]) + "]"
     else:
-        filters = filters_json or {}
-    
-    where_clause = _build_where_clause(filters)
+        dm_paths = f"'gs://{GCS_BUCKET}/cold_storage/daily_metrics/*/*/*.parquet'"
+        im_paths = f"'gs://{GCS_BUCKET}/cold_storage/intraday_1m/*/*/*.parquet'"
+        
+    dm_source = f"read_parquet({dm_paths}, hive_partitioning=true)"
+    im_source = f"read_parquet({im_paths}, hive_partitioning=true)"
+
+    where_clause = _build_where_clause(ds_filters)
     
     # 3. Fetch qualifying data from daily_metrics
     qualifying_sql = f"""
-    WITH enriched AS (
-        SELECT *,
-               CAST("timestamp" AS DATE) AS date,
-               LAG(rth_high) OVER (PARTITION BY ticker ORDER BY "timestamp") AS yesterday_high,
-               LAG(rth_low)  OVER (PARTITION BY ticker ORDER BY "timestamp") AS yesterday_low,
-               prev_close AS previous_close
-        FROM my_db.main.daily_metrics
+    WITH filtered_dm AS (
+        SELECT dm.*, CAST(dm."timestamp" AS DATE) AS date
+        FROM {dm_source} dm
+        WHERE {where_clause}
+    ),
+    enriched AS (
+        SELECT f.*,
+               LAG(f.rth_high) OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_high,
+               LAG(f.rth_low)  OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_low,
+               f.prev_close AS previous_close
+        FROM filtered_dm f
     )
     SELECT * FROM enriched
     WHERE {where_clause}
@@ -275,10 +305,28 @@ def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     # 4. Fetch intraday candles for matching (ticker, date)
     # We'll build a query with the valid pairs
     pairs_list = qualifying[["ticker", "date"]].values.tolist()
-    if not pairs_list:
-        return qualifying, pd.DataFrame()
-        
+    intraday_partition = ""
+    try:
+        conds = []
+        if df_from: conds.append(f"i.year >= {int(df_from[:4])}")
+        if df_to: conds.append(f"i.year <= {int(df_to[:4])}")
+        if conds:
+            intraday_partition = "WHERE " + " AND ".join(conds)
+    except Exception:
+        pass
+
     pairs_sql_values = ", ".join([f"('{t}', '{d}')" for t, d in pairs_list])
+
+    unique_tickers = qualifying["ticker"].unique().tolist()
+    unique_dates = qualifying["date"].astype(str).unique().tolist()
+    
+    # Cap the lengths strictly for SQL parser stability, though DuckDB usually handles thousands fine
+    if len(unique_tickers) > 5000:
+        ticker_filter = "1=1" 
+    else:
+        ticker_filter = "i.ticker IN ('" + "', '".join(unique_tickers) + "')"
+        
+    date_filter = "i.date IN ('" + "', '".join(unique_dates) + "')"
 
     intraday_sql = f"""
     WITH valid_pairs(ticker, date) AS (
@@ -286,9 +334,13 @@ def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     )
     SELECT i.ticker, i.date, i."timestamp", i.open, i.high, i.low,
            i."close", i.volume
-    FROM my_db.main.intraday_1m i
-    INNER JOIN valid_pairs vp ON i.ticker = vp.ticker AND i.date = vp.date
+    FROM {im_source} i
+    INNER JOIN valid_pairs vp ON i.ticker = vp.ticker AND i.date = CAST(vp.date AS DATE)
+    WHERE ( {ticker_filter} ) AND ( {date_filter} )
     """
+    if intraday_partition:
+        intraday_sql += f" {intraday_partition.replace('WHERE', 'AND')} "
+
     intraday = query_df(intraday_sql)
     t_i = time.time()
     logger.info(f"intraday query: {len(intraday)} rows ({round(t_i - t_q, 2)}s)")
@@ -308,11 +360,20 @@ def fetch_dataset_data(dataset_id: str) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def fetch_day_candles(dataset_id: str, ticker: str, date: str) -> list[dict]:
-    # Need to verify if the day belongs to the saved_query (optional but good)
-    sql = """
+    try:
+        dt_year = int(date[:4])
+        dt_month = int(date[5:7])
+        part_filter = f" AND i.year = {dt_year} AND i.month = {dt_month}"
+        from backend.config import GCS_BUCKET
+        im_source = f"read_parquet('gs://{GCS_BUCKET}/cold_storage/intraday_1m/year={dt_year}/month={dt_month}/*.parquet', hive_partitioning=true)"
+    except Exception:
+        part_filter = ""
+        im_source = "intraday_1m"
+        
+    sql = f"""
     SELECT i."timestamp", i.open, i.high, i.low, i."close", i.volume
-    FROM my_db.main.intraday_1m i
-    WHERE i.ticker = ? AND i.date = CAST(? AS DATE)
+    FROM {im_source} i
+    WHERE i.ticker = ? AND i.date = CAST(? AS DATE) {part_filter}
     ORDER BY i."timestamp"
     """
     df = query_df(sql, [ticker, date])
