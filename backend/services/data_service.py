@@ -81,8 +81,7 @@ def list_datasets() -> list[dict]:
     if df.empty:
         return []
 
-    # Calculate pair_count, min_date, max_date for each
-    pair_counts = []
+    # Extract min_date/max_date from filters JSON (no expensive COUNT queries against GCS)
     min_dates = []
     max_dates = []
     for _, row in df.iterrows():
@@ -94,19 +93,13 @@ def list_datasets() -> list[dict]:
                 filters = {}
         else:
             filters = filters_json or {}
-            
+
         min_dates.append(filters.get("start_date") or filters.get("date_from"))
         max_dates.append(filters.get("end_date") or filters.get("date_to"))
-            
-        where_clause = _build_where_clause(filters)
-        try:
-            count_df = query_df(f"SELECT COUNT(*) as count FROM daily_metrics WHERE {where_clause}")
-            pair_counts.append(int(count_df.iloc[0]["count"]) if not count_df.empty else 0)
-        except Exception as e:
-            logger.error(f"Error calculating pair_count for dataset {row['id']}: {e}")
-            pair_counts.append(0)
-            
-    df["pair_count"] = pair_counts
+
+    # pair_count is not computed here to avoid 25s+ GCS scans on every page load.
+    # It can be fetched on demand via GET /api/datasets/{id} if needed.
+    df["pair_count"] = 0
     df["min_date"] = min_dates
     df["max_date"] = max_dates
     df = df.drop(columns=["filters"])

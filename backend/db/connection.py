@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 
 import duckdb
@@ -13,14 +14,15 @@ from backend.config import (
 
 logger = logging.getLogger("backtester.db")
 
-_conn = None
+# Thread-local storage: each thread gets its own DuckDB connection
+# This is REQUIRED because DuckDB connections are NOT thread-safe.
+_local = threading.local()
 
 
 def get_connection() -> duckdb.DuckDBPyConnection:
-    global _conn
-    if _conn is None:
-        _conn = _create_connection()
-    return _conn
+    if not hasattr(_local, 'conn') or _local.conn is None:
+        _local.conn = _create_connection()
+    return _local.conn
 
 
 def _create_connection() -> duckdb.DuckDBPyConnection:
@@ -61,19 +63,20 @@ def _create_connection() -> duckdb.DuckDBPyConnection:
 
 
 def _reset_connection():
-    global _conn
     try:
-        if _conn is not None:
-            _conn.close()
+        if hasattr(_local, 'conn') and _local.conn is not None:
+            _local.conn.close()
     except Exception:
         pass
-    _conn = None
-    logger.info("Database connection reset")
+    _local.conn = None
+    logger.info("Database connection reset (thread-local)")
 
 
 def query_df(sql: str, params: list | None = None):
-    """Execute SQL and return a pandas DataFrame. Auto-reconnects on failure."""
-    global _conn
+    """Execute SQL and return a pandas DataFrame. Auto-reconnects on failure.
+    
+    Uses thread-local connections — safe for concurrent FastAPI requests.
+    """
     for attempt in range(2):
         try:
             conn = get_connection()
@@ -90,8 +93,10 @@ def query_df(sql: str, params: list | None = None):
 
 
 def execute_sql(sql: str, params: list | None = None):
-    """Execute SQL statement (INSERT, UPDATE, DELETE). Auto-reconnects on failure."""
-    global _conn
+    """Execute SQL statement (INSERT, UPDATE, DELETE). Auto-reconnects on failure.
+    
+    Uses thread-local connections — safe for concurrent FastAPI requests.
+    """
     for attempt in range(2):
         try:
             conn = get_connection()
