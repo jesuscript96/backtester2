@@ -159,7 +159,7 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
               >
                 {datasets.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name} ({d.pair_count} pares)
+                    {d.name} {d.pair_count > 0 ? `(${d.pair_count} pares)` : ""}
                   </option>
                 ))}
               </select>

@@ -14,8 +14,9 @@ function apiBaseUrl(): string {
 
 const api = axios.create({
   baseURL: apiBaseUrl(),
-  timeout: 300000,
+  timeout: 1800000, // 30 minutes to handle large GCS backtests
 });
+
 
 export interface Dataset {
   id: string;

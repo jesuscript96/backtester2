@@ -11,7 +11,14 @@ import {
 } from "@/lib/api";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false }) as any;
+const Plot = dynamic(
+  async () => {
+    const Plotly = await import("plotly.js-dist-min");
+    const createPlotComponent = (await import("react-plotly.js/factory")).default;
+    return createPlotComponent(Plotly);
+  },
+  { ssr: false }
+);
 
 const METRIC_OPTIONS = [
   { value: "sharpe", label: "Sharpe Ratio" },

@@ -56,7 +56,7 @@ def run_backtest(
     del qualifying_df
 
     empty_result = {
-        "aggregate_metrics": _aggregate_metrics([], [], 0),
+        "aggregate_metrics": _aggregate_metrics([], [], [], [], init_cash, risk_r),
         "day_results": [],
         "trades": [],
         "equity_curves": [],

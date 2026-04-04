@@ -101,7 +101,7 @@ def list_datasets() -> list[dict]:
         result.append({
             "id": row["id"],
             "name": row["name"],
-            "pair_count": 0,
+            "pair_count": row.get("pair_count", 0),
             "min_date": filters.get("start_date") or filters.get("date_from"),
             "max_date": filters.get("end_date") or filters.get("date_to"),
             "created_at": str(row["created_at"]) if pd.notnull(row.get("created_at")) else None,
@@ -129,7 +129,7 @@ def get_dataset(dataset_id: str) -> dict | None:
         "name": row["name"],
         "created_at": str(row["created_at"]) if pd.notnull(row.get("created_at")) else None,
         "filters": filters,
-        "pair_count": 0,
+        "pair_count": row.get("pair_count", 0),
         "min_date": filters.get("start_date") or filters.get("date_from"),
         "max_date": filters.get("end_date") or filters.get("date_to"),
         "pairs": [],
@@ -150,13 +150,9 @@ def _build_where_clause(filters: dict) -> str:
 
     where_parts = []
     if start_date:
-        where_parts.append(
-            f"CAST('timestamp' AS DATE) >= '{start_date}'".replace("'timestamp'", '"timestamp"')
-        )
+        where_parts.append(f'CAST("timestamp" AS DATE) >= \'{start_date}\'')
     if end_date:
-        where_parts.append(
-            f"CAST('timestamp' AS DATE) <= '{end_date}'".replace("'timestamp'", '"timestamp"')
-        )
+        where_parts.append(f'CAST("timestamp" AS DATE) <= \'{end_date}\'')
     if min_gap_pct is not None:
         where_parts.append(f"gap_pct >= {min_gap_pct}")
     if max_gap_pct is not None:
@@ -266,10 +262,14 @@ def fetch_qualifying_data(
         return pd.DataFrame()
 
     years = _years_from_filters(filters)
+    if not years:
+        logger.warning(f"  No valid years found for dataset={dataset_id}")
+        return pd.DataFrame()
+
     where_clause = _build_where_clause(filters)
 
     # Run qualifying query directly on GCS
-    df = query_qualifying_gcs(years, where_clause)
+    df = query_qualifying_gcs(years, where_clause, filters)
 
     if df.empty:
         return df
@@ -320,7 +320,15 @@ def fetch_dataset_data(
 
     chunks = []
     for year, month in ym_pairs:
-        chunk = fetch_intraday_batch(year, month, unique_tickers, df_from, df_to)
+        m_dates = qualifying.loc[(dates.dt.year == year) & (dates.dt.month == month), "date"]
+        day_list = (
+            pd.to_datetime(m_dates).dt.strftime("%Y-%m-%d").unique().tolist()
+            if not m_dates.empty
+            else None
+        )
+        chunk = fetch_intraday_batch(
+            year, month, unique_tickers, df_from, df_to, qualifying_dates=day_list
+        )
         if not chunk.empty:
             chunks.append(chunk)
 

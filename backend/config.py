@@ -7,6 +7,8 @@ MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN", "")
 MOTHERDUCK_DB = os.getenv("MOTHERDUCK_DB", "my_db")
 
 # GCS / DuckDB configuration
+# httpfs+Parquet: predicados hive year/month en SQL ayudan al pruning; intradía raw
+# sin orden por ticker sigue leyendo muchos row groups (optimize_gcs_db.py).
 DB_TYPE = os.getenv("DB_TYPE", "motherduck")
 GCS_ACCESS_KEY_ID = os.getenv("GCS_ACCESS_KEY_ID", "")
 GCS_SECRET_ACCESS_KEY = os.getenv("GCS_SECRET_ACCESS_KEY", "")
@@ -35,5 +37,7 @@ for origin in _required_origins:
 # ---------------------------------------------------------------------------
 CACHE_DIR = os.getenv("CACHE_DIR", "/tmp/backtester_cache")
 CACHE_TTL_HOURS = int(os.getenv("CACHE_TTL_HOURS", "24"))
-INTRADAY_BATCH_SIZE = int(os.getenv("INTRADAY_BATCH_SIZE", "50"))
-DUCKDB_MEMORY_LIMIT = os.getenv("DUCKDB_MEMORY_LIMIT", "1GB")
+batch_size = 500  # HARDCODED OVERRIDE FOR PERFORMANCE
+INTRADAY_BATCH_SIZE = int(os.getenv("INTRADAY_BATCH_SIZE", "500"))
+DUCKDB_MEMORY_LIMIT = os.getenv("DUCKDB_MEMORY_LIMIT", "2500MB")
+

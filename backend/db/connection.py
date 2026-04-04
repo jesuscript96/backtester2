@@ -8,6 +8,7 @@ This module provides:
 """
 
 import logging
+import os
 import threading
 import time
 
@@ -46,8 +47,23 @@ def _create_connection() -> duckdb.DuckDBPyConnection:
         conn.execute("SET s3_endpoint='storage.googleapis.com';")
         conn.execute("SET s3_region='us-east-1';")
         conn.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}';")
+
+        _threads = min(8, max(2, (os.cpu_count() or 4)))
+        conn.execute(f"SET threads={_threads};")
+
+        # --- Performance Tuning ---
+        conn.execute("SET http_keep_alive=true;")
+        conn.execute("SET http_retries=10;")
+        conn.execute("SET s3_url_style='path';")
+
+
+
+
+        
         logger.info(f"GCS DuckDB ready ({round(time.time()-t0, 2)}s)")
         return conn
+
+
     else:
         logger.info(f"Connecting to MotherDuck db={MOTHERDUCK_DB}...")
         conn = duckdb.connect(f"md:{MOTHERDUCK_DB}?motherduck_token={MOTHERDUCK_TOKEN}")

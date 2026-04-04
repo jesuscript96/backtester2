@@ -29,11 +29,14 @@ app.include_router(optimization.router)
 
 @app.on_event("startup")
 def on_startup():
+    from backend.config import INTRADAY_BATCH_SIZE
     logger.info("=== BacktesterMVP starting ===")
     logger.info(f"ALLOWED_ORIGINS = {ALLOWED_ORIGINS}")
+    logger.info(f"INTRADAY_BATCH_SIZE = {INTRADAY_BATCH_SIZE}")
     logger.info("Engine: pure numpy (no vectorbt)")
     # Pre-load hot tables from GCS so first request is instant
     from backend.db.gcs_cache import sync_hot_tables
+
     try:
         sync_hot_tables()
     except Exception as e:

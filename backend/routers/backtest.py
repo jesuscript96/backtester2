@@ -76,10 +76,15 @@ def run_backtest_endpoint(req: BacktestRequest):
         qualifying = fetch_qualifying_data(req.dataset_id, req.start_date, req.end_date)
 
         if qualifying.empty:
-            raise HTTPException(
-                status_code=400,
-                detail="No hay datos para el periodo seleccionado",
-            )
+            logger.warning(f"  No qualifying data for dataset={req.dataset_id}")
+            return {
+                "aggregate_metrics": {},
+                "day_results": [],
+                "trades": [],
+                "equity_curves": [],
+                "global_equity": [],
+                "global_drawdown": [],
+            }
 
         # Apply date range filters on qualifying
         if req.start_date:
