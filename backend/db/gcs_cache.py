@@ -3,15 +3,13 @@ GCS data cache layer.
 
 Provides three tiers of data access:
   1. HOT  — strategies / saved_queries: tiny tables cached in-process as DataFrames
-  2. WARM — daily_metrics: downloaded to local parquet, queried from local disk
-  3. COLD — intraday_1m: streamed from GCS month-by-month during backtest
+  2. WARM — daily_metrics qualifying data: queried from GCS with filter pushdown
+  3. COLD — intraday_1m: streamed from GCS in ticker-batches per month
 """
 
 import gc
 import logging
-import os
 import time
-from pathlib import Path
 
 import duckdb
 import pandas as pd
@@ -20,8 +18,7 @@ from backend.config import (
     GCS_ACCESS_KEY_ID,
     GCS_SECRET_ACCESS_KEY,
     GCS_BUCKET,
-    CACHE_DIR,
-    CACHE_TTL_HOURS,
+    INTRADAY_BATCH_SIZE,
     DUCKDB_MEMORY_LIMIT,
 )
 
@@ -35,6 +32,8 @@ _hot_cache: dict = {
     "saved_queries": None,
     "_synced_at": 0.0,
 }
+
+CACHE_TTL_HOURS = 24
 
 
 def _create_gcs_reader() -> duckdb.DuckDBPyConnection:
@@ -93,88 +92,74 @@ def get_saved_queries_df() -> pd.DataFrame:
     return _hot_cache["saved_queries"]
 
 
-# ---- WARM: daily_metrics local cache --------------------------------------
+# ---- WARM: qualifying query (runs directly on GCS) -----------------------
 
-def ensure_daily_metrics_cached(years: set[int]):
-    """Download daily_metrics parquet partitions to local disk."""
-    cache_dir = Path(CACHE_DIR) / "daily_metrics"
-    cache_dir.mkdir(parents=True, exist_ok=True)
+def query_qualifying_gcs(years: set[int], where_clause: str) -> pd.DataFrame:
+    """
+    Run the qualifying query directly on GCS with filter pushdown.
 
-    years_needed: set[int] = set()
-    for y in years:
-        local_file = cache_dir / f"dm_{y}.parquet"
-        if local_file.exists():
-            age = time.time() - local_file.stat().st_mtime
-            if age < CACHE_TTL_HOURS * 3600:
-                continue
-        years_needed.add(y)
-
-    if not years_needed:
-        return
-
+    DuckDB pushes the WHERE clause into the parquet scan, so only
+    matching row-groups are downloaded. Result is small (~3000 rows).
+    """
     t0 = time.time()
-    conn = _create_gcs_reader()
-    for y in sorted(years_needed):
-        src = f"gs://{GCS_BUCKET}/cold_storage/daily_metrics/year={y}/month=*/*.parquet"
-        dest = str(cache_dir / f"dm_{y}.parquet")
-        try:
-            df = conn.execute(
-                f"SELECT * FROM read_parquet('{src}', hive_partitioning=true)"
-            ).fetchdf()
-            df.to_parquet(dest)
-            logger.info(f"  cached daily_metrics year={y}: {len(df)} rows")
-            del df
-        except Exception as e:
-            logger.error(f"  cache daily_metrics year={y} FAILED: {e}")
-    conn.close()
-    logger.info(f"Daily-metrics cache update ({round(time.time() - t0, 2)}s)")
+    logger.info(f"  qualifying: querying GCS for years={sorted(years)}...")
 
-
-def query_daily_metrics_local(years: set[int], where_clause: str) -> pd.DataFrame:
-    """Query daily_metrics from local parquet cache."""
-    ensure_daily_metrics_cached(years)
-
-    cache_dir = Path(CACHE_DIR) / "daily_metrics"
-    paths = [
-        str(cache_dir / f"dm_{y}.parquet")
+    dm_paths = "[" + ", ".join([
+        f"'gs://{GCS_BUCKET}/cold_storage/daily_metrics/year={y}/month=*/*.parquet'"
         for y in sorted(years)
-        if (cache_dir / f"dm_{y}.parquet").exists()
-    ]
-    if not paths:
-        logger.warning("No daily_metrics cache files found")
-        return pd.DataFrame()
+    ]) + "]"
 
-    paths_sql = "[" + ", ".join(f"'{p}'" for p in paths) + "]"
-    conn = duckdb.connect(":memory:")
+    sql = f"""
+    WITH filtered_dm AS (
+        SELECT dm.*, CAST(dm."timestamp" AS DATE) AS date
+        FROM read_parquet({dm_paths}, hive_partitioning=true) dm
+        WHERE {where_clause}
+    ),
+    enriched AS (
+        SELECT f.*,
+               LAG(f.rth_high) OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_high,
+               LAG(f.rth_low)  OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_low,
+               f.prev_close AS previous_close
+        FROM filtered_dm f
+    )
+    SELECT * FROM enriched
+    WHERE {where_clause}
+    """
+
+    conn = _create_gcs_reader()
     try:
-        return conn.execute(
-            f"SELECT * FROM read_parquet({paths_sql}) WHERE {where_clause}"
-        ).fetchdf()
+        df = conn.execute(sql).fetchdf()
+        elapsed = round(time.time() - t0, 2)
+        logger.info(f"  qualifying: {len(df)} rows ({elapsed}s)")
+        return df
+    except Exception as e:
+        logger.error(f"  qualifying query FAILED: {e}")
+        return pd.DataFrame()
     finally:
         conn.close()
+        gc.collect()
 
 
-# ---- COLD: intraday streaming ----------------------------------------------
+# ---- COLD: intraday streaming with ticker sub-batching --------------------
 
-def fetch_intraday_for_month(
+def fetch_intraday_batch(
     year: int,
     month: int,
     tickers: list[str],
     date_from: str,
     date_to: str,
 ) -> pd.DataFrame:
-    """Fetch one month of intraday data from GCS for the given tickers."""
+    """Fetch intraday data for a BATCH of tickers (not all) from GCS."""
     t0 = time.time()
     conn = _create_gcs_reader()
 
     src = f"gs://{GCS_BUCKET}/cold_storage/intraday_1m/year={year}/month={month}/*.parquet"
 
-    if len(tickers) > 5000:
-        ticker_filter = "1=1"
-    else:
-        ticker_filter = "i.ticker IN ('" + "', '".join(tickers) + "')"
-
-    date_filter = f"CAST(i.date AS VARCHAR) >= '{date_from}' AND CAST(i.date AS VARCHAR) <= '{date_to}'"
+    ticker_filter = "i.ticker IN ('" + "', '".join(tickers) + "')"
+    date_filter = (
+        f"CAST(i.date AS VARCHAR) >= '{date_from}' AND "
+        f"CAST(i.date AS VARCHAR) <= '{date_to}'"
+    )
 
     sql = f"""
     SELECT i.ticker, i.date, i."timestamp",
@@ -186,23 +171,22 @@ def fetch_intraday_for_month(
     try:
         df = conn.execute(sql).fetchdf()
         logger.info(
-            f"  intraday {year}-{month:02d}: {len(df)} rows, "
-            f"{df['ticker'].nunique() if not df.empty else 0} tickers "
-            f"({round(time.time() - t0, 2)}s)"
+            f"    batch {year}-{month:02d} [{len(tickers)} tickers]: "
+            f"{len(df)} rows ({round(time.time() - t0, 2)}s)"
         )
         # Downcast for memory savings
         for col in ("open", "high", "low", "close"):
             if col in df.columns:
                 df[col] = df[col].astype("float32")
         if "volume" in df.columns:
-            df["volume"] = df["volume"].astype("int32")
+            df["volume"] = pd.to_numeric(df["volume"], errors="coerce").fillna(0).astype("int32")
         if "ticker" in df.columns:
             df["ticker"] = df["ticker"].astype("category")
         if "date" in df.columns:
             df["date"] = df["date"].astype("category")
         return df
     except Exception as e:
-        logger.error(f"  intraday {year}-{month:02d} FAILED: {e}")
+        logger.error(f"    batch {year}-{month:02d} FAILED: {e}")
         return pd.DataFrame()
     finally:
         conn.close()
@@ -214,20 +198,25 @@ def iter_intraday_groups_streamed(
     date_to: str,
 ):
     """
-    Generator yielding ((date, ticker), day_df) groups month-by-month.
+    Generator yielding ((date, ticker), day_df) groups.
 
-    Preserves chronological order so that daily compounding is correct.
-    Peak memory ≈ one month of intraday data (~400-800 MB for ~1400 tickers).
+    Streams month-by-month AND sub-batches tickers within each month.
+    Peak memory ≈ one ticker-batch of intraday (~15-60 MB).
+    Preserves chronological order for correct daily compounding.
     """
     if qualifying_df.empty:
         return
+
+    batch_size = INTRADAY_BATCH_SIZE  # default 50 tickers per GCS query
 
     # Determine (year, month) pairs in chronological order
     dates = pd.to_datetime(qualifying_df["date"])
     ym_pairs = sorted(set(zip(dates.dt.year, dates.dt.month)))
 
+    total_groups = 0
+
     for year, month in ym_pairs:
-        # Tickers that qualify in this month
+        # Tickers qualifying in this month
         mask = (dates.dt.year == year) & (dates.dt.month == month)
         month_qualifying = qualifying_df[mask]
         month_tickers = month_qualifying["ticker"].unique().tolist()
@@ -235,25 +224,44 @@ def iter_intraday_groups_streamed(
         if not month_tickers:
             continue
 
-        intraday = fetch_intraday_for_month(
-            year, month, month_tickers, date_from, date_to
-        )
-        if intraday.empty:
-            continue
-
-        # Filter to exact (ticker, date) pairs
+        # Valid (ticker, date) pairs for filtering
         valid_pairs = month_qualifying[["ticker", "date"]].drop_duplicates().copy()
         valid_pairs["date"] = valid_pairs["date"].astype(str)
-        intraday["date"] = intraday["date"].astype(str)
-        intraday = intraday.merge(valid_pairs, on=["ticker", "date"], how="inner")
 
-        if intraday.empty:
-            continue
+        logger.info(
+            f"  month {year}-{month:02d}: {len(month_tickers)} tickers, "
+            f"batch_size={batch_size}"
+        )
 
-        # GroupBy in chronological order — same as run_backtest expects
-        grouped = intraday.groupby(["date", "ticker"])
-        for key, day_df in grouped:
-            yield key, day_df
+        # ---- Sub-batch tickers within this month ----
+        for i in range(0, len(month_tickers), batch_size):
+            batch_tickers = month_tickers[i : i + batch_size]
 
-        del intraday, grouped
-        gc.collect()
+            intraday = fetch_intraday_batch(
+                year, month, batch_tickers, date_from, date_to
+            )
+            if intraday.empty:
+                continue
+
+            # Filter to exact (ticker, date) pairs
+            intraday["date"] = intraday["date"].astype(str)
+            batch_valid = valid_pairs[valid_pairs["ticker"].isin(batch_tickers)]
+            intraday = intraday.merge(batch_valid, on=["ticker", "date"], how="inner")
+
+            if intraday.empty:
+                del intraday
+                gc.collect()
+                continue
+
+            # Sort by date then ticker (chronological order for compounding)
+            intraday = intraday.sort_values(["date", "ticker", "timestamp"])
+
+            grouped = intraday.groupby(["date", "ticker"])
+            for key, day_df in grouped:
+                total_groups += 1
+                yield key, day_df
+
+            del intraday, grouped
+            gc.collect()
+
+    logger.info(f"  streaming complete: {total_groups} total groups yielded")

@@ -1,13 +1,9 @@
 """
 Data access layer for the backtester.
 
-After the streaming refactor:
   - strategies / saved_queries   → in-process cache  (gcs_cache HOT)
-  - daily_metrics (qualifying)   → local parquet cache (gcs_cache WARM)
-  - intraday_1m                  → streamed month-by-month (gcs_cache COLD)
-
-The monolithic fetch_dataset_data() is kept for backward compat (optimization),
-but the main backtest path uses fetch_qualifying_data() + streaming iterator.
+  - daily_metrics (qualifying)   → direct GCS query with filter pushdown
+  - intraday_1m                  → streamed in ticker-batches per month
 """
 
 import gc
@@ -15,16 +11,16 @@ import json
 import logging
 import time
 
+import numpy as np
 import pandas as pd
 
 from backend.db.gcs_cache import (
     get_strategies_df,
     get_saved_queries_df,
-    query_daily_metrics_local,
+    query_qualifying_gcs,
     iter_intraday_groups_streamed,
-    fetch_intraday_for_month,
+    fetch_intraday_batch,
 )
-from backend.db.connection import query_df
 
 logger = logging.getLogger("backtester.data")
 
@@ -140,14 +136,6 @@ def get_dataset(dataset_id: str) -> dict | None:
     }
 
 
-def create_dataset(name: str, pairs: list[dict]) -> dict:
-    raise NotImplementedError("create_dataset is deprecated. Use saved_queries.")
-
-
-def delete_dataset(dataset_id: str) -> bool:
-    raise NotImplementedError("delete_dataset is deprecated.")
-
-
 # ---------------------------------------------------------------------------
 # WHERE clause builder (unchanged from original)
 # ---------------------------------------------------------------------------
@@ -224,7 +212,7 @@ def _build_where_clause(filters: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Qualifying data (WARM cache — local parquet)
+# Qualifying data (direct GCS query with filter pushdown)
 # ---------------------------------------------------------------------------
 
 def _resolve_filters(dataset_id: str, req_start: str | None, req_end: str | None) -> dict:
@@ -267,13 +255,11 @@ def fetch_qualifying_data(
     req_end_date: str | None = None,
 ) -> pd.DataFrame:
     """
-    Fetch qualifying rows from daily_metrics using local parquet cache.
+    Fetch qualifying rows from daily_metrics via direct GCS query.
 
-    Returns a DataFrame with the same columns as the original qualifying query
-    including LAG-computed yesterday_high / yesterday_low.
+    Uses filter pushdown so only matching row-groups are downloaded.
+    Returns ~3000 rows, not millions.
     """
-    t0 = time.time()
-
     filters = _resolve_filters(dataset_id, req_start_date, req_end_date)
     if not filters:
         logger.error(f"Dataset {dataset_id} not found")
@@ -282,26 +268,17 @@ def fetch_qualifying_data(
     years = _years_from_filters(filters)
     where_clause = _build_where_clause(filters)
 
-    # Fetch from local cache (or download first time)
-    raw = query_daily_metrics_local(years, where_clause)
-    if raw.empty:
-        logger.info("qualifying query: 0 rows")
-        return raw
+    # Run qualifying query directly on GCS
+    df = query_qualifying_gcs(years, where_clause)
 
-    # Add computed date column
-    raw["date"] = pd.to_datetime(raw["timestamp"]).dt.date
+    if df.empty:
+        return df
 
-    # Add LAG columns for yesterday_high / yesterday_low
-    raw = raw.sort_values(["ticker", "timestamp"])
-    raw["yesterday_high"] = raw.groupby("ticker")["rth_high"].shift(1)
-    raw["yesterday_low"] = raw.groupby("ticker")["rth_low"].shift(1)
-    raw["previous_close"] = raw["prev_close"]
+    # Ensure date column exists
+    if "date" not in df.columns:
+        df["date"] = pd.to_datetime(df["timestamp"]).dt.date
 
-    # Re-apply filter after enrichment (matches original CTE behavior)
-    # This is technically redundant but preserves exact parity
-    t_q = time.time()
-    logger.info(f"qualifying query: {len(raw)} rows ({round(t_q - t0, 2)}s)")
-    return raw
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +303,6 @@ def fetch_dataset_data(
     Legacy monolithic fetch. Used by optimization_service.
 
     WARNING: loads ALL intraday data at once — may OOM on large datasets.
-    For the main backtest path, use fetch_qualifying_data() + streaming.
     """
     t0 = time.time()
 
@@ -337,16 +313,14 @@ def fetch_dataset_data(
     filters = _resolve_filters(dataset_id, req_start_date, req_end_date)
     df_from = filters.get("start_date") or filters.get("date_from")
     df_to = filters.get("end_date") or filters.get("date_to")
-    years = _years_from_filters(filters)
 
-    # Fetch ALL intraday at once — month by month but concat
     unique_tickers = qualifying["ticker"].unique().tolist()
     dates = pd.to_datetime(qualifying["date"])
     ym_pairs = sorted(set(zip(dates.dt.year, dates.dt.month)))
 
     chunks = []
     for year, month in ym_pairs:
-        chunk = fetch_intraday_for_month(year, month, unique_tickers, df_from, df_to)
+        chunk = fetch_intraday_batch(year, month, unique_tickers, df_from, df_to)
         if not chunk.empty:
             chunks.append(chunk)
 
@@ -362,15 +336,14 @@ def fetch_dataset_data(
     intraday["date"] = intraday["date"].astype(str)
     intraday = intraday.merge(valid_pairs, on=["ticker", "date"], how="inner")
 
-    t_i = time.time()
-    logger.info(f"intraday total: {len(intraday)} rows ({round(t_i - t0, 2)}s)")
+    logger.info(f"intraday total: {len(intraday)} rows ({round(time.time() - t0, 2)}s)")
 
     gc.collect()
     return qualifying, intraday
 
 
 # ---------------------------------------------------------------------------
-# Day candles (single ticker/date — unchanged)
+# Day candles (single ticker/date)
 # ---------------------------------------------------------------------------
 
 def fetch_day_candles(dataset_id: str, ticker: str, date: str) -> list[dict]:
@@ -380,19 +353,13 @@ def fetch_day_candles(dataset_id: str, ticker: str, date: str) -> list[dict]:
     except Exception:
         return []
 
-    from backend.config import GCS_BUCKET as bucket
-
-    intraday = fetch_intraday_for_month(
-        dt_year, dt_month, [ticker], date, date
-    )
+    intraday = fetch_intraday_batch(dt_year, dt_month, [ticker], date, date)
     df = intraday[intraday["date"].astype(str) == date] if not intraday.empty else intraday
 
     if df.empty:
         return []
 
     df = df.sort_values("timestamp").reset_index(drop=True)
-
-    import numpy as np
 
     timestamps = pd.to_datetime(df["timestamp"])
     ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
