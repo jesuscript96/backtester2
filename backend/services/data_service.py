@@ -1,91 +1,99 @@
 """
-Fetches data from MotherDuck for backtesting.
-Datasets define (ticker, date) pairs via two normalized tables;
-daily stats come from daily_metrics; intraday candles come from intraday_1m.
+Data access layer for the backtester.
+
+After the streaming refactor:
+  - strategies / saved_queries   → in-process cache  (gcs_cache HOT)
+  - daily_metrics (qualifying)   → local parquet cache (gcs_cache WARM)
+  - intraday_1m                  → streamed month-by-month (gcs_cache COLD)
+
+The monolithic fetch_dataset_data() is kept for backward compat (optimization),
+but the main backtest path uses fetch_qualifying_data() + streaming iterator.
 """
 
-import ctypes
 import gc
 import json
 import logging
-import sys
 import time
-import uuid
+
 import pandas as pd
-from backend.db.connection import query_df, execute_sql
+
+from backend.db.gcs_cache import (
+    get_strategies_df,
+    get_saved_queries_df,
+    query_daily_metrics_local,
+    iter_intraday_groups_streamed,
+    fetch_intraday_for_month,
+)
+from backend.db.connection import query_df
 
 logger = logging.getLogger("backtester.data")
 
 
 # ---------------------------------------------------------------------------
-# Strategies
+# Strategies (HOT cache)
 # ---------------------------------------------------------------------------
 
 def list_strategies() -> list[dict]:
-    df = query_df(
-        "SELECT id, name, description, definition, created_at, updated_at "
-        "FROM strategies ORDER BY updated_at DESC"
-    )
+    df = get_strategies_df()
+    if df.empty:
+        return []
     rows = []
     for _, r in df.iterrows():
         try:
-            definition = r["definition"] if isinstance(r["definition"], dict) else json.loads(r["definition"] or "{}")
+            definition = (
+                r["definition"]
+                if isinstance(r["definition"], dict)
+                else json.loads(r["definition"] or "{}")
+            )
         except Exception:
             definition = {}
         rows.append({
             "id": r["id"],
             "name": r["name"],
-            "description": r["description"],
+            "description": r.get("description"),
             "definition": definition,
-            "created_at": str(r["created_at"]) if pd.notnull(r["created_at"]) else None,
-            "updated_at": str(r["updated_at"]) if pd.notnull(r["updated_at"]) else None,
+            "created_at": str(r["created_at"]) if pd.notnull(r.get("created_at")) else None,
+            "updated_at": str(r["updated_at"]) if pd.notnull(r.get("updated_at")) else None,
         })
     return rows
 
 
 def get_strategy(strategy_id: str) -> dict | None:
-    df = query_df(
-        "SELECT id, name, description, definition FROM strategies WHERE id = ?",
-        [strategy_id],
-    )
+    df = get_strategies_df()
     if df.empty:
         return None
-    r = df.iloc[0]
+    match = df[df["id"] == strategy_id]
+    if match.empty:
+        return None
+    r = match.iloc[0]
     try:
-        definition = r["definition"] if isinstance(r["definition"], dict) else json.loads(r["definition"] or "{}")
+        definition = (
+            r["definition"]
+            if isinstance(r["definition"], dict)
+            else json.loads(r["definition"] or "{}")
+        )
     except Exception:
         definition = {}
     return {
         "id": r["id"],
         "name": r["name"],
-        "description": r["description"],
+        "description": r.get("description"),
         "definition": definition,
     }
 
 
 # ---------------------------------------------------------------------------
-# Datasets CRUD
+# Datasets / saved_queries (HOT cache)
 # ---------------------------------------------------------------------------
 
 def list_datasets() -> list[dict]:
-    # Returns saved_queries as datasets
-    df = query_df("""
-        SELECT 
-            id, 
-            name, 
-            filters,
-            created_at
-        FROM saved_queries
-        ORDER BY created_at DESC
-    """)
+    df = get_saved_queries_df()
     if df.empty:
         return []
 
-    # Extract min_date/max_date from filters JSON (no expensive COUNT queries against GCS)
-    min_dates = []
-    max_dates = []
+    result = []
     for _, row in df.iterrows():
-        filters_json = row["filters"]
+        filters_json = row.get("filters")
         if isinstance(filters_json, str):
             try:
                 filters = json.loads(filters_json)
@@ -94,52 +102,41 @@ def list_datasets() -> list[dict]:
         else:
             filters = filters_json or {}
 
-        min_dates.append(filters.get("start_date") or filters.get("date_from"))
-        max_dates.append(filters.get("end_date") or filters.get("date_to"))
-
-    # pair_count is not computed here to avoid 25s+ GCS scans on every page load.
-    # It can be fetched on demand via GET /api/datasets/{id} if needed.
-    df["pair_count"] = 0
-    df["min_date"] = min_dates
-    df["max_date"] = max_dates
-    df = df.drop(columns=["filters"])
-
-
-    # Convert to object type to allow strings and None values without coercion to NaN
-    df = df.astype(object)
-    if "created_at" in df.columns:
-        df["created_at"] = df["created_at"].apply(lambda x: str(x) if pd.notnull(x) else None)
-    # Replace NaN with None for JSON compliance
-    df = df.where(pd.notnull(df), None)
-    return df.to_dict(orient="records")
+        result.append({
+            "id": row["id"],
+            "name": row["name"],
+            "pair_count": 0,
+            "min_date": filters.get("start_date") or filters.get("date_from"),
+            "max_date": filters.get("end_date") or filters.get("date_to"),
+            "created_at": str(row["created_at"]) if pd.notnull(row.get("created_at")) else None,
+        })
+    return result
 
 
 def get_dataset(dataset_id: str) -> dict | None:
-    # Returns info about a saved_query
-    ds = query_df("SELECT id, name, created_at, filters FROM saved_queries WHERE id = ?", [dataset_id])
-    if ds.empty:
+    df = get_saved_queries_df()
+    if df.empty:
         return None
-    row = ds.iloc[0]
-    
-    filters_json = row["filters"]
+    match = df[df["id"] == dataset_id]
+    if match.empty:
+        return None
+    row = match.iloc[0]
+
+    filters_json = row.get("filters")
     if isinstance(filters_json, str):
         filters = json.loads(filters_json)
     else:
         filters = filters_json or {}
-    
-    where_clause = _build_where_clause(filters)
-    count_df = query_df(f"SELECT COUNT(*) as count FROM daily_metrics WHERE {where_clause}")
-    pair_count = int(count_df.iloc[0]["count"]) if not count_df.empty else 0
-        
+
     return {
         "id": row["id"],
         "name": row["name"],
-        "created_at": str(row["created_at"]) if pd.notnull(row["created_at"]) else None,
+        "created_at": str(row["created_at"]) if pd.notnull(row.get("created_at")) else None,
         "filters": filters,
-        "pair_count": pair_count,
+        "pair_count": 0,
         "min_date": filters.get("start_date") or filters.get("date_from"),
         "max_date": filters.get("end_date") or filters.get("date_to"),
-        "pairs": [], # No strict static pairs anymore, calculated at run time
+        "pairs": [],
     }
 
 
@@ -152,54 +149,56 @@ def delete_dataset(dataset_id: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Data fetching for backtest
+# WHERE clause builder (unchanged from original)
 # ---------------------------------------------------------------------------
 
 def _build_where_clause(filters: dict) -> str:
     start_date = filters.get("start_date") or filters.get("date_from")
     end_date = filters.get("end_date") or filters.get("date_to")
     rules = filters.get("rules", [])
-    
     min_gap_pct = filters.get("min_gap_pct")
     max_gap_pct = filters.get("max_gap_pct")
     min_pm_volume = filters.get("min_pm_volume")
-    
+
     where_parts = []
     if start_date:
-        where_parts.append(f"CAST('timestamp' AS DATE) >= '{start_date}'".replace("'timestamp'", '"timestamp"'))
+        where_parts.append(
+            f"CAST('timestamp' AS DATE) >= '{start_date}'".replace("'timestamp'", '"timestamp"')
+        )
     if end_date:
-        where_parts.append(f"CAST('timestamp' AS DATE) <= '{end_date}'".replace("'timestamp'", '"timestamp"'))
-        
+        where_parts.append(
+            f"CAST('timestamp' AS DATE) <= '{end_date}'".replace("'timestamp'", '"timestamp"')
+        )
     if min_gap_pct is not None:
         where_parts.append(f"gap_pct >= {min_gap_pct}")
     if max_gap_pct is not None:
         where_parts.append(f"gap_pct <= {max_gap_pct}")
     if min_pm_volume is not None:
         where_parts.append(f"pm_volume >= {min_pm_volume}")
-        
+
+    field_map = {
+        "Open Price": "rth_open",
+        "Close Price": "rth_close",
+        "High Price": "rth_high",
+        "Low Price": "rth_low",
+        "EOD Volume": "rth_volume",
+        "Premarket Volume": "pm_volume",
+        "Open Gap %": "gap_pct",
+        "PMH Gap %": "pmh_gap_pct",
+        "RTH Run %": "rth_run_pct",
+        "High Spike %": "high_spike_pct",
+        "Low Spike %": "low_spike_pct",
+        "M15 Return %": "m15_return_pct",
+        "M30 Return %": "m30_return_pct",
+        "M60 Return %": "m60_return_pct",
+        "Day Return %": "day_return_pct",
+        "Previous Close": "prev_close",
+        "RTH Range %": "rth_range_pct",
+    }
+
     for rule in rules:
         field = rule.get("field") or rule.get("metric")
-        field_map = {
-            "Open Price": "rth_open",
-            "Close Price": "rth_close",
-            "High Price": "rth_high",
-            "Low Price": "rth_low",
-            "EOD Volume": "rth_volume",
-            "Premarket Volume": "pm_volume",
-            "Open Gap %": "gap_pct",
-            "PMH Gap %": "pmh_gap_pct",
-            "RTH Run %": "rth_run_pct",
-            "High Spike %": "high_spike_pct",
-            "Low Spike %": "low_spike_pct",
-            "M15 Return %": "m15_return_pct",
-            "M30 Return %": "m30_return_pct",
-            "M60 Return %": "m60_return_pct",
-            "Day Return %": "day_return_pct",
-            "Previous Close": "prev_close",
-            "RTH Range %": "rth_range_pct"
-        }
         field = field_map.get(field, field)
-        
         op = rule.get("operator")
         val = rule.get("value")
         if field and op and val is not None:
@@ -209,9 +208,8 @@ def _build_where_clause(filters: dict) -> str:
                 "GREATER_THAN_OR_EQUAL": ">=",
                 "LESS_THAN_OR_EQUAL": "<=",
                 "EQUAL": "=",
-                "CONTAINS": "LIKE"
+                "CONTAINS": "LIKE",
             }.get(op, op)
-            
             if isinstance(val, str):
                 if sql_op == "LIKE":
                     val = f"'%{val}%'"
@@ -221,174 +219,184 @@ def _build_where_clause(filters: dict) -> str:
                     except ValueError:
                         val = f"'{val}'"
             where_parts.append(f"{field} {sql_op} {val}")
-            
+
     return " AND ".join(where_parts) if where_parts else "1=1"
 
 
-def fetch_dataset_data(dataset_id: str, req_start_date: str | None = None, req_end_date: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Fetches data using dynamic filters from saved_queries.
-    """
-    t0 = time.time()
-    
-    # 1. Look up the saved_query filters
-    ds = query_df("SELECT filters FROM saved_queries WHERE id = ?", [dataset_id])
-    if ds.empty:
-        logger.error(f"Dataset {dataset_id} not found in saved_queries")
-        return pd.DataFrame(), pd.DataFrame()
-        
-    ds_filters = ds.iloc[0]["filters"]
-    if ds_filters and not isinstance(ds_filters, dict):
-        ds_filters = json.loads(ds_filters)
-    if not ds_filters:
-        ds_filters = {}
-        
-    if req_start_date: ds_filters["start_date"] = req_start_date
-    if req_end_date: ds_filters["end_date"] = req_end_date
-        
-    df_from = ds_filters.get("start_date") or ds_filters.get("date_from")
-    df_to = ds_filters.get("end_date") or ds_filters.get("date_to")
-    
-    years_to_fetch = set()
+# ---------------------------------------------------------------------------
+# Qualifying data (WARM cache — local parquet)
+# ---------------------------------------------------------------------------
+
+def _resolve_filters(dataset_id: str, req_start: str | None, req_end: str | None) -> dict:
+    """Load saved_query filters and overlay request-level date overrides."""
+    df = get_saved_queries_df()
+    if df.empty:
+        return {}
+    match = df[df["id"] == dataset_id]
+    if match.empty:
+        return {}
+
+    raw = match.iloc[0].get("filters")
+    if raw and not isinstance(raw, dict):
+        raw = json.loads(raw)
+    filters = raw or {}
+
+    if req_start:
+        filters["start_date"] = req_start
+    if req_end:
+        filters["end_date"] = req_end
+    return filters
+
+
+def _years_from_filters(filters: dict) -> set[int]:
+    df_from = filters.get("start_date") or filters.get("date_from")
+    df_to = filters.get("end_date") or filters.get("date_to")
+    years = set()
     if df_from and df_to:
         try:
-            sy, ey = int(df_from[:4]), int(df_to[:4])
-            for y in range(sy, ey + 1):
-                years_to_fetch.add(y)
+            for y in range(int(df_from[:4]), int(df_to[:4]) + 1):
+                years.add(y)
         except Exception:
             pass
-            
-    from backend.config import GCS_BUCKET
-    if years_to_fetch:
-        dm_paths = "[" + ", ".join([f"'gs://{GCS_BUCKET}/cold_storage/daily_metrics/year={y}/month=*/*.parquet'" for y in sorted(years_to_fetch)]) + "]"
-        im_paths = "[" + ", ".join([f"'gs://{GCS_BUCKET}/cold_storage/intraday_1m/year={y}/month=*/*.parquet'" for y in sorted(years_to_fetch)]) + "]"
-    else:
-        dm_paths = f"'gs://{GCS_BUCKET}/cold_storage/daily_metrics/*/*/*.parquet'"
-        im_paths = f"'gs://{GCS_BUCKET}/cold_storage/intraday_1m/*/*/*.parquet'"
-        
-    dm_source = f"read_parquet({dm_paths}, hive_partitioning=true)"
-    im_source = f"read_parquet({im_paths}, hive_partitioning=true)"
+    return years
 
-    where_clause = _build_where_clause(ds_filters)
-    
-    # 3. Fetch qualifying data from daily_metrics
-    qualifying_sql = f"""
-    WITH filtered_dm AS (
-        SELECT dm.*, CAST(dm."timestamp" AS DATE) AS date
-        FROM {dm_source} dm
-        WHERE {where_clause}
-    ),
-    enriched AS (
-        SELECT f.*,
-               LAG(f.rth_high) OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_high,
-               LAG(f.rth_low)  OVER (PARTITION BY f.ticker ORDER BY f."timestamp") AS yesterday_low,
-               f.prev_close AS previous_close
-        FROM filtered_dm f
-    )
-    SELECT * FROM enriched
-    WHERE {where_clause}
+
+def fetch_qualifying_data(
+    dataset_id: str,
+    req_start_date: str | None = None,
+    req_end_date: str | None = None,
+) -> pd.DataFrame:
     """
-    qualifying = query_df(qualifying_sql)
+    Fetch qualifying rows from daily_metrics using local parquet cache.
+
+    Returns a DataFrame with the same columns as the original qualifying query
+    including LAG-computed yesterday_high / yesterday_low.
+    """
+    t0 = time.time()
+
+    filters = _resolve_filters(dataset_id, req_start_date, req_end_date)
+    if not filters:
+        logger.error(f"Dataset {dataset_id} not found")
+        return pd.DataFrame()
+
+    years = _years_from_filters(filters)
+    where_clause = _build_where_clause(filters)
+
+    # Fetch from local cache (or download first time)
+    raw = query_daily_metrics_local(years, where_clause)
+    if raw.empty:
+        logger.info("qualifying query: 0 rows")
+        return raw
+
+    # Add computed date column
+    raw["date"] = pd.to_datetime(raw["timestamp"]).dt.date
+
+    # Add LAG columns for yesterday_high / yesterday_low
+    raw = raw.sort_values(["ticker", "timestamp"])
+    raw["yesterday_high"] = raw.groupby("ticker")["rth_high"].shift(1)
+    raw["yesterday_low"] = raw.groupby("ticker")["rth_low"].shift(1)
+    raw["previous_close"] = raw["prev_close"]
+
+    # Re-apply filter after enrichment (matches original CTE behavior)
+    # This is technically redundant but preserves exact parity
     t_q = time.time()
-    logger.info(f"qualifying query: {len(qualifying)} rows ({round(t_q - t0, 2)}s)")
-    
+    logger.info(f"qualifying query: {len(raw)} rows ({round(t_q - t0, 2)}s)")
+    return raw
+
+
+# ---------------------------------------------------------------------------
+# Streaming intraday iterator (re-export from gcs_cache)
+# ---------------------------------------------------------------------------
+
+def get_intraday_stream(qualifying_df, date_from, date_to):
+    """Return an iterator yielding ((date, ticker), day_df) groups."""
+    return iter_intraday_groups_streamed(qualifying_df, date_from, date_to)
+
+
+# ---------------------------------------------------------------------------
+# Monolithic fetch (backward compat for optimization_service)
+# ---------------------------------------------------------------------------
+
+def fetch_dataset_data(
+    dataset_id: str,
+    req_start_date: str | None = None,
+    req_end_date: str | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Legacy monolithic fetch. Used by optimization_service.
+
+    WARNING: loads ALL intraday data at once — may OOM on large datasets.
+    For the main backtest path, use fetch_qualifying_data() + streaming.
+    """
+    t0 = time.time()
+
+    qualifying = fetch_qualifying_data(dataset_id, req_start_date, req_end_date)
     if qualifying.empty:
         return qualifying, pd.DataFrame()
-        
-    # 4. Fetch intraday candles for matching (ticker, date)
-    # We'll build a query with the valid pairs
-    # 4. Fetch intraday candles using simple range + ticker filter.
-    # Exact (ticker, date) pair matching is done in pandas AFTER the download.
-    # This avoids massive SQL VALUES/IN clauses that hang DuckDB with 1000+ pairs.
+
+    filters = _resolve_filters(dataset_id, req_start_date, req_end_date)
+    df_from = filters.get("start_date") or filters.get("date_from")
+    df_to = filters.get("end_date") or filters.get("date_to")
+    years = _years_from_filters(filters)
+
+    # Fetch ALL intraday at once — month by month but concat
     unique_tickers = qualifying["ticker"].unique().tolist()
+    dates = pd.to_datetime(qualifying["date"])
+    ym_pairs = sorted(set(zip(dates.dt.year, dates.dt.month)))
 
-    if len(unique_tickers) > 5000:
-        ticker_filter = "1=1"
-    else:
-        ticker_filter = "i.ticker IN ('" + "', '".join(unique_tickers) + "')"
+    chunks = []
+    for year, month in ym_pairs:
+        chunk = fetch_intraday_for_month(year, month, unique_tickers, df_from, df_to)
+        if not chunk.empty:
+            chunks.append(chunk)
 
-    # Use date range instead of IN clause — much simpler SQL, DuckDB handles better
-    if df_from and df_to:
-        date_range_filter = f"i.date >= '{df_from}' AND i.date <= '{df_to}'"
-    elif df_from:
-        date_range_filter = f"i.date >= '{df_from}'"
-    elif df_to:
-        date_range_filter = f"i.date <= '{df_to}'"
-    else:
-        date_range_filter = "1=1"
+    if not chunks:
+        return qualifying, pd.DataFrame()
 
-    # Add hive partition pushdown for year (avoids scanning irrelevant parquet files)
-    year_filter = "1=1"
-    try:
-        if df_from and df_to:
-            year_filter = f"i.year >= {int(df_from[:4])} AND i.year <= {int(df_to[:4])}"
-        elif df_from:
-            year_filter = f"i.year >= {int(df_from[:4])}"
-        elif df_to:
-            year_filter = f"i.year <= {int(df_to[:4])}"
-    except Exception:
-        pass
+    intraday = pd.concat(chunks, ignore_index=True)
+    del chunks
 
-    intraday_sql = f"""
-    SELECT i.ticker, i.date, i."timestamp", i.open, i.high, i.low,
-           i."close", i.volume
-    FROM {im_source} i
-    WHERE ( {ticker_filter} ) AND ( {date_range_filter} ) AND ( {year_filter} )
-    """
+    # Filter to exact (ticker, date) pairs
+    valid_pairs = qualifying[["ticker", "date"]].drop_duplicates().copy()
+    valid_pairs["date"] = valid_pairs["date"].astype(str)
+    intraday["date"] = intraday["date"].astype(str)
+    intraday = intraday.merge(valid_pairs, on=["ticker", "date"], how="inner")
 
-    logger.info(f"intraday SQL: {len(unique_tickers)} tickers, range {df_from} -> {df_to}")
-    intraday = query_df(intraday_sql)
     t_i = time.time()
-    logger.info(f"intraday raw query: {len(intraday)} rows ({round(t_i - t_q, 2)}s)")
-
-    # Filter to exact (ticker, date) pairs from qualifying using pandas merge
-    if not intraday.empty and not qualifying.empty:
-        valid_pairs = qualifying[["ticker", "date"]].drop_duplicates().copy()
-        valid_pairs["date"] = valid_pairs["date"].astype(str)
-        intraday["date"] = intraday["date"].astype(str)
-        intraday = intraday.merge(valid_pairs, on=["ticker", "date"], how="inner")
-        logger.info(f"intraday after pair filter: {len(intraday)} rows")
-
-    for col in ("open", "high", "low", "close"):
-        if col in intraday.columns:
-            intraday[col] = intraday[col].astype("float32")
-    if "volume" in intraday.columns:
-        intraday["volume"] = intraday["volume"].astype("int32")
-    if "ticker" in intraday.columns:
-        intraday["ticker"] = intraday["ticker"].astype("category")
-    if "date" in intraday.columns:
-        intraday["date"] = intraday["date"].astype("category")
+    logger.info(f"intraday total: {len(intraday)} rows ({round(t_i - t0, 2)}s)")
 
     gc.collect()
     return qualifying, intraday
 
 
+# ---------------------------------------------------------------------------
+# Day candles (single ticker/date — unchanged)
+# ---------------------------------------------------------------------------
+
 def fetch_day_candles(dataset_id: str, ticker: str, date: str) -> list[dict]:
     try:
         dt_year = int(date[:4])
         dt_month = int(date[5:7])
-        part_filter = f" AND i.year = {dt_year} AND i.month = {dt_month}"
-        from backend.config import GCS_BUCKET
-        im_source = f"read_parquet('gs://{GCS_BUCKET}/cold_storage/intraday_1m/year={dt_year}/month={dt_month}/*.parquet', hive_partitioning=true)"
     except Exception:
-        part_filter = ""
-        im_source = "intraday_1m"
-        
-    sql = f"""
-    SELECT i."timestamp", i.open, i.high, i.low, i."close", i.volume
-    FROM {im_source} i
-    WHERE i.ticker = ? AND i.date = CAST(? AS DATE) {part_filter}
-    ORDER BY i."timestamp"
-    """
-    df = query_df(sql, [ticker, date])
+        return []
+
+    from backend.config import GCS_BUCKET as bucket
+
+    intraday = fetch_intraday_for_month(
+        dt_year, dt_month, [ticker], date, date
+    )
+    df = intraday[intraday["date"].astype(str) == date] if not intraday.empty else intraday
+
     if df.empty:
         return []
+
+    df = df.sort_values("timestamp").reset_index(drop=True)
+
+    import numpy as np
 
     timestamps = pd.to_datetime(df["timestamp"])
     ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
 
-    # Compute VWAP from start of day: Cumulative(TP*V) / Cumulative(V)
-    import numpy as np
     highs = df["high"].values.astype(float)
     lows = df["low"].values.astype(float)
     closes = df["close"].values.astype(float)

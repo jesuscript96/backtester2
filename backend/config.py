@@ -29,3 +29,11 @@ _required_origins = [
 for origin in _required_origins:
     if origin not in ALLOWED_ORIGINS:
         ALLOWED_ORIGINS.append(origin)
+
+# ---------------------------------------------------------------------------
+# Cache & performance tuning
+# ---------------------------------------------------------------------------
+CACHE_DIR = os.getenv("CACHE_DIR", "/tmp/backtester_cache")
+CACHE_TTL_HOURS = int(os.getenv("CACHE_TTL_HOURS", "24"))
+INTRADAY_BATCH_SIZE = int(os.getenv("INTRADAY_BATCH_SIZE", "50"))
+DUCKDB_MEMORY_LIMIT = os.getenv("DUCKDB_MEMORY_LIMIT", "1GB")

@@ -1,0 +1,495 @@
+[2026-04-01 19:02:23 +0000] [1] [INFO] Starting gunicorn 25.1.0
+[2026-04-01 19:02:23 +0000] [1] [INFO] Listening at: http://0.0.0.0:3000 (1)
+[2026-04-01 19:02:23 +0000] [1] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-04-01 19:02:23 +0000] [1] [INFO] Control socket listening at /app/gunicorn.ctl
+[2026-04-01 19:02:23 +0000] [10] [INFO] Booting worker with pid: 10
+[2026-04-01 19:02:24 +0000] [10] [INFO] Started server process [10]
+[2026-04-01 19:02:24 +0000] [10] [INFO] Waiting for application startup.
+2026-04-01 19:02:24,904 [INFO] backtester: === BacktesterMVP starting ===
+2026-04-01 19:02:24,904 [INFO] backtester: ALLOWED_ORIGINS = ['https://backtester2-teal.vercel.app', 'http://localhost:3000', 'https://backtester-psi.vercel.app']
+2026-04-01 19:02:24,904 [INFO] backtester: Engine: pure numpy (no vectorbt)
+[2026-04-01 19:02:24 +0000] [10] [INFO] Application startup complete.
+2026-04-01 19:02:49,957 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:02:51,206 [WARNING] backtester.db: Query failed (attempt 1), reconnecting: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+2026-04-01 19:02:51,206 [INFO] backtester.db: Database connection reset
+2026-04-01 19:02:51,208 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:02:52,169 [ERROR] backtester.db: Query failed (attempt 2): HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+[2026-04-01 19:02:52 +0000] [10] [ERROR] Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/main.py", line 40, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 119, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 105, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 431, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 315, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/routers/data.py", line 42, in get_datasets
+    return list_datasets()
+           ^^^^^^^^^^^^^^^
+  File "/app/backend/services/data_service.py", line 72, in list_datasets
+    df = query_df("""
+         ^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 89, in query_df
+    raise e
+  File "/app/backend/db/connection.py", line 79, in query_df
+    conn = get_connection()
+           ^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 22, in get_connection
+    _conn = _create_connection()
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 51, in _create_connection
+    conn.execute(f"CREATE OR REPLACE VIEW {table} AS SELECT * FROM read_parquet('{path}', hive_partitioning=true)")
+_duckdb.HTTPException: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+2026-04-01 19:02:52,278 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:02:53,249 [WARNING] backtester.db: Query failed (attempt 1), reconnecting: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+2026-04-01 19:02:53,249 [INFO] backtester.db: Database connection reset
+2026-04-01 19:02:53,251 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:02:54,213 [ERROR] backtester.db: Query failed (attempt 2): HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+[2026-04-01 19:02:54 +0000] [10] [ERROR] Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/main.py", line 40, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 119, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 105, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 431, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 315, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/routers/data.py", line 17, in get_strategies
+    return list_strategies()
+           ^^^^^^^^^^^^^^^^^
+  File "/app/backend/services/data_service.py", line 25, in list_strategies
+    df = query_df(
+         ^^^^^^^^^
+  File "/app/backend/db/connection.py", line 89, in query_df
+    raise e
+  File "/app/backend/db/connection.py", line 79, in query_df
+    conn = get_connection()
+           ^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 22, in get_connection
+    _conn = _create_connection()
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 51, in _create_connection
+    conn.execute(f"CREATE OR REPLACE VIEW {table} AS SELECT * FROM read_parquet('{path}', hive_partitioning=true)")
+_duckdb.HTTPException: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+2026-04-01 19:03:07,208 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:03:08,200 [WARNING] backtester.db: Query failed (attempt 1), reconnecting: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+2026-04-01 19:03:08,200 [INFO] backtester.db: Database connection reset
+2026-04-01 19:03:08,203 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:03:09,166 [ERROR] backtester.db: Query failed (attempt 2): HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+[2026-04-01 19:03:09 +0000] [10] [ERROR] Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/main.py", line 40, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 119, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 105, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 431, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 315, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/routers/data.py", line 42, in get_datasets
+    return list_datasets()
+           ^^^^^^^^^^^^^^^
+  File "/app/backend/services/data_service.py", line 72, in list_datasets
+    df = query_df("""
+         ^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 89, in query_df
+    raise e
+  File "/app/backend/db/connection.py", line 79, in query_df
+    conn = get_connection()
+           ^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 22, in get_connection
+    _conn = _create_connection()
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 51, in _create_connection
+    conn.execute(f"CREATE OR REPLACE VIEW {table} AS SELECT * FROM read_parquet('{path}', hive_partitioning=true)")
+_duckdb.HTTPException: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+2026-04-01 19:03:09,283 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:03:10,277 [WARNING] backtester.db: Query failed (attempt 1), reconnecting: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+2026-04-01 19:03:10,277 [INFO] backtester.db: Database connection reset
+2026-04-01 19:03:10,279 [INFO] backtester.db: Connecting to GCS-backed DuckDB (bucket=strategybuilderbbdd)...
+2026-04-01 19:03:11,251 [ERROR] backtester.db: Query failed (attempt 2): HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^
+[2026-04-01 19:03:11 +0000] [10] [ERROR] Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 416, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/root/.nix-profile/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/main.py", line 40, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 119, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 105, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 431, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/fastapi/routing.py", line 315, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/opt/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/routers/data.py", line 17, in get_strategies
+    return list_strategies()
+           ^^^^^^^^^^^^^^^^^
+  File "/app/backend/services/data_service.py", line 25, in list_strategies
+    df = query_df(
+         ^^^^^^^^^
+  File "/app/backend/db/connection.py", line 89, in query_df
+    raise e
+  File "/app/backend/db/connection.py", line 79, in query_df
+    conn = get_connection()
+           ^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 22, in get_connection
+    _conn = _create_connection()
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/app/backend/db/connection.py", line 51, in _create_connection
+    conn.execute(f"CREATE OR REPLACE VIEW {table} AS SELECT * FROM read_parquet('{path}', hive_partitioning=true)")
+_duckdb.HTTPException: HTTP Error: HTTP GET error reading 'gs://strategybuilderbbdd/cold_storage/strategies/strategybuilderbbdd/?encoding-type=url&list-type=2&prefix=cold_storage%2Fstrategies%2F' in region 'us-east-1' (HTTP 403 Forbidden)
+
+Authentication Failure - this is usually caused by invalid or missing credentials.
+* No credentials are provided.
+* See https://duckdb.org/docs/stable/extensions/httpfs/s3api.html
+
+LINE 1: CREATE OR REPLACE VIEW strategies AS SELECT * FROM read_parquet('gs://strategybuilderbbdd/cold_storage/strategies...
+                                                           ^

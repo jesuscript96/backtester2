@@ -32,6 +32,12 @@ def on_startup():
     logger.info("=== BacktesterMVP starting ===")
     logger.info(f"ALLOWED_ORIGINS = {ALLOWED_ORIGINS}")
     logger.info("Engine: pure numpy (no vectorbt)")
+    # Pre-load hot tables from GCS so first request is instant
+    from backend.db.gcs_cache import sync_hot_tables
+    try:
+        sync_hot_tables()
+    except Exception as e:
+        logger.error(f"Hot table sync failed on startup: {e}")
 
 
 @app.middleware("http")

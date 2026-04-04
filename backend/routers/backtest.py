@@ -5,7 +5,13 @@ import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.services.data_service import get_strategy, fetch_dataset_data, fetch_day_candles
+from backend.services.data_service import (
+    get_strategy,
+    fetch_qualifying_data,
+    get_intraday_stream,
+    fetch_day_candles,
+    _resolve_filters,
+)
 from backend.services.backtest_service import run_backtest
 from backend.services.montecarlo_service import run_montecarlo
 
@@ -65,43 +71,39 @@ def run_backtest_endpoint(req: BacktestRequest):
     logger.info(f"  strategy loaded ({round(time.time()-t0, 2)}s)")
 
     try:
+        # ---- PHASE 1: qualifying data (from local cache — fast) ----
         t_fetch = time.time()
-        qualifying, intraday = fetch_dataset_data(req.dataset_id, req.start_date, req.end_date)
-        
-        # Filter by date range if provided
+        qualifying = fetch_qualifying_data(req.dataset_id, req.start_date, req.end_date)
+
+        if qualifying.empty:
+            raise HTTPException(
+                status_code=400,
+                detail="No hay datos para el periodo seleccionado",
+            )
+
+        # Apply date range filters on qualifying
         if req.start_date:
-            intraday = intraday[intraday["date"].astype(str) >= req.start_date]
             qualifying = qualifying[qualifying["date"].astype(str) >= req.start_date]
         if req.end_date:
-            intraday = intraday[intraday["date"].astype(str) <= req.end_date]
             qualifying = qualifying[qualifying["date"].astype(str) <= req.end_date]
-            
+
+        n_qualifying = len(qualifying)
+        n_tickers = qualifying["ticker"].nunique()
         logger.info(
-            f"  data fetched and filtered: {len(qualifying)} qualifying rows, "
-            f"{len(intraday)} intraday rows ({round(time.time()-t_fetch, 2)}s)"
-        )
-    except Exception as e:
-        logger.error(f"  data fetch/filter FAILED: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
-
-    if intraday.empty:
-        raise HTTPException(
-            status_code=400,
-            detail="No hay datos para el periodo seleccionado",
+            f"  qualifying: {n_qualifying} rows, {n_tickers} tickers "
+            f"({round(time.time()-t_fetch, 2)}s)"
         )
 
-    unique_days = intraday.groupby(["ticker", "date"]).ngroups
-    logger.info(f"  unique days: {unique_days}")
-    if unique_days > MAX_DAYS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Demasiados dias ({unique_days}). Maximo permitido: {MAX_DAYS}.",
-        )
+        # ---- PHASE 2: resolve date range for streaming ----
+        filters = _resolve_filters(req.dataset_id, req.start_date, req.end_date)
+        date_from = filters.get("start_date") or filters.get("date_from")
+        date_to = filters.get("end_date") or filters.get("date_to")
 
-    try:
-        t_bt = time.time()
+        # ---- PHASE 3: create streaming iterator ----
+        intraday_stream = get_intraday_stream(qualifying, date_from, date_to)
+
+        # ---- PHASE 4: run backtest with streaming ----
         results = run_backtest(
-            intraday_df=intraday,
             qualifying_df=qualifying,
             strategy_def=strategy["definition"],
             init_cash=req.init_cash,
@@ -116,18 +118,19 @@ def run_backtest_endpoint(req: BacktestRequest):
             custom_end_time=req.custom_end_time,
             locates_cost=req.locates_cost,
             look_ahead_prevention=req.look_ahead_prevention,
+            day_group_iter=intraday_stream,
+            n_groups_hint=n_qualifying,
         )
-        del intraday, qualifying
-        gc.collect()
 
-        bt_elapsed = round(time.time() - t_bt, 2)
+        gc.collect()
         total_elapsed = round(time.time() - t0, 2)
         n_trades = len(results.get("trades", []))
         n_days = len(results.get("day_results", []))
         logger.info(
-            f"BACKTEST DONE {n_days} days, {n_trades} trades, "
-            f"backtest={bt_elapsed}s, total={total_elapsed}s"
+            f"BACKTEST DONE {n_days} days, {n_trades} trades, total={total_elapsed}s"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"  backtest FAILED after {round(time.time()-t0, 2)}s: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error en backtest: {str(e)}")

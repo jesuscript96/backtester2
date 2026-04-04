@@ -10,6 +10,10 @@ timeout = 300          # worker timeout (seconds)
 graceful_timeout = 30  # time to finish current request on shutdown
 keepalive = 5
 
+# Auto-restart workers to prevent memory leak accumulation
+max_requests = 50
+max_requests_jitter = 10
+
 # Logging
 loglevel = "info"
 accesslog = "-"

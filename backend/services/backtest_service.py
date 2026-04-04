@@ -32,9 +32,9 @@ def _release_memory():
 
 
 def run_backtest(
-    intraday_df: pd.DataFrame,
-    qualifying_df: pd.DataFrame,
-    strategy_def: dict,
+    intraday_df: pd.DataFrame = None,
+    qualifying_df: pd.DataFrame = None,
+    strategy_def: dict = None,
     init_cash: float = 10000.0,
     risk_r: float = 100.0,
     risk_type: str = "FIXED",
@@ -47,30 +47,35 @@ def run_backtest(
     custom_end_time: str | None = None,
     locates_cost: float = 0.0,
     look_ahead_prevention: bool = False,
+    day_group_iter=None,
+    n_groups_hint: int = 0,
 ) -> dict:
     t_total = time.time()
 
     qual_lookup = _build_qualifying_lookup(qualifying_df)
     del qualifying_df
 
-    # We no longer filter intraday_df upfront. We'll compute a session mask per day
-    # so that indicators like VWAP and SMA calculate correctly using the full day,
-    # but entries only happen during allowed sessions.
+    empty_result = {
+        "aggregate_metrics": _aggregate_metrics([], [], 0),
+        "day_results": [],
+        "trades": [],
+        "equity_curves": [],
+        "global_equity": [],
+        "global_drawdown": [],
+    }
 
-    if intraday_df.empty:
-        return {
-            "aggregate_metrics": _aggregate_metrics([], [], 0),
-            "day_results": [],
-            "trades": [],
-            "equity_curves": [],
-            "global_equity": [],
-            "global_drawdown": [],
-        }
-
-    # Group by Date then Ticker to ensure chronological global compounding across all tickers
-    grouped = intraday_df.groupby(["date", "ticker"])
-    n_groups = grouped.ngroups
-    logger.info(f"[INIT] groupby done, {n_groups} groups")
+    # --- Choose data source: streaming iterator or monolithic DataFrame ---
+    if day_group_iter is not None:
+        group_source = day_group_iter
+        n_groups = n_groups_hint
+        logger.info(f"[INIT] streaming mode, ~{n_groups} groups expected")
+    elif intraday_df is not None and not intraday_df.empty:
+        grouped = intraday_df.groupby(["date", "ticker"])
+        group_source = iter(grouped)
+        n_groups = grouped.ngroups
+        logger.info(f"[INIT] monolithic mode, {n_groups} groups")
+    else:
+        return empty_result
 
     all_trades: list[dict] = []
     all_equity: list[dict] = []
@@ -94,7 +99,7 @@ def run_backtest(
     current_date = None
     daily_pnl = 0.0
 
-    for (date_raw, ticker_raw), day_df in grouped:
+    for (date_raw, ticker_raw), day_df in group_source:
         scanned += 1
         day_df = day_df.sort_values("timestamp").reset_index(drop=True)
         if len(day_df) < 5:
@@ -271,7 +276,9 @@ def run_backtest(
     # Final sweep of daily_pnl if the last day generated trades
     global_realized_pnl += daily_pnl
 
-    del grouped, intraday_df, qual_lookup
+    del qual_lookup
+    if intraday_df is not None:
+        del intraday_df
     gc.collect()
     _release_memory()
     logger.info(

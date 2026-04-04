@@ -1,82 +1,72 @@
+"""
+DuckDB connections for the backtester.
+
+After the streaming refactor, most queries go through gcs_cache.py.
+This module provides:
+  - get_connection(): thread-local DuckDB with HTTPFS (for backward compat / optimization)
+  - query_df() / execute_sql(): convenience wrappers
+"""
+
 import logging
 import threading
 import time
 
 import duckdb
 from backend.config import (
-    MOTHERDUCK_TOKEN, 
-    MOTHERDUCK_DB, 
-    DB_TYPE, 
-    GCS_ACCESS_KEY_ID, 
-    GCS_SECRET_ACCESS_KEY, 
-    GCS_BUCKET
+    MOTHERDUCK_TOKEN,
+    MOTHERDUCK_DB,
+    DB_TYPE,
+    GCS_ACCESS_KEY_ID,
+    GCS_SECRET_ACCESS_KEY,
+    GCS_BUCKET,
+    DUCKDB_MEMORY_LIMIT,
 )
 
 logger = logging.getLogger("backtester.db")
 
-# Thread-local storage: each thread gets its own DuckDB connection
-# This is REQUIRED because DuckDB connections are NOT thread-safe.
 _local = threading.local()
 
 
 def get_connection() -> duckdb.DuckDBPyConnection:
-    if not hasattr(_local, 'conn') or _local.conn is None:
+    """Thread-local DuckDB connection with HTTPFS configured."""
+    if not hasattr(_local, "conn") or _local.conn is None:
         _local.conn = _create_connection()
     return _local.conn
 
 
 def _create_connection() -> duckdb.DuckDBPyConnection:
     t0 = time.time()
-    
+
     if DB_TYPE == "gcs":
-        logger.info(f"Connecting to GCS-backed DuckDB (bucket={GCS_BUCKET})...")
+        logger.info(f"Creating GCS DuckDB reader (bucket={GCS_BUCKET})...")
         conn = duckdb.connect(":memory:")
-        
-        # Setup GCS / HTTPFS
         conn.execute("INSTALL httpfs; LOAD httpfs;")
         conn.execute(f"SET s3_access_key_id='{GCS_ACCESS_KEY_ID}';")
         conn.execute(f"SET s3_secret_access_key='{GCS_SECRET_ACCESS_KEY}';")
         conn.execute("SET s3_endpoint='storage.googleapis.com';")
         conn.execute("SET s3_region='us-east-1';")
-        
-        # Create views for GCS parquet files
-        # We discovered they are in 'cold_storage/'
-        tables = {
-            "strategies": f"gs://{GCS_BUCKET}/cold_storage/strategies/*.parquet",
-            "saved_queries": f"gs://{GCS_BUCKET}/cold_storage/saved_queries/*.parquet",
-            "dataset_pairs": f"gs://{GCS_BUCKET}/cold_storage/dataset_pairs/*.parquet",
-            "daily_metrics": f"gs://{GCS_BUCKET}/cold_storage/daily_metrics/*/*/*.parquet",
-            "intraday_1m": f"gs://{GCS_BUCKET}/cold_storage/intraday_1m/*/*/*.parquet"
-        }
-        
-        for table, path in tables.items():
-            conn.execute(f"CREATE OR REPLACE VIEW {table} AS SELECT * FROM read_parquet('{path}', hive_partitioning=true)")
-            logger.info(f"Registered GCS view: {table} -> {path}")
-            
-        logger.info(f"GCS DuckDB initialized ({round(time.time()-t0, 2)}s)")
+        conn.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}';")
+        logger.info(f"GCS DuckDB ready ({round(time.time()-t0, 2)}s)")
         return conn
     else:
         logger.info(f"Connecting to MotherDuck db={MOTHERDUCK_DB}...")
         conn = duckdb.connect(f"md:{MOTHERDUCK_DB}?motherduck_token={MOTHERDUCK_TOKEN}")
-        logger.info(f"MotherDuck connected to {MOTHERDUCK_DB} ({round(time.time()-t0, 2)}s)")
+        logger.info(f"MotherDuck connected ({round(time.time()-t0, 2)}s)")
         return conn
 
 
 def _reset_connection():
     try:
-        if hasattr(_local, 'conn') and _local.conn is not None:
+        if hasattr(_local, "conn") and _local.conn is not None:
             _local.conn.close()
     except Exception:
         pass
     _local.conn = None
-    logger.info("Database connection reset (thread-local)")
+    logger.info("Connection reset (thread-local)")
 
 
 def query_df(sql: str, params: list | None = None):
-    """Execute SQL and return a pandas DataFrame. Auto-reconnects on failure.
-    
-    Uses thread-local connections — safe for concurrent FastAPI requests.
-    """
+    """Execute SQL and return a pandas DataFrame. Auto-reconnects on failure."""
     for attempt in range(2):
         try:
             conn = get_connection()
@@ -93,10 +83,7 @@ def query_df(sql: str, params: list | None = None):
 
 
 def execute_sql(sql: str, params: list | None = None):
-    """Execute SQL statement (INSERT, UPDATE, DELETE). Auto-reconnects on failure.
-    
-    Uses thread-local connections — safe for concurrent FastAPI requests.
-    """
+    """Execute SQL statement. Auto-reconnects on failure."""
     for attempt in range(2):
         try:
             conn = get_connection()

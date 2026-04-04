@@ -60,3 +60,11 @@ def create_dataset_endpoint(req: CreateDatasetRequest):
 def delete_dataset_endpoint(dataset_id: str):
     # This endpoint is deprecated in the new my_db system
     raise HTTPException(status_code=501, detail="Dataset deletion is managed via the database.")
+
+
+@router.post("/cache/refresh")
+def refresh_cache():
+    """Force re-sync of hot tables (strategies, saved_queries) from GCS."""
+    from backend.db.gcs_cache import sync_hot_tables
+    sync_hot_tables(force=True)
+    return {"status": "ok", "message": "Cache refreshed"}
