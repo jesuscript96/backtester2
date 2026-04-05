@@ -17,10 +17,14 @@ Ideal layout for ticker+day selective reads (max pushdown):
 """
 
 import gc
+import hashlib
+import json
 import logging
 import math
+import os
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 
@@ -201,6 +205,7 @@ def _tickers_sql_in_clause(tickers: list[str]) -> str:
 
 def _select_intraday_glob_for_month(conn, year: int, month: int) -> str | None:
     """Pick optimized or raw intraday glob for one month; try month=09 then month=9."""
+
     for pad in (f"{month:02d}", str(month)):
         opt = f"gs://{GCS_BUCKET}/cold_storage/intraday_1m_optimized/year={year}/month={pad}/*.parquet"
         try:
@@ -284,7 +289,7 @@ def query_qualifying_gcs(years: set[int], where_clause: str, filters: dict = {})
         f"({where_clause}) AND {hive_pred}" if hive_pred else where_clause
     )
     sql = f"""
-    SELECT ticker, CAST("timestamp" AS DATE) AS date, gap_pct, pm_volume
+    SELECT *, CAST("timestamp" AS DATE) AS date
     FROM read_parquet({year_paths}, hive_partitioning=true) i
     WHERE {where_full}
     """
@@ -301,7 +306,7 @@ def query_qualifying_gcs(years: set[int], where_clause: str, filters: dict = {})
                 e,
             )
             sql_fallback = f"""
-    SELECT ticker, CAST("timestamp" AS DATE) AS date, gap_pct, pm_volume
+    SELECT *, CAST("timestamp" AS DATE) AS date
     FROM read_parquet({year_paths}, hive_partitioning=true) i
     WHERE {where_clause}
     """
@@ -397,31 +402,119 @@ def fetch_intraday_batch(
 
 # ---- COLD: intraday streaming with ticker sub-batching --------------------
 
+LOCAL_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".cache", "intraday")
+os.makedirs(LOCAL_CACHE_DIR, exist_ok=True)
+
+def _get_cache_hash(year: int, month: int, path: str, tickers: list[str], valid_dates: list[str]) -> str:
+    req = {
+        "y": year, "m": month, "p": path,
+        "t": sorted(tickers),
+        "d": sorted(valid_dates)
+    }
+    raw = json.dumps(req, sort_keys=True)
+    return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+
+def _fetch_and_cache_month(
+    y: int, m: int, path: str, valid_pairs_month: pd.DataFrame, batch_size: int, mi: int, n_months: int
+) -> pd.DataFrame | None:
+    t_month_start = time.time()
+    tickers_month = valid_pairs_month["ticker"].unique().tolist()
+    valid_dates = valid_pairs_month["date"].unique().tolist()
+    
+    cache_key = _get_cache_hash(y, m, path, tickers_month, valid_dates)
+    cache_file = os.path.join(LOCAL_CACHE_DIR, f"{cache_key}.parquet")
+    
+    if os.path.exists(cache_file):
+        try:
+            df = pd.read_parquet(cache_file)
+            logger.info(f"  [CACHE HIT] Month {y}-{m:02d} ({mi}/{n_months}) loaded from local disk ({round(time.time()-t_month_start, 3)}s)")
+            return df
+        except Exception as e:
+            logger.warning(f"  [CACHE ERROR] Could not read {cache_file}: {e}")
+    
+    n_tm = len(tickers_month)
+    n_sub = math.ceil(n_tm / batch_size) if n_tm else 0
+    month_date_filter = _intraday_date_predicate_from_qualifying_dates("i", valid_pairs_month["date"])
+
+    logger.info(f"  [CACHE MISS] Month {y}-{m:02d} ({mi}/{n_months}): fetching {n_tm} tickers via GCS in {n_sub} query(ies)...")
+    
+    conn = get_connection()
+    month_chunks: list[pd.DataFrame] = []
+    
+    try:
+        for si in range(0, n_tm, batch_size):
+            batch_tickers = tickers_month[si : si + batch_size]
+            sub_num = (si // batch_size) + 1
+            ticker_filter = f"i.ticker IN ({_tickers_sql_in_clause(batch_tickers)})"
+
+            hive_f = _hive_partition_year_month_sql("i", y, m)
+            sql = f"""
+            SELECT i.ticker, i.date, i."timestamp",
+                   i.open, i.high, i.low, i."close", i.volume
+            FROM read_parquet('{path}', hive_partitioning=true) i
+            WHERE {ticker_filter} AND {month_date_filter} AND {hive_f}
+            """
+
+            t_sql = time.time()
+            chunk = conn.execute(sql).fetchdf()
+            t_done = round(time.time() - t_sql, 2)
+            logger.info(f"  [FETCH GCS]   {y}-{m:02d} sub {sub_num}/{n_sub}: {len(chunk)} rows ({t_done}s)")
+            if not chunk.empty:
+                month_chunks.append(chunk)
+
+        if not month_chunks:
+            logger.info(f"  [DONE] Month {y}-{m:02d}: 0 rows")
+            return None
+
+        intraday = pd.concat(month_chunks, ignore_index=True)
+        del month_chunks
+        gc.collect()
+
+        vp_copy = valid_pairs_month.copy()
+        vp_copy["date"] = pd.to_datetime(vp_copy["date"]).dt.strftime("%Y-%m-%d")
+        intraday["date"] = pd.to_datetime(intraday["date"]).dt.strftime("%Y-%m-%d")
+        intraday = intraday.merge(vp_copy, on=["ticker", "date"], how="inner")
+
+        if intraday.empty:
+            logger.info(f"  [DONE] Month {y}-{m:02d}: merged 0 rows")
+            return None
+
+        for col in ("open", "high", "low", "close"):
+            if col in intraday.columns:
+                intraday[col] = intraday[col].astype("float32")
+        if "volume" in intraday.columns:
+            intraday["volume"] = pd.to_numeric(intraday["volume"], errors="coerce").fillna(0).astype("int32")
+
+        intraday = intraday.sort_values(["date", "ticker", "timestamp"])
+        
+        try:
+            intraday.to_parquet(cache_file)
+            logger.info(f"  [CACHE WRITE] Month {y}-{m:02d} saved to local disk")
+        except Exception as e:
+            logger.warning(f"  [CACHE WRITE ERROR] Failed saving {cache_file}: {e}")
+
+        logger.info(f"  [DONE] Month {y}-{m:02d}: fetch finished. Total {round(time.time()-t_month_start, 2)}s")
+        return intraday
+
+    except Exception as e:
+        logger.error(f"  [ERROR] Month {y}-{m:02d} FAILED: {e}")
+        return None
+
+
 def iter_intraday_groups_streamed(
     qualifying_df: pd.DataFrame,
     date_from: str,
     date_to: str,
 ):
-    """
-    Generator yielding ((date, ticker), day_df) groups.
-
-    Note: each GCS `execute().fetchdf()` is a single blocking call — no log lines until it
-    returns. With *raw* intraday Parquet (not `intraday_1m_optimized`), row groups usually
-    mix many tickers, so DuckDB often reads most bytes of every file in the month partition
-    even when filtering to dozens of tickers. Run `scripts/optimize_gcs_db.py` per month to
-    physically sort by ticker and shrink IO dramatically.
-    """
     global _warned_raw_intraday_slow
     if qualifying_df.empty:
         return
 
-    # 1. Identify all (year, month) pairs needed
     dates_pd = pd.to_datetime(qualifying_df["date"])
     ym_pairs = sorted(set(zip(dates_pd.dt.year, dates_pd.dt.month)))
     unique_tickers = qualifying_df["ticker"].unique().tolist()
     
-    # 2. One resolved glob per (year, month). We query each month separately so DuckDB never
-    #    merges N months × hundreds of tickers in a single materialization (that can stall 10+ min).
     conn = get_connection()
     ym_paths: list[tuple[int, int, str]] = []
     t_path = time.time()
@@ -432,7 +525,9 @@ def iter_intraday_groups_streamed(
         if p:
             ym_paths.append((y, m, p))
             kind = "optimized" if "intraday_1m_optimized" in p else "raw"
-            logger.info(f"    {y}-{m:02d}: using {kind} partition")
+            if kind == "raw" and not _warned_raw_intraday_slow:
+                logger.warning("Intradia RAW en GCS...")
+                _warned_raw_intraday_slow = True
         else:
             logger.warning(f"    {y}-{m:02d}: no intraday parquet found (skipped)")
 
@@ -446,129 +541,40 @@ def iter_intraday_groups_streamed(
     n_months = len(ym_paths)
     total_groups = 0
 
-    logger.info(
-        f"  [INIT] Streaming {n_months} month partition(s); "
-        f"up to {batch_size} tickers per GCS sub-query"
-    )
+    logger.info(f"  [INIT] Streaming {n_months} month partition(s) via 3-worker ThreadPool")
 
-    # 3. Per calendar month: optional ticker sub-batches, concat, sort, yield in (date, ticker) order
-    #    so portfolio compounding in backtest_service sees chronological days.
+    executor = ThreadPoolExecutor(max_workers=3)
+    futures = []
     q_dates = pd.to_datetime(qualifying_df["date"])
 
     for mi, (y, m, path) in enumerate(ym_paths, start=1):
         month_mask = (q_dates.dt.year == y) & (q_dates.dt.month == m)
         valid_pairs_month = qualifying_df.loc[month_mask, ["ticker", "date"]].drop_duplicates().copy()
         if valid_pairs_month.empty:
-            logger.info(f"  [SKIP]  Month {y}-{m:02d} ({mi}/{n_months}): no qualifying rows")
+            continue
+            
+        valid_pairs_month["date"] = pd.to_datetime(valid_pairs_month["date"]).dt.strftime("%Y-%m-%d")
+        future = executor.submit(
+            _fetch_and_cache_month, y, m, path, valid_pairs_month, batch_size, mi, n_months
+        )
+        futures.append((future, y, m))
+
+    # Sequential iteration to strictly keep correct chronological time series
+    for future, y, m in futures:
+        month_intraday = future.result()
+        if month_intraday is None or month_intraday.empty:
             continue
 
-        tickers_month = valid_pairs_month["ticker"].unique().tolist()
-        n_tm = len(tickers_month)
-        n_sub = math.ceil(n_tm / batch_size) if n_tm else 0
-        month_date_filter = _intraday_date_predicate_from_qualifying_dates(
-            "i", valid_pairs_month["date"]
-        )
+        grouped = month_intraday.groupby(["date", "ticker"])
+        for key, day_df in grouped:
+            total_groups += 1
+            yield key, day_df
 
-        t_month_start = time.time()
-        logger.info(
-            f"  [START] Month {y}-{m:02d} ({mi}/{n_months}): {n_tm} tickers, "
-            f"{n_sub} GCS sub-query(ies)..."
-        )
+        del month_intraday, grouped
+        gc.collect()
 
-        n_files = None
-        try:
-            n_files = conn.execute(f"SELECT count(*) FROM glob('{path}')").fetchone()[0]
-        except Exception:
-            pass
-        is_raw = "intraday_1m_optimized" not in path
-        if is_raw and not _warned_raw_intraday_slow:
-            logger.warning(
-                "Intradía RAW en GCS: DuckDB suele tener que leer la mayor parte de los "
-                "ficheros del mes (pocos row groups se pueden saltar con ticker IN (...)). "
-                "Por eso no verás líneas nuevas hasta [FETCH] — no está colgado, está "
-                "descargando/leyendo Parquet. Mitigación: ejecutar por cada mes "
-                "`python scripts/optimize_gcs_db.py --year YYYY --month MM`."
-            )
-            _warned_raw_intraday_slow = True
-        logger.info(
-            f"  [INFO]   {y}-{m:02d}: ~{n_files if n_files is not None else '?'} parquet "
-            f"file(s); starting blocking read (raw={is_raw})..."
-        )
-
-        month_chunks: list[pd.DataFrame] = []
-        try:
-            for si in range(0, n_tm, batch_size):
-                batch_tickers = tickers_month[si : si + batch_size]
-                sub_num = (si // batch_size) + 1
-                ticker_filter = f"i.ticker IN ({_tickers_sql_in_clause(batch_tickers)})"
-
-                hive_f = _hive_partition_year_month_sql("i", y, m)
-                sql = f"""
-                SELECT i.ticker, i.date, i."timestamp",
-                       i.open, i.high, i.low, i."close", i.volume
-                FROM read_parquet('{path}', hive_partitioning=true) i
-                WHERE {ticker_filter} AND {month_date_filter} AND {hive_f}
-                """
-
-                t_sql = time.time()
-                chunk = conn.execute(sql).fetchdf()
-                t_done = round(time.time() - t_sql, 2)
-                logger.info(
-                    f"  [FETCH]   {y}-{m:02d} sub {sub_num}/{n_sub}: "
-                    f"{len(chunk)} rows ({t_done}s)"
-                )
-                if not chunk.empty:
-                    month_chunks.append(chunk)
-
-            if not month_chunks:
-                logger.info(f"  [DONE]  Month {y}-{m:02d}: 0 rows (Total {round(time.time()-t_month_start, 2)}s)")
-                continue
-
-            intraday = pd.concat(month_chunks, ignore_index=True)
-            del month_chunks
-            gc.collect()
-
-            valid_pairs_month["date"] = pd.to_datetime(valid_pairs_month["date"]).dt.strftime("%Y-%m-%d")
-            intraday["date"] = pd.to_datetime(intraday["date"]).dt.strftime("%Y-%m-%d")
-            intraday = intraday.merge(valid_pairs_month, on=["ticker", "date"], how="inner")
-
-            if intraday.empty:
-                del intraday
-                gc.collect()
-                logger.info(
-                    f"  [DONE]  Month {y}-{m:02d}: merged 0 rows "
-                    f"(Total {round(time.time()-t_month_start, 2)}s)"
-                )
-                continue
-
-            for col in ("open", "high", "low", "close"):
-                if col in intraday.columns:
-                    intraday[col] = intraday[col].astype("float32")
-            if "volume" in intraday.columns:
-                intraday["volume"] = (
-                    pd.to_numeric(intraday["volume"], errors="coerce").fillna(0).astype("int32")
-                )
-
-            intraday = intraday.sort_values(["date", "ticker", "timestamp"])
-            grouped = intraday.groupby(["date", "ticker"])
-
-            for key, day_df in grouped:
-                total_groups += 1
-                yield key, day_df
-
-            del intraday, grouped
-            gc.collect()
-            logger.info(
-                f"  [DONE]  Month {y}-{m:02d}: yielded groups, "
-                f"Total {round(time.time()-t_month_start, 2)}s"
-            )
-
-        except Exception as e:
-            logger.error(f"  [ERROR] Month {y}-{m:02d} FAILED: {e}")
-            continue
-
+    executor.shutdown(wait=False)
     logger.info(f"  [FINISH] Backtest stream complete: {total_groups} group(s) processed.")
-
 
 
 

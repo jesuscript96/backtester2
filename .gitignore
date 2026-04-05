@@ -32,3 +32,10 @@ npm-debug.log*
 
 # Vercel
 .vercel
+
+# Local data cache (GCS parquet cache)
+backend/.cache/
+.cache/
+
+# Numba cache
+__pycache__/numba*/

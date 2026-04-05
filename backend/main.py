@@ -26,6 +26,12 @@ app.include_router(data.router)
 app.include_router(backtest.router)
 app.include_router(optimization.router)
 
+from backend.db.gcs_cache import sync_hot_tables
+try:
+    logger.info("Syncing hot tables synchronously at startup...")
+    sync_hot_tables()
+except Exception as e:
+    logger.error(f"Module-level hot table sync failed: {e}")
 
 @app.on_event("startup")
 def on_startup():
@@ -34,14 +40,6 @@ def on_startup():
     logger.info(f"ALLOWED_ORIGINS = {ALLOWED_ORIGINS}")
     logger.info(f"INTRADAY_BATCH_SIZE = {INTRADAY_BATCH_SIZE}")
     logger.info("Engine: pure numpy (no vectorbt)")
-    # Pre-load hot tables from GCS so first request is instant
-    from backend.db.gcs_cache import sync_hot_tables
-
-    try:
-        sync_hot_tables()
-    except Exception as e:
-        logger.error(f"Hot table sync failed on startup: {e}")
-
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -56,7 +54,6 @@ async def log_requests(request: Request, call_next):
         elapsed = round(time.time() - start, 2)
         logger.error(f"{request.method} {request.url.path} -> ERROR after {elapsed}s: {e}")
         return JSONResponse({"detail": "Internal server error"}, status_code=500)
-
 
 @app.get("/api/health")
 def health():

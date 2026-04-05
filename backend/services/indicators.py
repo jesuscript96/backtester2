@@ -1,6 +1,6 @@
 """
 Computes technical indicators from OHLCV data.
-Pure numpy/pandas implementations — no vectorbt dependency.
+Numba-accelerated numpy implementations for maximum performance.
 
 Supports the full IndicatorConfig schema (BTT March 2026):
   name, period, period2, period3, stdDev, multiplier, offset,
@@ -9,6 +9,7 @@ Supports the full IndicatorConfig schema (BTT March 2026):
 
 import numpy as np
 import pandas as pd
+from numba import njit
 
 try:
     import talib as _talib
@@ -22,10 +23,11 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# Pure-numpy indicator implementations
+# Numba-accelerated indicator implementations
 # ---------------------------------------------------------------------------
 
 def _sma(values: np.ndarray, window: int) -> np.ndarray:
+    """SMA via cumsum — already vectorized, no loop needed."""
     out = np.full(len(values), np.nan)
     if len(values) < window:
         return out
@@ -35,50 +37,130 @@ def _sma(values: np.ndarray, window: int) -> np.ndarray:
     return out
 
 
-def _ema(values: np.ndarray, window: int) -> np.ndarray:
+@njit(cache=True)
+def _ema_core(values, window):
+    n = len(values)
     alpha = 2.0 / (window + 1)
-    out = np.empty(len(values))
-    out[:] = np.nan
+    out = np.empty(n, dtype=np.float64)
+    for k in range(n):
+        out[k] = np.nan
     first_valid = window - 1
-    if first_valid >= len(values):
+    if first_valid >= n:
         return out
-    out[first_valid] = np.mean(values[:window])
-    for i in range(first_valid + 1, len(values)):
-        out[i] = alpha * values[i] + (1 - alpha) * out[i - 1]
+    s = 0.0
+    for k in range(window):
+        s += values[k]
+    out[first_valid] = s / window
+    for i in range(first_valid + 1, n):
+        out[i] = alpha * values[i] + (1.0 - alpha) * out[i - 1]
+    return out
+
+
+def _ema(values: np.ndarray, window: int) -> np.ndarray:
+    return _ema_core(np.ascontiguousarray(values, dtype=np.float64), window)
+
+
+@njit(cache=True)
+def _rsi_core(close, window):
+    n = len(close)
+    out = np.empty(n, dtype=np.float64)
+    for k in range(n):
+        out[k] = np.nan
+    if n < 2:
+        return out
+    # Calculate deltas
+    m = n - 1
+    gain = np.empty(m, dtype=np.float64)
+    loss = np.empty(m, dtype=np.float64)
+    for i in range(m):
+        d = close[i + 1] - close[i]
+        gain[i] = d if d > 0.0 else 0.0
+        loss[i] = -d if d < 0.0 else 0.0
+    # EMA of gain/loss
+    alpha = 2.0 / (window + 1)
+    avg_g = np.empty(m, dtype=np.float64)
+    avg_l = np.empty(m, dtype=np.float64)
+    for k in range(m):
+        avg_g[k] = np.nan
+        avg_l[k] = np.nan
+    fv = window - 1
+    if fv < m:
+        sg = 0.0
+        sl = 0.0
+        for k in range(window):
+            sg += gain[k]
+            sl += loss[k]
+        avg_g[fv] = sg / window
+        avg_l[fv] = sl / window
+        for i in range(fv + 1, m):
+            avg_g[i] = alpha * gain[i] + (1.0 - alpha) * avg_g[i - 1]
+            avg_l[i] = alpha * loss[i] + (1.0 - alpha) * avg_l[i - 1]
+    for i in range(m):
+        ag = avg_g[i]
+        al = avg_l[i]
+        if al != al or ag != ag:  # NaN check
+            out[i + 1] = np.nan
+        elif al == 0.0:
+            out[i + 1] = 100.0
+        else:
+            rs = ag / al
+            out[i + 1] = 100.0 - 100.0 / (1.0 + rs)
     return out
 
 
 def _rsi(close: np.ndarray, window: int) -> np.ndarray:
-    delta = np.diff(close)
-    gain = np.where(delta > 0, delta, 0.0)
-    loss = np.where(delta < 0, -delta, 0.0)
-    avg_gain = _ema(gain, window)
-    avg_loss = _ema(loss, window)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        rs = avg_gain / np.where(avg_loss != 0, avg_loss, np.nan)
-        rsi = 100.0 - 100.0 / (1.0 + rs)
-    out = np.full(len(close), np.nan)
-    out[1:] = rsi
-    return out
+    return _rsi_core(np.ascontiguousarray(close, dtype=np.float64), window)
 
 
 def _macd(close: np.ndarray, fast: int = 12, slow: int = 26, signal: int = 9) -> tuple:
-    """Returns (macd_line, signal_line, histogram)."""
-    ema_fast = _ema(close, fast)
-    ema_slow = _ema(close, slow)
+    """Returns (macd_line, signal_line, histogram). Uses Numba-accelerated EMA."""
+    c = np.ascontiguousarray(close, dtype=np.float64)
+    ema_fast = _ema_core(c, fast)
+    ema_slow = _ema_core(c, slow)
     macd_line = ema_fast - ema_slow
-    signal_line = _ema(macd_line, signal)
+    signal_line = _ema_core(macd_line, signal)
     histogram = macd_line - signal_line
     return macd_line, signal_line, histogram
 
 
-def _atr(high: np.ndarray, low: np.ndarray, close: np.ndarray, window: int) -> np.ndarray:
+@njit(cache=True)
+def _atr_core(high, low, close, window):
     n = len(close)
-    tr = np.empty(n)
+    tr = np.empty(n, dtype=np.float64)
     tr[0] = high[0] - low[0]
     for i in range(1, n):
-        tr[i] = max(high[i] - low[i], abs(high[i] - close[i - 1]), abs(low[i] - close[i - 1]))
-    return _ema(tr, window)
+        hl = high[i] - low[i]
+        hc = abs(high[i] - close[i - 1])
+        lc = abs(low[i] - close[i - 1])
+        tr[i] = hl
+        if hc > tr[i]:
+            tr[i] = hc
+        if lc > tr[i]:
+            tr[i] = lc
+    # Inline EMA
+    alpha = 2.0 / (window + 1)
+    out = np.empty(n, dtype=np.float64)
+    for k in range(n):
+        out[k] = np.nan
+    fv = window - 1
+    if fv >= n:
+        return out
+    s = 0.0
+    for k in range(window):
+        s += tr[k]
+    out[fv] = s / window
+    for i in range(fv + 1, n):
+        out[i] = alpha * tr[i] + (1.0 - alpha) * out[i - 1]
+    return out
+
+
+def _atr(high: np.ndarray, low: np.ndarray, close: np.ndarray, window: int) -> np.ndarray:
+    return _atr_core(
+        np.ascontiguousarray(high, dtype=np.float64),
+        np.ascontiguousarray(low, dtype=np.float64),
+        np.ascontiguousarray(close, dtype=np.float64),
+        window,
+    )
 
 
 def _vwap(high: np.ndarray, low: np.ndarray, close: np.ndarray, volume: np.ndarray) -> np.ndarray:
@@ -89,7 +171,8 @@ def _vwap(high: np.ndarray, low: np.ndarray, close: np.ndarray, volume: np.ndarr
         return np.where(cum_vol != 0, cum_tp_vol / cum_vol, np.nan)
 
 
-def _consecutive_count(signal: np.ndarray) -> np.ndarray:
+@njit(cache=True)
+def _consecutive_count_core(signal):
     n = len(signal)
     result = np.zeros(n, dtype=np.float64)
     count = 0.0
@@ -100,6 +183,10 @@ def _consecutive_count(signal: np.ndarray) -> np.ndarray:
             count = 0.0
         result[i] = count
     return result
+
+
+def _consecutive_count(signal: np.ndarray) -> np.ndarray:
+    return _consecutive_count_core(np.ascontiguousarray(signal))
 
 
 def _hammer(open_: np.ndarray, high: np.ndarray, low: np.ndarray, close: np.ndarray) -> np.ndarray:
@@ -116,42 +203,113 @@ def _shooting_star(open_: np.ndarray, high: np.ndarray, low: np.ndarray, close: 
     return (upper_wick >= 2 * body) & (body / full_range < 0.4)
 
 
+@njit(cache=True)
+def _stochastic_k(high, low, close, k_period):
+    n = len(close)
+    k = np.empty(n, dtype=np.float64)
+    for i in range(n):
+        k[i] = np.nan
+    for i in range(k_period - 1, n):
+        hh = high[i]
+        ll = low[i]
+        for j in range(i - k_period + 1, i):
+            if high[j] > hh:
+                hh = high[j]
+            if low[j] < ll:
+                ll = low[j]
+        if hh != ll:
+            k[i] = (close[i] - ll) / (hh - ll) * 100.0
+        else:
+            k[i] = 50.0
+    return k
+
+
 def _stochastic(high: np.ndarray, low: np.ndarray, close: np.ndarray,
                 k_period: int = 14, d_period: int = 3) -> tuple:
     """Returns (%K, %D)."""
-    n = len(close)
-    k = np.full(n, np.nan)
-    for i in range(k_period - 1, n):
-        h = np.max(high[i - k_period + 1:i + 1])
-        l = np.min(low[i - k_period + 1:i + 1])
-        if h != l:
-            k[i] = (close[i] - l) / (h - l) * 100
-        else:
-            k[i] = 50.0
+    k = _stochastic_k(
+        np.ascontiguousarray(high, dtype=np.float64),
+        np.ascontiguousarray(low, dtype=np.float64),
+        np.ascontiguousarray(close, dtype=np.float64),
+        k_period,
+    )
     d = _sma(k, d_period)
     return k, d
 
 
+@njit(cache=True)
+def _rolling_std_core(values, period):
+    n = len(values)
+    out = np.empty(n, dtype=np.float64)
+    for k in range(n):
+        out[k] = np.nan
+    for i in range(period - 1, n):
+        s = 0.0
+        for j in range(i - period + 1, i + 1):
+            s += values[j]
+        mean = s / period
+        ss = 0.0
+        for j in range(i - period + 1, i + 1):
+            d = values[j] - mean
+            ss += d * d
+        out[i] = (ss / period) ** 0.5
+    return out
+
+
 def _bollinger_bands(close: np.ndarray, period: int = 20, std_dev: float = 2.0) -> tuple:
     """Returns (upper, middle, lower)."""
-    middle = _sma(close, period)
-    rolling_std = np.full(len(close), np.nan)
-    for i in range(period - 1, len(close)):
-        rolling_std[i] = np.std(close[i - period + 1:i + 1], ddof=0)
+    c = np.ascontiguousarray(close, dtype=np.float64)
+    middle = _sma(c, period)
+    rolling_std = _rolling_std_core(c, period)
     upper = middle + std_dev * rolling_std
     lower = middle - std_dev * rolling_std
     return upper, middle, lower
 
 
-def _cci(high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int = 20) -> np.ndarray:
-    typical = (high + low + close) / 3.0
-    sma_tp = _sma(typical, period)
-    n = len(typical)
-    mad = np.full(n, np.nan)
+@njit(cache=True)
+def _cci_core(high, low, close, period):
+    n = len(close)
+    typical = np.empty(n, dtype=np.float64)
+    for i in range(n):
+        typical[i] = (high[i] + low[i] + close[i]) / 3.0
+    # SMA of typical
+    sma_tp = np.empty(n, dtype=np.float64)
+    for k in range(n):
+        sma_tp[k] = np.nan
     for i in range(period - 1, n):
-        mad[i] = np.mean(np.abs(typical[i - period + 1:i + 1] - sma_tp[i]))
-    with np.errstate(divide="ignore", invalid="ignore"):
-        return np.where(mad != 0, (typical - sma_tp) / (0.015 * mad), 0.0)
+        s = 0.0
+        for j in range(i - period + 1, i + 1):
+            s += typical[j]
+        sma_tp[i] = s / period
+    # MAD and CCI
+    out = np.empty(n, dtype=np.float64)
+    for k in range(n):
+        out[k] = np.nan
+    for i in range(period - 1, n):
+        sm = sma_tp[i]
+        if sm != sm:  # NaN
+            continue
+        mad_sum = 0.0
+        for j in range(i - period + 1, i + 1):
+            d = typical[j] - sm
+            if d < 0.0:
+                d = -d
+            mad_sum += d
+        mad = mad_sum / period
+        if mad != 0.0:
+            out[i] = (typical[i] - sm) / (0.015 * mad)
+        else:
+            out[i] = 0.0
+    return out
+
+
+def _cci(high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int = 20) -> np.ndarray:
+    return _cci_core(
+        np.ascontiguousarray(high, dtype=np.float64),
+        np.ascontiguousarray(low, dtype=np.float64),
+        np.ascontiguousarray(close, dtype=np.float64),
+        period,
+    )
 
 
 def _roc(close: np.ndarray, period: int = 12) -> np.ndarray:
@@ -166,7 +324,8 @@ def _momentum(close: np.ndarray, period: int = 10) -> np.ndarray:
     return out
 
 
-def _obv(close: np.ndarray, volume: np.ndarray) -> np.ndarray:
+@njit(cache=True)
+def _obv_core(close, volume):
     n = len(close)
     out = np.zeros(n, dtype=np.float64)
     for i in range(1, n):
@@ -179,52 +338,117 @@ def _obv(close: np.ndarray, volume: np.ndarray) -> np.ndarray:
     return out
 
 
-def _dmi(high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int = 14) -> tuple:
-    """Returns (+DI, -DI)."""
-    n = len(close)
-    plus_dm = np.zeros(n)
-    minus_dm = np.zeros(n)
-    tr = np.zeros(n)
+def _obv(close: np.ndarray, volume: np.ndarray) -> np.ndarray:
+    return _obv_core(
+        np.ascontiguousarray(close, dtype=np.float64),
+        np.ascontiguousarray(volume, dtype=np.float64),
+    )
 
+
+@njit(cache=True)
+def _dmi_loops(high, low, close):
+    n = len(close)
+    plus_dm = np.zeros(n, dtype=np.float64)
+    minus_dm = np.zeros(n, dtype=np.float64)
+    tr = np.zeros(n, dtype=np.float64)
     for i in range(1, n):
         up_move = high[i] - high[i - 1]
         down_move = low[i - 1] - low[i]
-        plus_dm[i] = up_move if up_move > down_move and up_move > 0 else 0
-        minus_dm[i] = down_move if down_move > up_move and down_move > 0 else 0
-        tr[i] = max(high[i] - low[i], abs(high[i] - close[i - 1]), abs(low[i] - close[i - 1]))
+        if up_move > down_move and up_move > 0.0:
+            plus_dm[i] = up_move
+        if down_move > up_move and down_move > 0.0:
+            minus_dm[i] = down_move
+        hl = high[i] - low[i]
+        hc = abs(high[i] - close[i - 1])
+        lc = abs(low[i] - close[i - 1])
+        tr[i] = hl
+        if hc > tr[i]:
+            tr[i] = hc
+        if lc > tr[i]:
+            tr[i] = lc
+    return plus_dm, minus_dm, tr
 
-    atr = _ema(tr, period)
-    plus_di = _ema(plus_dm, period) / np.where(atr != 0, atr, np.nan) * 100
-    minus_di = _ema(minus_dm, period) / np.where(atr != 0, atr, np.nan) * 100
 
+def _dmi(high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int = 14) -> tuple:
+    """Returns (+DI, -DI)."""
+    h = np.ascontiguousarray(high, dtype=np.float64)
+    l = np.ascontiguousarray(low, dtype=np.float64)
+    c = np.ascontiguousarray(close, dtype=np.float64)
+    plus_dm, minus_dm, tr = _dmi_loops(h, l, c)
+
+    atr = _ema_core(tr, period)
+    plus_di = _ema_core(plus_dm, period) / np.where(atr != 0, atr, np.nan) * 100
+    minus_di = _ema_core(minus_dm, period) / np.where(atr != 0, atr, np.nan) * 100
     return plus_di, minus_di
+
+
+@njit(cache=True)
+def _heikin_ashi_core(open_, high, low, close):
+    n = len(close)
+    ha_close = np.empty(n, dtype=np.float64)
+    ha_open = np.empty(n, dtype=np.float64)
+    ha_high = np.empty(n, dtype=np.float64)
+    ha_low = np.empty(n, dtype=np.float64)
+    for i in range(n):
+        ha_close[i] = (open_[i] + high[i] + low[i] + close[i]) / 4.0
+    ha_open[0] = (open_[0] + close[0]) / 2.0
+    for i in range(1, n):
+        ha_open[i] = (ha_open[i - 1] + ha_close[i - 1]) / 2.0
+    for i in range(n):
+        hh = high[i]
+        if ha_open[i] > hh:
+            hh = ha_open[i]
+        if ha_close[i] > hh:
+            hh = ha_close[i]
+        ha_high[i] = hh
+        ll = low[i]
+        if ha_open[i] < ll:
+            ll = ha_open[i]
+        if ha_close[i] < ll:
+            ll = ha_close[i]
+        ha_low[i] = ll
+    return ha_open, ha_high, ha_low, ha_close
 
 
 def _heikin_ashi(open_: np.ndarray, high: np.ndarray, low: np.ndarray, close: np.ndarray) -> tuple:
     """Returns (ha_open, ha_high, ha_low, ha_close)."""
+    return _heikin_ashi_core(
+        np.ascontiguousarray(open_, dtype=np.float64),
+        np.ascontiguousarray(high, dtype=np.float64),
+        np.ascontiguousarray(low, dtype=np.float64),
+        np.ascontiguousarray(close, dtype=np.float64),
+    )
+
+
+@njit(cache=True)
+def _linear_regression_core(close, period):
     n = len(close)
-    ha_close = (open_ + high + low + close) / 4.0
-    ha_open = np.empty(n, dtype=np.float64)
-    ha_open[0] = (open_[0] + close[0]) / 2.0
-    for i in range(1, n):
-        ha_open[i] = (ha_open[i - 1] + ha_close[i - 1]) / 2.0
-    ha_high = np.maximum(high, np.maximum(ha_open, ha_close))
-    ha_low = np.minimum(low, np.minimum(ha_open, ha_close))
-    return ha_open, ha_high, ha_low, ha_close
+    out = np.empty(n, dtype=np.float64)
+    for k in range(n):
+        out[k] = np.nan
+    # Pre-compute x stats
+    x_mean = (period - 1.0) / 2.0
+    x_var = 0.0
+    for k in range(period):
+        d = k - x_mean
+        x_var += d * d
+    if x_var == 0.0:
+        return out
+    for i in range(period - 1, n):
+        y_sum = 0.0
+        for j in range(i - period + 1, i + 1):
+            y_sum += close[j]
+        y_mean = y_sum / period
+        cov = 0.0
+        for k in range(period):
+            cov += (k - x_mean) * (close[i - period + 1 + k] - y_mean)
+        slope = cov / x_var
+        out[i] = y_mean + slope * (period - 1.0 - x_mean)
+    return out
 
 
 def _linear_regression(close: np.ndarray, period: int = 14) -> np.ndarray:
-    n = len(close)
-    out = np.full(n, np.nan)
-    x = np.arange(period, dtype=np.float64)
-    x_mean = x.mean()
-    x_var = np.sum((x - x_mean) ** 2)
-    for i in range(period - 1, n):
-        y = close[i - period + 1:i + 1]
-        y_mean = y.mean()
-        slope = np.sum((x - x_mean) * (y - y_mean)) / x_var if x_var != 0 else 0
-        out[i] = y_mean + slope * (period - 1 - x_mean)
-    return out
+    return _linear_regression_core(np.ascontiguousarray(close, dtype=np.float64), period)
 
 
 def _pivot_points(daily_stats: dict) -> dict:
