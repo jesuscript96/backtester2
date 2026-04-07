@@ -49,6 +49,7 @@ def run_backtest(
     look_ahead_prevention: bool = False,
     day_group_iter=None,
     n_groups_hint: int = 0,
+    monthly_expenses: float = 0.0,
 ) -> dict:
     t_total = time.time()
 
@@ -287,8 +288,13 @@ def run_backtest(
     )
 
     t4 = time.time()
-    global_eq, global_dd = _compute_global_equity_and_drawdown(all_trades, init_cash)
-    aggregate = _aggregate_metrics(day_results, all_trades, global_eq, global_dd, init_cash, risk_r)
+    # Logic: global_eq is pure trades, global_eq_exp is trades - monthly_expenses
+    global_eq, global_dd, global_eq_exp = _compute_global_equity_and_drawdown(
+        all_trades, init_cash, monthly_expenses
+    )
+    aggregate = _aggregate_metrics(
+        day_results, all_trades, global_eq, global_dd, init_cash, risk_r, monthly_expenses
+    )
     logger.info(f"[AGG] aggregate+equity done ({round(time.time()-t4, 2)}s)")
 
     logger.info(
@@ -302,6 +308,7 @@ def run_backtest(
         "trades": all_trades,
         "equity_curves": all_equity,
         "global_equity": global_eq,
+        "global_equity_expenses": global_eq_exp,
         "global_drawdown": global_dd,
     }
 
@@ -426,14 +433,15 @@ def _extract_equity_from_values(eq_vals: np.ndarray, timestamps: pd.Series) -> l
 def _compute_global_equity_and_drawdown(
     all_trades: list[dict],
     init_cash: float,
-) -> tuple[list[dict], list[dict]]:
+    monthly_expenses: float = 0.0
+) -> tuple[list[dict], list[dict], list[dict]]:
     """Build equity curve as cumulative P&L per calendar day.
 
     Logic: start at init_cash, group trades by date, sum daily P&L,
     accumulate.  equity[day] = equity[prev_day] + sum(pnl of trades on day).
     """
     if not all_trades:
-        return [], []
+        return [], [], []
 
     # Group trade P&L by date
     daily_pnl: dict[str, float] = {}
@@ -444,11 +452,11 @@ def _compute_global_equity_and_drawdown(
         daily_pnl[date_str] = daily_pnl.get(date_str, 0.0) + trade.get("pnl", 0.0)
 
     if not daily_pnl:
-        return [], []
+        return [], [], []
 
     # Sort by date
     sorted_dates = sorted(daily_pnl.keys())
-    
+
     # Construction: Point 0 = init_cash before any trades
     # Point i = end of day i
     equity_values = [init_cash]
@@ -468,17 +476,35 @@ def _compute_global_equity_and_drawdown(
     running_max = np.maximum.accumulate(values)
     dd_pct = np.where(running_max > 0, (values / running_max - 1) * 100, 0.0)
 
+    # --- Compute Expenses Curve ---
+    equity_exp_values = [init_cash]
+    exp_cumulative = 0.0
+    last_m = None
+
+    for i, d in enumerate(sorted_dates):
+        m = d[:7]  # YYYY-MM
+        if last_m is None or m != last_m:
+            exp_cumulative += monthly_expenses
+            last_m = m
+        equity_exp_values.append(equity_values[i + 1] - exp_cumulative)
+
+    values_exp = np.array(equity_exp_values, dtype=np.float64)
+
     values_rounded = np.round(values, 2)
+    values_exp_rounded = np.round(values_exp, 2)
     dd_rounded = np.round(dd_pct, 4)
 
     global_equity = [
         {"time": int(t), "value": float(v)} for t, v in zip(times_arr, values_rounded)
     ]
+    global_equity_exp = [
+        {"time": int(t), "value": float(v)} for t, v in zip(times_arr, values_exp_rounded)
+    ]
     global_drawdown = [
         {"time": int(t), "value": float(d)} for t, d in zip(times_arr, dd_rounded)
     ]
 
-    return global_equity, global_drawdown
+    return global_equity, global_drawdown, global_equity_exp
 
 
 # ---------------------------------------------------------------------------
@@ -565,7 +591,8 @@ def _aggregate_metrics(
     global_eq: list[dict],
     global_dd: list[dict],
     init_cash: float,
-    risk_r: float = 100
+    risk_r: float = 100,
+    monthly_expenses: float = 0.0
 ) -> dict:
     empty = {
         "total_days": 0, "total_trades": 0, "win_rate_pct": 0,
@@ -583,12 +610,21 @@ def _aggregate_metrics(
     total_days = len(day_results)
     total_trades = sum(d.get("total_trades", 0) for d in day_results)
 
+    # Re-calculate total expenses for the net profit metric
+    # (Since total_expenses was previously removed from loop)
+    # We find number of unique months in trades
+    all_months = sorted(list(set(t.get("date", "")[:7] for t in trades if t.get("date"))))
+    total_expenses = len(all_months) * monthly_expenses
+    
     pnls = np.array([t.get("pnl", 0) for t in trades]) if trades else np.array([])
+    total_pnl_trades = float(pnls.sum()) if len(pnls) else 0.0
+    total_pnl_net = total_pnl_trades - total_expenses
     winning_trades = int((pnls > 0).sum()) if len(pnls) else 0
     total_closed = len(pnls)
     win_rate = (winning_trades / total_closed * 100) if total_closed > 0 else 0
 
     # Calculate Total Return against Initial Cash
+    # PnL / Init Cash gives the actual Return % for the period on the account size
     # PnL / Init Cash gives the actual Return % for the period on the account size
     total_pnl = float(pnls.sum()) if len(pnls) else 0.0
     total_return = (total_pnl / init_cash) * 100.0 if init_cash > 0 else 0.0
@@ -731,7 +767,9 @@ def _aggregate_metrics(
         "max_consecutive_losses": max_cons_losses,
         "expectancy": round(expectancy, 2),
         "payoff_ratio": round(payoff_ratio, 4),
-        "avg_r_per_day": round(float(pnls.sum()) / total_days / risk_r, 4) if total_days > 0 and risk_r > 0 else 0,
+        "total_expenses": round(total_expenses, 2),
+        "total_pnl_net": round(total_pnl_net, 2),
+        "avg_r_per_day": round(total_pnl_trades / total_days / risk_r, 4) if total_days > 0 and risk_r > 0 else 0,
     }
 
 

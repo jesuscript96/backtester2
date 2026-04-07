@@ -39,6 +39,7 @@ class SurfaceRequest(BaseModel):
     size_by_sl: bool = False
     fees: float = 0.0
     fee_type: str = "PERCENT"
+    monthly_expenses: float = 0.0
     slippage: float = 0.0
     start_date: str | None = None
     end_date: str | None = None

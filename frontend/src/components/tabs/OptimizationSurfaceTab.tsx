@@ -57,13 +57,11 @@ export default function OptimizationSurfaceTab({
   const [metric, setMetric] = useState("sharpe");
   const [paramX, setParamX] = useState("");
   const [paramY, setParamY] = useState("");
-  const [paramZ, setParamZ] = useState("");
   const [gridSteps, setGridSteps] = useState(10);
 
   // Range state per axis
   const [rangeX, setRangeX] = useState<[number, number]>([0, 20]);
   const [rangeY, setRangeY] = useState<[number, number]>([0, 20]);
-  const [rangeZ, setRangeZ] = useState<[number, number]>([0, 20]);
 
   // Load parameters when strategy changes
   useEffect(() => {
@@ -79,10 +77,6 @@ export default function OptimizationSurfaceTab({
           setParamY(res.parameters[1].id);
           setRangeX([res.parameters[0].min, res.parameters[0].max]);
           setRangeY([res.parameters[1].min, res.parameters[1].max]);
-          if (res.parameters.length >= 3) {
-            setParamZ(res.parameters[2].id);
-            setRangeZ([res.parameters[2].min, res.parameters[2].max]);
-          }
         }
       })
       .catch(() => setError("Error loading strategy parameters"))
@@ -105,11 +99,6 @@ export default function OptimizationSurfaceTab({
     if (p) setRangeY([p.min, p.max]);
   }, [paramY, getParamById]);
 
-  useEffect(() => {
-    const p = getParamById(paramZ);
-    if (p) setRangeZ([p.min, p.max]);
-  }, [paramZ, getParamById]);
-
   const handleRun = async () => {
     if (!paramX || !paramY) return;
     setLoading(true);
@@ -124,16 +113,6 @@ export default function OptimizationSurfaceTab({
       { id: pX.id, label: pX.label, path: pX.path, min: rangeX[0], max: rangeX[1], steps: gridSteps },
       { id: pY.id, label: pY.label, path: pY.path, min: rangeY[0], max: rangeY[1], steps: gridSteps },
     ];
-
-    if (mode === "3D" && paramZ) {
-      const pZ = getParamById(paramZ);
-      if (pZ) {
-        configs.push({
-          id: pZ.id, label: pZ.label, path: pZ.path,
-          min: rangeZ[0], max: rangeZ[1], steps: Math.min(gridSteps, 8),
-        });
-      }
-    }
 
     try {
       const data = await runOptimizationSurface({
@@ -199,9 +178,14 @@ export default function OptimizationSurfaceTab({
       };
     }
 
-    if (p.length >= 2) {
-      // 3D surface (use first 2 params for surface, ignore Z dim for simplicity in v1)
-      const z = result.grid;
+    if (mode === "3D" && p.length === 2) {
+      // 3D surface
+      // For 3D surface, replace nulls to avoid WebGL crashes (uniformMatrix4fv error)
+      const rawZ = result.grid as (number | null)[][];
+      const validVals = rawZ.flat().filter((v): v is number => v !== null && !isNaN(v));
+      const minVal = validVals.length > 0 ? Math.min(...validVals) : 0;
+      const z = rawZ.map((row) => row.map((v) => (v === null ? minVal : v)));
+
       const x = p[0].values;
       const y = p[1].values;
 
@@ -311,7 +295,7 @@ export default function OptimizationSurfaceTab({
             onChange={(e) => setParamX(e.target.value)}
             className="w-full px-2 py-1.5 text-xs border border-[var(--border)] rounded-md bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           >
-            {params.filter((p) => p.id !== paramY && p.id !== paramZ).map((p) => (
+            {params.filter((p) => p.id !== paramY).map((p) => (
               <option key={p.id} value={p.id}>{p.label}</option>
             ))}
           </select>
@@ -325,7 +309,7 @@ export default function OptimizationSurfaceTab({
             onChange={(e) => setParamY(e.target.value)}
             className="w-full px-2 py-1.5 text-xs border border-[var(--border)] rounded-md bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           >
-            {params.filter((p) => p.id !== paramX && p.id !== paramZ).map((p) => (
+            {params.filter((p) => p.id !== paramX).map((p) => (
               <option key={p.id} value={p.id}>{p.label}</option>
             ))}
           </select>
@@ -376,14 +360,6 @@ export default function OptimizationSurfaceTab({
               param={getParamById(paramY)}
             />
           )}
-          {mode === "3D" && paramZ && (
-            <RangeSlider
-              label={getParamById(paramZ)?.label || "Z"}
-              value={rangeZ}
-              onChange={setRangeZ}
-              param={getParamById(paramZ)}
-            />
-          )}
         </div>
       )}
 
@@ -414,12 +390,12 @@ export default function OptimizationSurfaceTab({
       {result && plotData && !loading && (
         <div className="flex gap-4 flex-col lg:flex-row">
           {/* Chart */}
-          <div className="lg:w-2/3 min-h-[420px] border border-[var(--border)] rounded-lg overflow-hidden">
+          <div className="lg:w-2/3 min-h-[500px] flex flex-col border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--card-bg)]">
             <Plot
               data={plotData.data}
               layout={{
                 ...plotData.layout,
-                height: 450,
+                autosize: true,
               }}
               config={{
                 responsive: true,
@@ -428,7 +404,7 @@ export default function OptimizationSurfaceTab({
                 modeBarButtonsToRemove: ["sendDataToCloud", "lasso2d", "select2d"],
               }}
               useResizeHandler
-              style={{ width: "100%", height: "450px" }}
+              style={{ width: "100%", flex: 1, minHeight: "500px" }}
             />
           </div>
 
@@ -602,7 +578,7 @@ function AnalysisCard({
   isDarkMode?: boolean;
 }) {
   return (
-    <div className="border border-[var(--border)] rounded-lg p-3 bg-[var(--card-bg)]">
+    <div className="p-1 space-y-2">
       <p className="text-xs font-semibold text-[var(--foreground)] mb-0.5">{title}</p>
       {subtitle && (
         <p className="text-[10px] text-[var(--muted)] mb-2">{subtitle}</p>

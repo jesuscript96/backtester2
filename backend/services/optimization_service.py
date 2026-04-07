@@ -151,8 +151,10 @@ def _extract_from_condition_group(group, logic_label, path, params, seen, add_fn
                                        f"{cond_path}.level", add_fn)
             val_pct = cond.get("value_pct")
             if val_pct is not None:
+                src_name = cond.get("source", {}).get("name", "Price")
+                lvl_name = cond.get("level", {}).get("name", "Level")
                 add_fn(f"{cond_path}.value_pct",
-                       f"{logic_label} Dist %",
+                       f"{logic_label} Dist ({src_name}-{lvl_name}) %",
                        val_pct, "Condition", f"{cond_path}.value_pct",
                        min_val=0.1, max_val=max(val_pct * 5, 10), step=0.25)
 
