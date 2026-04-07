@@ -19,10 +19,11 @@ interface EquityCurveTabProps {
   trades: TradeRecord[];
   initCash: number;
   riskR: number;
+  monthlyExpenses?: number;
   isDarkMode?: boolean;
 }
 
-export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, initCash, riskR, isDarkMode = false }: EquityCurveTabProps) {
+export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, initCash, riskR, monthlyExpenses, isDarkMode = false }: EquityCurveTabProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const ddChartRef = useRef<IChartApi | null>(null);
@@ -103,6 +104,33 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
         return { time: p.time as Time, value: val };
       })
     );
+
+    // --- Monthly Expenses Curve ---
+    if (monthlyExpenses && monthlyExpenses > 0 && globalEquity.length > 0) {
+      const expensesSeries = chart.addSeries(LineSeries, {
+        color: "#3b82f6",
+        lineWidth: 2,
+        lineStyle: LineStyle.Dotted,
+      });
+
+      const startTs = globalEquity[0].time as number;
+      const sPerMonth = 30.436875 * 24 * 60 * 60; // Average seconds per month
+
+      expensesSeries.setData(
+        globalEquity.map((p) => {
+          const monthsElapsed = ((p.time as number) - startTs) / sPerMonth;
+          let netValue = p.value - (monthlyExpenses * monthsElapsed);
+          
+          let val = netValue;
+          if (viewMode === "%") {
+            val = ((netValue / initCash) - 1) * 100;
+          } else if (viewMode === "R") {
+            val = riskR > 0 ? (netValue - initCash) / riskR : 0;
+          }
+          return { time: p.time as Time, value: val };
+        })
+      );
+    }
 
     if (openPositions.length) {
       const posSeries = chart.addSeries(HistogramSeries, {
@@ -212,7 +240,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
       chartRef.current = null;
       ddChartRef.current = null;
     };
-  }, [globalEquity, globalDrawdown, openPositions, viewMode, initCash, riskR, isDarkMode]);
+  }, [globalEquity, globalDrawdown, openPositions, viewMode, initCash, riskR, monthlyExpenses, isDarkMode]);
 
   if (!globalEquity.length) {
     return <p className="text-sm text-[var(--muted)]">Sin datos de equity</p>;
@@ -230,6 +258,19 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     }))
     : 0;
 
+  const maxProfitWithExpenses = globalEquity && globalEquity.length > 0 && monthlyExpenses ? 
+    Math.max(...globalEquity.map((p) => {
+      const startTs = globalEquity[0].time as number;
+      const sPerMonth = 30.436875 * 24 * 60 * 60;
+      const monthsElapsed = ((p.time as number) - startTs) / sPerMonth;
+      const netValue = p.value - (monthlyExpenses * monthsElapsed);
+      
+      if (viewMode === "%") return ((netValue / initCash) - 1) * 100;
+      if (viewMode === "R") return riskR > 0 ? (netValue - initCash) / riskR : 0;
+      return netValue - initCash;
+    }))
+    : null;
+
   const ddDisplay = (() => {
     if (viewMode === "%") return `${maxDD.toFixed(2)}%`;
     if (viewMode === "$") return `$${((maxDD / 100) * initCash).toFixed(2)}`;
@@ -244,27 +285,45 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, i
     return `${maxProfit.toFixed(2)}`;
   })();
 
+  const profitWithExpensesDisplay = (() => {
+    if (maxProfitWithExpenses === null) return "";
+    if (viewMode === "%") return `${maxProfitWithExpenses.toFixed(2)}%`;
+    if (viewMode === "$") return `$${maxProfitWithExpenses.toFixed(2)}`;
+    if (viewMode === "R") return `${maxProfitWithExpenses.toFixed(2)}R`;
+    return `${maxProfitWithExpenses.toFixed(2)}`;
+  })();
+
   return (
     <div className="px-4 pt-4 pb-2">
       {globalDrawdown && globalDrawdown.length > 0 && (
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
                 Max Drawdown
               </span>
-              <span className="text-sm font-semibold text-[var(--danger)]">
+              <span className="text-xs font-semibold text-[var(--danger)]">
                 {ddDisplay}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--muted)] uppercase tracking-wide">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
                 Max Profit
               </span>
-              <span className="text-sm font-semibold text-green-600">
+              <span className="text-xs font-semibold text-green-600">
                 {profitDisplay}
               </span>
             </div>
+            {maxProfitWithExpenses !== null && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
+                  Max Profit c/ Gastos
+                </span>
+                <span className="text-xs font-semibold text-green-600">
+                  {profitWithExpensesDisplay}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
