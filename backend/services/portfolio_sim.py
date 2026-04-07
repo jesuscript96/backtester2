@@ -116,47 +116,38 @@ def simulate(
                             exit_price = min(hard_sl_price, high[i])
                             exit_reason = "SL"
 
-                # 2. Trailing Stop Logic (Profit-Locked Profit Protector)
+                # 2. Trailing Stop Logic (Standard High-Water Mark)
                 if sl_trail and trail_pct is not None:
                     if is_long:
+                        # Update MFE (Maximum Favorable Excursion)
                         trail_extreme = max(trail_extreme, high[i])
-                        # Activation: Only activates if price touched Entry * (1 + TrailingPct)
-                        if not trail_activated:
-                            if trail_extreme >= entry_price * (1 + trail_pct):
-                                trail_activated = True
                         
-                        if trail_activated:
-                            # Trail at distance, but PROTECT the profit (floor = entry_price)
-                            # This ensures we never exit at a loss via 'Trailing' reason
-                            calculated_trail_stop = trail_extreme * (1 - trail_pct)
-                            trail_sl_price = max(entry_price, calculated_trail_stop)
-                            
-                            if price_for_sl <= trail_sl_price:
-                                # Only trigger Trailing if it's better than hard SL (safety check)
-                                hard_sl_price = entry_price * (1 - sl_stop) if sl_stop is not None else -1e18
-                                if trail_sl_price > hard_sl_price:
-                                    exit_triggered = True
-                                    exit_price = max(trail_sl_price, low[i])
-                                    exit_reason = "Trailing"
+                        # Standard Trailing Stop: trails from the highest point reached
+                        calculated_trail_stop = trail_extreme * (1 - trail_pct)
+                        trail_sl_price = calculated_trail_stop
+                        
+                        if price_for_sl <= trail_sl_price:
+                            # Verify trailing stop doesn't override a better hard stop
+                            hard_sl_price = entry_price * (1 - sl_stop) if sl_stop is not None else -1e18
+                            if trail_sl_price > hard_sl_price:
+                                exit_triggered = True
+                                exit_price = max(trail_sl_price, low[i])
+                                exit_reason = "Trailing"
                     else:
+                        # Short: Update MFE (Minimum Favorable Excursion)
                         trail_extreme = min(trail_extreme, low[i])
-                        # Activation: Only activates if price touched Entry * (1 - TrailingPct)
-                        if not trail_activated:
-                            if trail_extreme <= entry_price * (1 - trail_pct):
-                                trail_activated = True
                         
-                        if trail_activated:
-                            # Trail at distance, but floor = entry_price for Short
-                            calculated_trail_stop = trail_extreme * (1 + trail_pct)
-                            trail_sl_price = min(entry_price, calculated_trail_stop)
-                            
-                            if price_for_sl >= trail_sl_price:
-                                # Only trigger Trailing if it's better than hard SL
-                                hard_sl_price = entry_price * (1 + sl_stop) if sl_stop is not None else 1e18
-                                if trail_sl_price < hard_sl_price:
-                                    exit_triggered = True
-                                    exit_price = min(trail_sl_price, high[i])
-                                    exit_reason = "Trailing"
+                        # Standard Trailing Stop: trails from the lowest point reached
+                        calculated_trail_stop = trail_extreme * (1 + trail_pct)
+                        trail_sl_price = calculated_trail_stop
+                        
+                        if price_for_sl >= trail_sl_price:
+                            # Verify trailing stop doesn't override a better hard stop
+                            hard_sl_price = entry_price * (1 + sl_stop) if sl_stop is not None else 1e18
+                            if trail_sl_price < hard_sl_price:
+                                exit_triggered = True
+                                exit_price = min(trail_sl_price, high[i])
+                                exit_reason = "Trailing"
 
             # take-profit (full mode — only if partial TPs are NOT configured)
             if not exit_triggered and tp_stop is not None and not partial_take_profits and not skip_exits:

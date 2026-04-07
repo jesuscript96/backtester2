@@ -22,6 +22,7 @@ interface BacktestPanelProps {
     risk_type?: string;
     size_by_sl?: boolean;
     fee_type?: string;
+    monthly_expenses?: number;
   }) => void;
   loading: boolean;
   isDarkMode?: boolean;
@@ -43,6 +44,8 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
   const [customEndTime, setCustomEndTime] = useState("16:00");
   const [locatesCost, setLocatesCost] = useState(0);
   const [useLocates, setUseLocates] = useState(false);
+  const [useMonthlyExpenses, setUseMonthlyExpenses] = useState(false);
+  const [monthlyExpenses, setMonthlyExpenses] = useState(0);
   const [lookAheadPrevention, setLookAheadPrevention] = useState(true);
   const [riskType, setRiskType] = useState<"FIXED" | "PERCENT" | "KELLY">("FIXED");
   const [sizeBySl, setSizeBySl] = useState(false);
@@ -107,6 +110,7 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
       custom_start_time: marketSessions.includes("custom") ? customStartTime : undefined,
       custom_end_time: marketSessions.includes("custom") ? customEndTime : undefined,
       locates_cost: useLocates ? locatesCost : 0,
+      monthly_expenses: useMonthlyExpenses ? monthlyExpenses : 0,
       look_ahead_prevention: lookAheadPrevention,
       risk_type: riskType,
       size_by_sl: sizeBySl,
@@ -290,18 +294,24 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={lookAheadPrevention}
-                  onChange={() => setLookAheadPrevention(!lookAheadPrevention)}
+                  checked={useMonthlyExpenses}
+                  onChange={() => setUseMonthlyExpenses(!useMonthlyExpenses)}
                   className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
                 />
-                <span className="text-xs font-medium text-[var(--muted)]">Look Ahead Prevention</span>
+                <span className="text-xs font-medium text-[var(--muted)]">Gastos fijos mensuales ($)</span>
               </label>
-              <span className="text-[10px] text-[var(--muted)]">
-                {lookAheadPrevention ? "ON" : "OFF"}
-              </span>
+              {useMonthlyExpenses && (
+                <input
+                  type="number"
+                  step="1"
+                  value={monthlyExpenses}
+                  onChange={(e) => setMonthlyExpenses(Number(e.target.value))}
+                  className="w-20 border border-[var(--border)] rounded-md px-2 py-1 text-xs bg-[var(--card-muted-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                />
+              )}
             </div>
 
-            <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
+            <div className="flex items-center justify-between pt-1">
               <div className="flex flex-col">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -316,6 +326,21 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
                   Calcula nº Shares usando el Riesgo dividido por la distancia real al Stop Loss
                 </span>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 mt-1 border-t border-[var(--border)]">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={lookAheadPrevention}
+                  onChange={() => setLookAheadPrevention(!lookAheadPrevention)}
+                  className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                />
+                <span className="text-xs font-medium text-[var(--muted)]">Look Ahead Prevention</span>
+              </label>
+              <span className="text-[10px] text-[var(--muted)]">
+                {lookAheadPrevention ? "ON" : "OFF"}
+              </span>
             </div>
           </div>
         </div>

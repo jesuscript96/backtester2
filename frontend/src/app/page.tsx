@@ -41,6 +41,7 @@ export default function Home() {
     market_sessions?: string[];
     custom_start_time?: string;
     custom_end_time?: string;
+    monthly_expenses?: number;
   }) => {
     setLoading(true);
     setError(null);
@@ -59,6 +60,7 @@ export default function Home() {
       start_date: params.start_date,
       end_date: params.end_date,
       market_sessions: params.market_sessions,
+      monthly_expenses: params.monthly_expenses,
     };
 
     try {
@@ -226,6 +228,7 @@ export default function Home() {
                       trades={result.trades}
                       initCash={initCashRef.current}
                       riskR={riskRRef.current}
+                      monthlyExpenses={backtestParamsRef.current.monthly_expenses as number | undefined}
                       isDarkMode={isDarkMode}
                     />
                   </div>
