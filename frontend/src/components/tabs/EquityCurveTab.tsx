@@ -372,7 +372,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
   })();
 
   return (
-    <div className="flex flex-col h-[600px] bg-[var(--card-bg)]">
+    <div className="flex flex-col h-[660px] bg-[var(--card-bg)]">
       {/* MAIN TAB SWITCHER */}
       <div className="px-3 border-b border-[var(--border)] bg-[var(--sidebar-bg)] flex items-center h-[30px]">
         <div className="flex h-full">
@@ -452,9 +452,9 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                 </div>
               </div>
             )}
-            <div ref={containerRef} className="h-[380px] w-full" />
+            <div ref={containerRef} className="h-[410px] w-full" />
             <div className="border-t border-[var(--border)] pt-2 mt-2">
-               <div ref={ddContainerRef} className="h-[110px] w-full" />
+               <div ref={ddContainerRef} className="h-[130px] w-full" />
             </div>
           </div>
         ) : (
