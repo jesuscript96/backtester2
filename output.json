@@ -1,0 +1,152 @@
+[
+  {
+    "id": "entry_logic.root_condition.conditions.0.source.offset",
+    "label": "Entry Bar Close offset",
+    "current_value": 0.0,
+    "category": "Indicator",
+    "path": "entry_logic.root_condition.conditions.0.source.offset",
+    "min": 0,
+    "max": 10,
+    "step": 1
+  },
+  {
+    "id": "entry_logic.root_condition.conditions.0.target.offset",
+    "label": "Entry VWAP offset",
+    "current_value": 0.0,
+    "category": "Indicator",
+    "path": "entry_logic.root_condition.conditions.0.target.offset",
+    "min": 0,
+    "max": 10,
+    "step": 1
+  },
+  {
+    "id": "exit_logic.root_condition.conditions.0.source.offset",
+    "label": "Exit Bar Close offset",
+    "current_value": 0.0,
+    "category": "Indicator",
+    "path": "exit_logic.root_condition.conditions.0.source.offset",
+    "min": 0,
+    "max": 10,
+    "step": 1
+  },
+  {
+    "id": "exit_logic.root_condition.conditions.0.level.period",
+    "label": "Exit EMA period",
+    "current_value": 20.0,
+    "category": "Indicator",
+    "path": "exit_logic.root_condition.conditions.0.level.period",
+    "min": 5.0,
+    "max": 60.0,
+    "step": 1
+  },
+  {
+    "id": "exit_logic.root_condition.conditions.0.level.offset",
+    "label": "Exit EMA offset",
+    "current_value": 0.0,
+    "category": "Indicator",
+    "path": "exit_logic.root_condition.conditions.0.level.offset",
+    "min": 0,
+    "max": 10,
+    "step": 1
+  },
+  {
+    "id": "exit_logic.root_condition.conditions.0.value_pct",
+    "label": "Exit Dist %",
+    "current_value": 2.0,
+    "category": "Condition",
+    "path": "exit_logic.root_condition.conditions.0.value_pct",
+    "min": 0.1,
+    "max": 10.0,
+    "step": 0.25
+  },
+  {
+    "id": "exit_logic.root_condition.conditions.1.source.offset",
+    "label": "Exit Time of Day offset",
+    "current_value": 0.0,
+    "category": "Indicator",
+    "path": "exit_logic.root_condition.conditions.1.source.offset",
+    "min": 0,
+    "max": 10,
+    "step": 1
+  },
+  {
+    "id": "exit_logic.root_condition.conditions.1.target.offset",
+    "label": "Exit VWAP offset",
+    "current_value": 0.0,
+    "category": "Indicator",
+    "path": "exit_logic.root_condition.conditions.1.target.offset",
+    "min": 0,
+    "max": 10,
+    "step": 1
+  },
+  {
+    "id": "risk.hard_stop.value",
+    "label": "Stop Loss (Percentage)",
+    "current_value": 2.0,
+    "category": "Risk",
+    "path": "risk_management.hard_stop.value",
+    "min": 0.1,
+    "max": 20,
+    "step": 0.5
+  },
+  {
+    "id": "risk.take_profit.value",
+    "label": "Take Profit (Percentage)",
+    "current_value": 6.0,
+    "category": "Risk",
+    "path": "risk_management.take_profit.value",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.5
+  },
+  {
+    "id": "risk.trailing.buffer_pct",
+    "label": "Trailing Buffer %",
+    "current_value": 0.5,
+    "category": "Risk",
+    "path": "risk_management.trailing_stop.buffer_pct",
+    "min": 0.1,
+    "max": 5.0,
+    "step": 0.1
+  },
+  {
+    "id": "risk.partial_tp.0.distance_pct",
+    "label": "Parcial 1 Distancia %",
+    "current_value": 3.0,
+    "category": "Risk",
+    "path": "risk_management.partial_take_profits.0.distance_pct",
+    "min": 0.5,
+    "max": 13.0,
+    "step": 0.5
+  },
+  {
+    "id": "risk.partial_tp.0.capital_pct",
+    "label": "Parcial 1 Capital %",
+    "current_value": 50.0,
+    "category": "Risk",
+    "path": "risk_management.partial_take_profits.0.capital_pct",
+    "min": 5,
+    "max": 100,
+    "step": 5
+  },
+  {
+    "id": "risk.partial_tp.1.distance_pct",
+    "label": "Parcial 2 Distancia %",
+    "current_value": 6.0,
+    "category": "Risk",
+    "path": "risk_management.partial_take_profits.1.distance_pct",
+    "min": 0.5,
+    "max": 18.0,
+    "step": 0.5
+  },
+  {
+    "id": "risk.partial_tp.1.capital_pct",
+    "label": "Parcial 2 Capital %",
+    "current_value": 50.0,
+    "category": "Risk",
+    "path": "risk_management.partial_take_profits.1.capital_pct",
+    "min": 5,
+    "max": 100,
+    "step": 5
+  }
+]

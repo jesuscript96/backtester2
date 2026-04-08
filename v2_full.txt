@@ -1,0 +1,453 @@
+[
+  {
+    "id": "516eaf1c-9c18-4038-a008-995ee37b8f93",
+    "name": "Test V2",
+    "description": "Short Close>Open, Salida si Close crosses PMH, stop al 20%, con reentries",
+    "definition": {
+      "name": "Test V2",
+      "description": "Short Close>Open, Salida si Close crosses PMH, stop al 20%, con reentries",
+      "bias": "short",
+      "universe_filters": null,
+      "entry_logic": {
+        "timeframe": "1m",
+        "root_condition": {
+          "type": "group",
+          "operator": "AND",
+          "conditions": [
+            {
+              "type": "indicator_comparison",
+              "source": {
+                "name": "Close",
+                "period": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null
+              },
+              "comparator": "GREATER_THAN",
+              "target": {
+                "name": "Open",
+                "period": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null
+              }
+            },
+            {
+              "type": "indicator_comparison",
+              "source": {
+                "name": "Close",
+                "period": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null
+              },
+              "comparator": "LESS_THAN",
+              "target": {
+                "name": "Pre-Market High",
+                "period": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null
+              }
+            }
+          ]
+        }
+      },
+      "exit_logic": {
+        "timeframe": "1m",
+        "root_condition": {
+          "type": "group",
+          "operator": "AND",
+          "conditions": [
+            {
+              "type": "indicator_comparison",
+              "source": {
+                "name": "Close",
+                "period": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null
+              },
+              "comparator": "CROSSES_ABOVE",
+              "target": {
+                "name": "Pre-Market High",
+                "period": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null
+              }
+            }
+          ]
+        }
+      },
+      "risk_management": {
+        "use_hard_stop": true,
+        "use_take_profit": false,
+        "accept_reentries": true,
+        "hard_stop": {
+          "type": "Percentage",
+          "value": 20
+        },
+        "take_profit": {
+          "type": "Percentage",
+          "value": 6
+        },
+        "trailing_stop": {
+          "active": false,
+          "type": "Percentage",
+          "buffer_pct": 0.5
+        },
+        "max_drawdown_daily": null
+      },
+      "id": "516eaf1c-9c18-4038-a008-995ee37b8f93",
+      "created_at": "2026-03-09T19:57:06.203246",
+      "updated_at": "2026-03-09T19:57:06.203546"
+    },
+    "created_at": "2026-03-09 19:57:06.203246",
+    "updated_at": "2026-03-09 19:57:06.203246"
+  },
+  {
+    "id": "7958059b-8f89-4c1e-b679-13822eb6ef31",
+    "name": "Test V20",
+    "description": "Close > 20%, Close, Consec Red > 3 OR Consec Low Low >3. Stop loss del 20%, Con reentries, TPP (30-R50%, 40-R25%, 50-R25%)",
+    "definition": {
+      "name": "Test V20",
+      "description": "Close > 20%, Close, Consec Red > 3 OR Consec Low Low >3. Stop loss del 20%, Con reentries, TPP (30-R50%, 40-R25%, 50-R25%)",
+      "bias": "short",
+      "universe_filters": null,
+      "entry_logic": {
+        "timeframe": "1m",
+        "root_condition": {
+          "type": "group",
+          "operator": "AND",
+          "conditions": [
+            {
+              "type": "price_level_distance",
+              "source": {
+                "name": "Close",
+                "period": null,
+                "period2": null,
+                "period3": null,
+                "stdDev": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null,
+                "time_condition": null,
+                "days_lookback": null,
+                "calc_on_heikin": false
+              },
+              "level": {
+                "name": "AVWAP",
+                "period": null,
+                "period2": null,
+                "period3": null,
+                "stdDev": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null,
+                "time_condition": null,
+                "days_lookback": null,
+                "calc_on_heikin": false
+              },
+              "comparator": "DISTANCE_LT",
+              "value_pct": 20.0,
+              "position": "above",
+              "timeframe": "1m"
+            },
+            {
+              "type": "indicator_comparison",
+              "source": {
+                "name": "Consecutive Red Candles",
+                "period": null,
+                "period2": null,
+                "period3": null,
+                "stdDev": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null,
+                "time_condition": null,
+                "days_lookback": null,
+                "calc_on_heikin": false
+              },
+              "comparator": "GREATER_THAN",
+              "target": 3.0,
+              "timeframe": "1m"
+            },
+            {
+              "type": "group",
+              "operator": "OR",
+              "conditions": [
+                {
+                  "type": "indicator_comparison",
+                  "source": {
+                    "name": "Consecutive Lower Lows",
+                    "period": null,
+                    "period2": null,
+                    "period3": null,
+                    "stdDev": null,
+                    "multiplier": null,
+                    "offset": 0,
+                    "overbought": null,
+                    "oversold": null,
+                    "consecutive_count": null,
+                    "time_hour": null,
+                    "time_minute": null,
+                    "time_condition": null,
+                    "days_lookback": null,
+                    "calc_on_heikin": false
+                  },
+                  "comparator": "GREATER_THAN",
+                  "target": 3.0,
+                  "timeframe": "1m"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "exit_logic": {
+        "timeframe": "1m",
+        "root_condition": {
+          "type": "group",
+          "operator": "AND",
+          "conditions": []
+        }
+      },
+      "risk_management": {
+        "use_hard_stop": true,
+        "use_take_profit": true,
+        "take_profit_mode": "Partial",
+        "accept_reentries": true,
+        "hard_stop": {
+          "type": "Percentage",
+          "value": 20
+        },
+        "take_profit": {
+          "type": "Percentage",
+          "value": 6
+        },
+        "partial_take_profits": [
+          {
+            "distance_pct": 30.0,
+            "capital_pct": 50.0
+          },
+          {
+            "distance_pct": 40.0,
+            "capital_pct": 25.0
+          },
+          {
+            "distance_pct": 50.0,
+            "capital_pct": 25.0
+          }
+        ],
+        "trailing_stop": {
+          "active": false,
+          "type": "Percentage",
+          "buffer_pct": 0.5
+        },
+        "max_drawdown_daily": null
+      },
+      "id": "7958059b-8f89-4c1e-b679-13822eb6ef31",
+      "created_at": "2026-03-23T17:08:03.678132",
+      "updated_at": "2026-03-23T17:08:03.678434"
+    },
+    "created_at": "2026-03-23 17:08:03.678132",
+    "updated_at": "2026-03-23 17:08:03.678132"
+  },
+  {
+    "id": "c3b6a8b6-f82b-4075-ae29-97a78cd6f54b",
+    "name": "Test V21",
+    "description": "Close > 20% VWAP, Close, Consec Red > 3 OR Consec Low Low >3. Stop loss del 20%, Con reentries, TPP (30-R50%, 40-R25%, 50-R25%)",
+    "definition": {
+      "name": "Test V21",
+      "description": "Close > 20% VWAP, Close, Consec Red > 3 OR Consec Low Low >3. Stop loss del 20%, Con reentries, TPP (30-R50%, 40-R25%, 50-R25%)",
+      "bias": "short",
+      "universe_filters": null,
+      "entry_logic": {
+        "timeframe": "1m",
+        "root_condition": {
+          "type": "group",
+          "operator": "AND",
+          "conditions": [
+            {
+              "type": "price_level_distance",
+              "source": {
+                "name": "Close",
+                "period": null,
+                "period2": null,
+                "period3": null,
+                "stdDev": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null,
+                "time_condition": null,
+                "days_lookback": null,
+                "calc_on_heikin": false
+              },
+              "level": {
+                "name": "AVWAP",
+                "period": null,
+                "period2": null,
+                "period3": null,
+                "stdDev": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null,
+                "time_condition": null,
+                "days_lookback": null,
+                "calc_on_heikin": false
+              },
+              "comparator": "DISTANCE_GT",
+              "value_pct": 20.0,
+              "position": "above",
+              "timeframe": "1m"
+            },
+            {
+              "type": "indicator_comparison",
+              "source": {
+                "name": "Consecutive Red Candles",
+                "period": null,
+                "period2": null,
+                "period3": null,
+                "stdDev": null,
+                "multiplier": null,
+                "offset": 0,
+                "overbought": null,
+                "oversold": null,
+                "consecutive_count": null,
+                "time_hour": null,
+                "time_minute": null,
+                "time_condition": null,
+                "days_lookback": null,
+                "calc_on_heikin": false
+              },
+              "comparator": "GREATER_THAN",
+              "target": 3.0,
+              "timeframe": "1m"
+            },
+            {
+              "type": "group",
+              "operator": "OR",
+              "conditions": [
+                {
+                  "type": "indicator_comparison",
+                  "source": {
+                    "name": "Consecutive Lower Lows",
+                    "period": null,
+                    "period2": null,
+                    "period3": null,
+                    "stdDev": null,
+                    "multiplier": null,
+                    "offset": 0,
+                    "overbought": null,
+                    "oversold": null,
+                    "consecutive_count": null,
+                    "time_hour": null,
+                    "time_minute": null,
+                    "time_condition": null,
+                    "days_lookback": null,
+                    "calc_on_heikin": false
+                  },
+                  "comparator": "GREATER_THAN",
+                  "target": 3.0,
+                  "timeframe": "1m"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "exit_logic": {
+        "timeframe": "1m",
+        "root_condition": {
+          "type": "group",
+          "operator": "AND",
+          "conditions": []
+        }
+      },
+      "risk_management": {
+        "use_hard_stop": true,
+        "use_take_profit": true,
+        "take_profit_mode": "Partial",
+        "accept_reentries": true,
+        "hard_stop": {
+          "type": "Percentage",
+          "value": 20
+        },
+        "take_profit": {
+          "type": "Percentage",
+          "value": 6
+        },
+        "partial_take_profits": [
+          {
+            "distance_pct": 30.0,
+            "capital_pct": 50.0
+          },
+          {
+            "distance_pct": 40.0,
+            "capital_pct": 25.0
+          },
+          {
+            "distance_pct": 50.0,
+            "capital_pct": 25.0
+          }
+        ],
+        "trailing_stop": {
+          "active": false,
+          "type": "Percentage",
+          "buffer_pct": 0.5
+        },
+        "max_drawdown_daily": null
+      },
+      "id": "c3b6a8b6-f82b-4075-ae29-97a78cd6f54b",
+      "created_at": "2026-03-23T19:21:09.164497",
+      "updated_at": "2026-03-23T19:21:09.164862"
+    },
+    "created_at": "2026-03-23 19:21:09.164497",
+    "updated_at": "2026-03-23 19:21:09.164497"
+  }
+]

@@ -9,8 +9,7 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    ReferenceLine,
-    Cell
+    ReferenceLine
 } from "recharts";
 import type { TradeRecord } from "@/lib/api";
 
@@ -28,14 +27,12 @@ function calculateRegression(points: { x: number, y: number }[]) {
     let sumY = 0;
     let sumXY = 0;
     let sumXX = 0;
-    let sumYY = 0;
 
     for (const p of points) {
         sumX += p.x;
         sumY += p.y;
         sumXY += p.x * p.y;
         sumXX += p.x * p.x;
-        sumYY += p.y * p.y;
     }
 
     const denominator = n * sumXX - sumX * sumX;
@@ -69,6 +66,32 @@ function calculateRegression(points: { x: number, y: number }[]) {
     };
 }
 
+const CustomTooltip = ({ active, payload, isDarkMode }: { active?: boolean, payload?: unknown[], isDarkMode?: boolean }) => {
+    if (active && payload && payload.length) {
+        // Only show tooltip for dots, not lines
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = (payload[0] as any).payload;
+        if (!data.trade) return null;
+
+        return (
+            <div className={`p-2 shadow-md rounded text-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-gray-200 text-gray-800'} border`}>
+                <p className="font-semibold mb-1">{data.trade.direction} Trade</p>
+                <p>Retorno: {data.x.toFixed(2)}%</p>
+                <p>MAE: {data.y.toFixed(2)}%</p>
+                <p>MFE: {data.trade.mfe !== undefined ? `${data.trade.mfe.toFixed(2)}%` : '-'}</p>
+                <p>PnL: ${data.trade.pnl.toFixed(2)}</p>
+            </div>
+        );
+    }
+    return null;
+};
+
+const CustomDot = (props: { cx?: number, cy?: number, dotColor?: string }) => {
+    const { cx, cy, dotColor } = props;
+    if (!cx || !cy) return null;
+    return <circle cx={cx} cy={cy} r={1.5} stroke={dotColor || "#f97316"} fill="transparent" strokeWidth={1} />;
+};
+
 export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartProps) {
     const processed = useMemo(() => {
         let sumMae = 0;
@@ -96,7 +119,6 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
         const winReg = calculateRegression(winners);
         const lossReg = calculateRegression(losers);
 
-        // Convert regression into 2-point data for Scatter-with-line
         const winLineData = winReg ? [
             { x: 0, y: winReg.m * 0 + winReg.b },
             { x: winReg.maxX, y: winReg.m * winReg.maxX + winReg.b }
@@ -125,31 +147,6 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
 
     const dotColor = "#f97316";
 
-    const CustomTooltip = ({ active, payload }: any) => {
-        if (active && payload && payload.length) {
-            // Only show tooltip for dots, not lines
-            const data = payload[0].payload;
-            if (!data.trade) return null;
-
-            return (
-                <div className={`p-2 shadow-md rounded text-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-gray-200 text-gray-800'} border`}>
-                    <p className="font-semibold mb-1">{data.trade.direction} Trade</p>
-                    <p>Retorno: {data.x.toFixed(2)}%</p>
-                    <p>MAE: {data.y.toFixed(2)}%</p>
-                    <p>MFE: {data.trade.mfe !== undefined ? `${data.trade.mfe.toFixed(2)}%` : '-'}</p>
-                    <p>PnL: ${data.trade.pnl.toFixed(2)}</p>
-                </div>
-            );
-        }
-        return null;
-    };
-
-    const CustomDot = (props: any) => {
-        const { cx, cy } = props;
-        if (!cx || !cy) return null;
-        return <circle cx={cx} cy={cy} r={1.5} stroke={dotColor} fill="transparent" strokeWidth={1} />;
-    };
-
     return (
         <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col h-full transition-colors relative">
             <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5 flex items-center justify-between">
@@ -162,7 +159,6 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
                 </div>
             </div>
             <div className="flex-1 p-2 min-h-[140px] relative">
-                {/* R2 Overlay inside the chart in the top right corner */}
                 <div className="absolute top-4 right-4 text-[10px] text-[var(--muted)] flex flex-col items-end gap-0.5 pointer-events-none z-10 bg-[var(--card-bg)]/80 p-1.5 rounded backdrop-blur border border-[var(--border)]">
                     {processed.winR2 !== undefined && <span>Ganadoras R² = {(processed.winR2 * 100).toFixed(1)}%</span>}
                     {processed.lossR2 !== undefined && <span>Perdedoras R² = {(processed.lossR2 * 100).toFixed(1)}%</span>}
@@ -189,16 +185,14 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
                             axisLine={false}
                             tickLine={false}
                         />
-                        <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip isDarkMode={isDarkMode} />} />
 
                         <ReferenceLine y={0} stroke={isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} strokeWidth={1} />
                         <ReferenceLine x={0} stroke={isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"} strokeWidth={1.5} />
 
-                        {/* Render Scatter Points first */}
-                        <Scatter name="Perdedoras" data={processed.losers} shape={<CustomDot />} isAnimationActive={false} />
-                        <Scatter name="Ganadoras" data={processed.winners} shape={<CustomDot />} isAnimationActive={false} />
+                        <Scatter name="Perdedoras" data={processed.losers} shape={<CustomDot dotColor={dotColor} />} isAnimationActive={false} />
+                        <Scatter name="Ganadoras" data={processed.winners} shape={<CustomDot dotColor={dotColor} />} isAnimationActive={false} />
 
-                        {/* Use Scatter with line prop to render trendlines ON TOP of points */}
                         {processed.lossLineData && (
                             <Scatter
                                 data={processed.lossLineData}

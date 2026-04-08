@@ -313,7 +313,7 @@ export async function runWhatIf(params: {
   trades: TradeRecord[];
   init_cash: number;
   risk_r: number;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 }): Promise<WhatIfResult> {
   const { data } = await api.post("/what-if", params);
   return data;

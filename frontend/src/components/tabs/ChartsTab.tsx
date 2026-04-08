@@ -72,32 +72,38 @@ function calculateEnhancedStats(arr: number[]) {
   return { n, mean, median, stdDev, max, min, skewness, kurtosis, q1, q3, range, iqr };
 }
 
-export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: ChartsTabProps) {
+interface StatsTableProps {
+  stats: ReturnType<typeof calculateEnhancedStats> | null;
+  title: string;
+  isPct: boolean;
+}
 
-  const StatsTable = ({ stats, title, isPct }: any) => {
-    if (!stats) return null;
-    return (
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-3 text-[11px] flex-1 text-[var(--foreground)] h-full shadow-sm">
-        <h4 className="font-bold border-b border-[var(--border)] pb-1 mb-2 uppercase text-[10px] text-[var(--muted)] tracking-wider">
-          {title}
-        </h4>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono">
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">N:</span><span>{stats.n}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Media:</span><span>{stats.mean.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mediana:</span><span>{stats.median.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Desv Std:</span><span>{stats.stdDev.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q1 (25%):</span><span>{stats.q1.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q3 (75%):</span><span>{stats.q3.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Máximo:</span><span>{stats.max.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mínimo:</span><span>{stats.min.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Rango:</span><span>{stats.range.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">IQR:</span><span>{stats.iqr.toFixed(2)}{isPct ? '%' : ''}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Asimetría:</span><span>{stats.skewness.toFixed(3)}</span></div>
-          <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Curtosis:</span><span>{stats.kurtosis.toFixed(3)}</span></div>
-        </div>
+const StatsTable = ({ stats, title, isPct }: StatsTableProps) => {
+  if (!stats) return null;
+  return (
+    <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-3 text-[11px] flex-1 text-[var(--foreground)] h-full shadow-sm">
+      <h4 className="font-bold border-b border-[var(--border)] pb-1 mb-2 uppercase text-[10px] text-[var(--muted)] tracking-wider">
+        {title}
+      </h4>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono">
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">N:</span><span>{stats.n}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Media:</span><span>{stats.mean.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mediana:</span><span>{stats.median.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Desv Std:</span><span>{stats.stdDev.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q1 (25%):</span><span>{stats.q1.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q3 (75%):</span><span>{stats.q3.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Máximo:</span><span>{stats.max.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mínimo:</span><span>{stats.min.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Rango:</span><span>{stats.range.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">IQR:</span><span>{stats.iqr.toFixed(2)}{isPct ? '%' : ''}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Asimetría:</span><span>{stats.skewness.toFixed(3)}</span></div>
+        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Curtosis:</span><span>{stats.kurtosis.toFixed(3)}</span></div>
       </div>
-    );
-  };
+    </div>
+  );
+};
+
+export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: ChartsTabProps) {
 
   const pnlDistribution = useMemo(() => {
     const pnlPctCoords = trades.map(t => t.return_pct).filter((v): v is number => v !== undefined && v !== null);

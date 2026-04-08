@@ -9,6 +9,7 @@ import {
   LineSeries,
   LineStyle,
   type IChartApi,
+  type ISeriesApi,
   type Time,
 } from "lightweight-charts";
 import type { GlobalEquityPoint, DrawdownPoint, TradeRecord, AggregateMetrics, WhatIfResult } from "@/lib/api";
@@ -100,9 +101,9 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
     }
   };
 
-  const getSimValue = (key: keyof AggregateMetrics, formatter?: (v: any) => string) => {
+  const getSimValue = (key: keyof AggregateMetrics, formatter?: (v: number) => string) => {
     if (!simResult || !simResult.aggregate_metrics) return "---";
-    const val = simResult.aggregate_metrics[key];
+    const val = simResult.aggregate_metrics[key] as number;
     if (val === undefined || val === null) return "---";
     return formatter ? formatter(val) : String(val);
   };
@@ -196,7 +197,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
       expensesSeries.setData(
         globalEquity.map((p) => {
           const monthsElapsed = ((p.time as number) - startTs) / sPerMonth;
-          let netValue = p.value - (monthlyExpenses * monthsElapsed);
+          const netValue = p.value - (monthlyExpenses * monthsElapsed);
           
           let val = netValue;
           if (viewMode === "%") {
@@ -225,7 +226,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
 
     // --- Drawdown Chart ---
     let ddChart: IChartApi | null = null;
-    let drawdownSeries: any = null;
+    let drawdownSeries: ISeriesApi<"Baseline"> | null = null;
 
     if (globalDrawdown && globalDrawdown.length) {
       ddChart = createChart(ddContainer, {

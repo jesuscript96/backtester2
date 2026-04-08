@@ -19,6 +19,34 @@ const EXIT_COLORS: Record<string, string> = {
   EOD: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
+interface SortHeaderProps {
+  label: string;
+  field: SortKey;
+  align?: "left" | "right";
+  sortKey: SortKey;
+  sortDir: SortDir;
+  onSort: (key: SortKey) => void;
+}
+
+const SortHeader = ({
+  label,
+  field,
+  align = "left",
+  sortKey,
+  sortDir,
+  onSort,
+}: SortHeaderProps) => (
+  <th
+    className={`px-3 py-2 text-${align} text-xs font-medium text-[var(--muted)] uppercase cursor-pointer hover:text-[var(--foreground)] select-none`}
+    onClick={() => onSort(field)}
+  >
+    {label}
+    {sortKey === field && (
+      <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>
+    )}
+  </th>
+);
+
 export default function TradesTab({ trades }: TradesTabProps) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -72,26 +100,6 @@ export default function TradesTab({ trades }: TradesTabProps) {
     };
   }, [trades]);
 
-  const SortHeader = ({
-    label,
-    field,
-    align = "left",
-  }: {
-    label: string;
-    field: SortKey;
-    align?: "left" | "right";
-  }) => (
-    <th
-      className={`px-3 py-2 text-${align} text-xs font-medium text-[var(--muted)] uppercase cursor-pointer hover:text-[var(--foreground)] select-none`}
-      onClick={() => handleSort(field)}
-    >
-      {label}
-      {sortKey === field && (
-        <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>
-      )}
-    </th>
-  );
-
   if (!trades.length) {
     return <p className="text-sm text-[var(--muted)]">Sin trades</p>;
   }
@@ -143,18 +151,18 @@ export default function TradesTab({ trades }: TradesTabProps) {
         <table className="w-full text-sm">
           <thead className="bg-[var(--sidebar-bg)] sticky top-0 border-b border-[var(--border)]">
             <tr>
-              <SortHeader label="Ticker" field="ticker" />
-              <SortHeader label="Fecha" field="date" />
-              <SortHeader label="Entrada" field="entry_time" />
-              <SortHeader label="Salida" field="exit_time" />
-              <SortHeader label="Entry $" field="entry_price" align="right" />
-              <SortHeader label="Exit $" field="exit_price" align="right" />
-              <SortHeader label="Size" field="size" align="right" />
-              <SortHeader label="PnL" field="pnl" align="right" />
-              <SortHeader label="R" field="r_multiple" align="right" />
-              <SortHeader label="MAE (%)" field="mae" align="right" />
-              <SortHeader label="MFE (%)" field="mfe" align="right" />
-              <SortHeader label="Exit" field="exit_reason" />
+              <SortHeader label="Ticker" field="ticker" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Fecha" field="date" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Entrada" field="entry_time" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Salida" field="exit_time" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Entry $" field="entry_price" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Exit $" field="exit_price" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Size" field="size" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="PnL" field="pnl" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="R" field="r_multiple" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="MAE (%)" field="mae" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="MFE (%)" field="mfe" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Exit" field="exit_reason" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
