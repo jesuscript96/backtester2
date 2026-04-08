@@ -17,6 +17,9 @@ from backend.services.backtest_service import run_backtest
 
 logger = logging.getLogger("backtester.optimization")
 
+# Global dict to track progress of long-running optimizations (in-memory for local use)
+OPTIMIZATION_PROGRESS = {}
+
 # Performance metrics we can optimise for
 METRICS = {
     "sharpe": "avg_sharpe",
@@ -204,6 +207,7 @@ def run_optimization_grid(
     param_configs: list[dict],
     metric: str,
     backtest_params: dict,
+    task_id: str | None = None,
 ) -> dict:
     """
     Run a grid of backtests varying selected parameters.
@@ -255,6 +259,28 @@ def run_optimization_grid(
     if intraday_df.empty:
         raise ValueError("No data for selected period")
 
+    # --- OPTIMIZATION: Pre-group data once ---
+    # Instead of passing the full DataFrame to each backtest (which re-groups it
+    # every time), we group once here and pass pre-computed groups as an iterator.
+    precomputed_groups = list(intraday_df.groupby(["date", "ticker"]))
+    n_groups = len(precomputed_groups)
+    logger.info(f"[OPT] Pre-grouped {n_groups} day/ticker groups")
+
+    # --- OPTIMIZATION: Detect risk-only parameters ---
+    # When ALL optimized parameters are in risk_management (SL, TP, trailing),
+    # the entry/exit signals are identical across grid points. We cache them
+    # on the first iteration and reuse for all subsequent ones (~50-60% speedup).
+    is_risk_only = all(
+        pc["path"].startswith("risk_management.")
+        for pc in param_configs
+    )
+    signal_cache = {} if is_risk_only else None
+
+    if is_risk_only:
+        logger.info("[OPT] Risk-only parameters detected — signal caching ENABLED")
+    else:
+        logger.info("[OPT] Indicator parameters detected — signal caching disabled")
+
     # Create grid points
     grid_points = list(product(*axes))
     n_dims = len(param_configs)
@@ -265,6 +291,9 @@ def run_optimization_grid(
 
     logger.info(f"[OPT] Starting grid sweep: {len(grid_points)} points, shape={shape}")
 
+    if task_id:
+        OPTIMIZATION_PROGRESS[task_id] = 0.0
+
     for idx, point in enumerate(grid_points):
         # Clone strategy definition and set parameter values
         modified_def = copy.deepcopy(base_def)
@@ -274,8 +303,7 @@ def run_optimization_grid(
 
         try:
             bt_result = run_backtest(
-                intraday_df=intraday_df.copy(),
-                qualifying_df=qualifying_df.copy(),
+                qualifying_df=qualifying_df,
                 strategy_def=modified_def,
                 init_cash=backtest_params.get("init_cash", 10000),
                 risk_r=backtest_params.get("risk_r", 100),
@@ -289,6 +317,9 @@ def run_optimization_grid(
                 custom_end_time=backtest_params.get("custom_end_time"),
                 locates_cost=backtest_params.get("locates_cost", 0),
                 look_ahead_prevention=backtest_params.get("look_ahead_prevention", False),
+                day_group_iter=iter(precomputed_groups),
+                n_groups_hint=n_groups,
+                _signal_cache=signal_cache,
             )
             agg = bt_result.get("aggregate_metrics", {})
             metric_val = agg.get(metric_key, 0)
@@ -308,6 +339,12 @@ def run_optimization_grid(
             results_flat[idx] = np.nan
             details_flat[idx] = {}
 
+        if task_id:
+            prog = round(((idx + 1) / len(grid_points)) * 100, 2)
+            OPTIMIZATION_PROGRESS[task_id] = prog
+            if (idx + 1) % 5 == 0:
+                logger.info(f"[PROGRESS] {task_id}: {prog}%")
+
         if (idx + 1) % 10 == 0:
             elapsed = round(time.time() - t0, 1)
             logger.info(f"[OPT] Progress: {idx+1}/{len(grid_points)} ({elapsed}s)")
@@ -320,6 +357,9 @@ def run_optimization_grid(
 
     elapsed = round(time.time() - t0, 1)
     logger.info(f"[OPT] Grid sweep complete in {elapsed}s")
+
+    if task_id:
+        OPTIMIZATION_PROGRESS.pop(task_id, None)
 
     # Replace NaN with None for JSON serialization
     def clean(v):

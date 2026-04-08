@@ -26,15 +26,15 @@ app.include_router(data.router)
 app.include_router(backtest.router)
 app.include_router(optimization.router)
 
-from backend.db.gcs_cache import sync_hot_tables
-try:
-    logger.info("Syncing hot tables synchronously at startup...")
-    sync_hot_tables()
-except Exception as e:
-    logger.error(f"Module-level hot table sync failed: {e}")
-
 @app.on_event("startup")
 def on_startup():
+    from backend.db.gcs_cache import sync_hot_tables
+    try:
+        logger.info("Syncing hot tables in startup event...")
+        sync_hot_tables()
+    except Exception as e:
+        logger.error(f"Startup hot table sync failed: {e}")
+
     from backend.config import INTRADAY_BATCH_SIZE
     logger.info("=== BacktesterMVP starting ===")
     logger.info(f"ALLOWED_ORIGINS = {ALLOWED_ORIGINS}")

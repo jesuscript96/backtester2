@@ -8,6 +8,7 @@ Memory-optimised streaming architecture:
 """
 
 import ctypes
+import datetime
 import gc
 import logging
 import sys
@@ -16,10 +17,14 @@ import time
 import numpy as np
 import pandas as pd
 
-from backend.services.strategy_engine import translate_strategy
+from backend.services.strategy_engine import translate_strategy, _parse_risk_management
 from backend.services.portfolio_sim import simulate
 
 logger = logging.getLogger("backtester.engine")
+
+# Pre-computed time boundaries for patch mask (avoid recreating per iteration)
+_PATCH_START = datetime.time(8, 0)
+_PATCH_END = datetime.time(8, 45)
 
 
 
@@ -50,6 +55,7 @@ def run_backtest(
     day_group_iter=None,
     n_groups_hint: int = 0,
     monthly_expenses: float = 0.0,
+    _signal_cache: dict | None = None,
 ) -> dict:
     t_total = time.time()
 
@@ -155,28 +161,65 @@ def run_backtest(
                 "timestamp": mini_df["timestamp"].values,
             }
 
-        try:
-            signals = translate_strategy(mini_df, strategy_def, daily_stats)
-        except Exception:
-            del mini_df
-            continue
-        if not signals["entries"].any():
-            del mini_df, signals
-            continue
+        # --- Signal computation (with optional cache for risk-only optimization) ---
+        cache_key = (ticker, date)
 
-        entries_arr = signals["entries"].values if hasattr(signals["entries"], "values") else np.asarray(signals["entries"])
-        exits_arr = signals["exits"].values if hasattr(signals["exits"], "values") else np.asarray(signals["exits"])
+        if _signal_cache is not None and cache_key in _signal_cache:
+            # Reuse cached entry/exit signals, only re-parse risk management
+            cached = _signal_cache[cache_key]
+            entries_arr = cached["entries"]
+            exits_arr = cached["exits"]
+            sig_direction = cached["direction"]
+            sig_accept_reentries = cached["accept_reentries"]
+
+            if not np.any(entries_arr):
+                del mini_df
+                continue
+
+            # Re-parse risk management with current (modified) strategy_def
+            risk = strategy_def.get("risk_management", {})
+            sig_sl_stop, sig_sl_trail, sig_tp_stop, sig_trail_pct, sig_partial_tps = \
+                _parse_risk_management(risk, mini_df, daily_stats, {})
+        else:
+            try:
+                signals = translate_strategy(mini_df, strategy_def, daily_stats)
+            except Exception:
+                del mini_df
+                continue
+            if not signals["entries"].any():
+                del mini_df, signals
+                continue
+
+            entries_arr = signals["entries"].values if hasattr(signals["entries"], "values") else np.asarray(signals["entries"])
+            exits_arr = signals["exits"].values if hasattr(signals["exits"], "values") else np.asarray(signals["exits"])
+            sig_direction = signals["direction"]
+            sig_accept_reentries = signals.get("accept_reentries", False)
+            sig_sl_stop = signals["sl_stop"]
+            sig_sl_trail = signals["sl_trail"]
+            sig_tp_stop = signals["tp_stop"]
+            sig_trail_pct = signals.get("trail_pct")
+            sig_partial_tps = signals.get("partial_take_profits")
+
+            # Populate cache for subsequent optimization iterations
+            if _signal_cache is not None:
+                _signal_cache[cache_key] = {
+                    "entries": entries_arr.copy(),
+                    "exits": exits_arr.copy(),
+                    "direction": sig_direction,
+                    "accept_reentries": sig_accept_reentries,
+                }
+
+            del signals
 
         # --- TEMPORARY PATCH FOR MISPRINTS ---
         # 8:00 to 8:45 restriction to ignore misprints
-        import datetime
         times = pd.to_datetime(mini_df["timestamp"]).dt.time
-        patch_mask = (times >= datetime.time(8, 0)) & (times < datetime.time(8, 45))
+        patch_mask = (times >= _PATCH_START) & (times < _PATCH_END)
         patch_mask = patch_mask.values
 
         # If after masking we have no entries, skip simulation
         if not np.any(entries_arr):
-            del mini_df, signals
+            del mini_df
             continue
 
         try:
@@ -187,31 +230,31 @@ def run_backtest(
                 low=arrays["low"],
                 entries=entries_arr,
                 exits=exits_arr,
-                direction=signals["direction"],
+                direction=sig_direction,
                 init_cash=compounding_cash,
                 risk_r=risk_r,
                 risk_type=risk_type,
                 size_by_sl=size_by_sl,
-                prev_stats=running_stats, # Pass stats for Kelly
+                prev_stats=running_stats,
                 fees=fees,
                 fee_type=fee_type,
                 slippage=slippage,
                 locates_cost=locates_cost,
                 look_ahead_prevention=look_ahead_prevention,
-                sl_stop=signals["sl_stop"],
-                sl_trail=signals["sl_trail"],
-                tp_stop=signals["tp_stop"],
-                trail_pct=signals.get("trail_pct"),
-                accumulate=signals.get("accept_reentries", False),
+                sl_stop=sig_sl_stop,
+                sl_trail=sig_sl_trail,
+                tp_stop=sig_tp_stop,
+                trail_pct=sig_trail_pct,
+                accumulate=sig_accept_reentries,
                 patch_mask=patch_mask,
-                partial_take_profits=signals.get("partial_take_profits"),
+                partial_take_profits=sig_partial_tps,
             )
         except Exception as exc:
             logger.warning(f"[STREAM] day {ticker} {date} failed: {exc}")
-            del mini_df, signals
+            del mini_df
             continue
 
-        del mini_df, signals
+        del mini_df
 
         eq_vals = sim_result["equity"]
         raw_trades = sim_result["trades"]
@@ -267,7 +310,7 @@ def run_backtest(
 
         del sim_result, eq_vals, raw_trades, arrays, daily_stats
 
-        if days_with_entries % 50 == 0:
+        if days_with_entries % 200 == 0:
             gc.collect()
             logger.info(
                 f"[STREAM] {days_with_entries} days processed, "
@@ -320,10 +363,12 @@ def run_backtest(
 def _build_qualifying_lookup(qualifying_df: pd.DataFrame) -> dict:
     if qualifying_df.empty:
         return {}
-    lookup: dict = {}
-    for _, row in qualifying_df.iterrows():
-        lookup[(row["ticker"], row["date"])] = row.to_dict()
-    return lookup
+    # Vectorized: avoid slow iterrows() — convert entire DataFrame at once
+    records = qualifying_df.to_dict(orient="records")
+    return {
+        (r["ticker"], r["date"]): r
+        for r in records
+    }
 
 
 def _build_candles(ts_epoch: np.ndarray, arrays: dict) -> list[dict]:

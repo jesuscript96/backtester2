@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from backend.services.data_service import get_strategy
-from backend.services.optimization_service import extract_parameters, run_optimization_grid
+from backend.services.optimization_service import run_optimization_grid, extract_parameters, OPTIMIZATION_PROGRESS
 
 logger = logging.getLogger("backtester.optimization")
 
@@ -48,6 +48,7 @@ class SurfaceRequest(BaseModel):
     custom_end_time: str | None = None
     locates_cost: float = 0.0
     look_ahead_prevention: bool = False
+    task_id: str | None = None
 
 
 @router.post("/optimization/parameters")
@@ -65,6 +66,13 @@ def get_optimization_parameters(req: ParametersRequest):
     except Exception as e:
         logger.error(f"Error extracting parameters: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+
+@router.get("/optimization/progress/{task_id}")
+def get_optimization_progress(task_id: str):
+    prog = OPTIMIZATION_PROGRESS.get(task_id, 0.0)
+    logger.debug(f"[PROGRESS_CHECK] {task_id} = {prog}%")
+    return {"progress": prog}
 
 
 @router.post("/optimization/surface")
@@ -92,6 +100,8 @@ def run_surface(req: SurfaceRequest):
                 "look_ahead_prevention": req.look_ahead_prevention,
             },
         )
+        if req.task_id:
+            OPTIMIZATION_PROGRESS.pop(req.task_id, None)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

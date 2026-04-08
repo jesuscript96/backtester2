@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import {
   fetchOptimizationParams,
   runOptimizationSurface,
+  fetchOptimizationProgress,
   type OptimizationParam,
   type OptimizationResult,
   type OptimizationParamConfig,
@@ -51,6 +52,7 @@ export default function OptimizationSurfaceTab({
   const [loadingParams, setLoadingParams] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OptimizationResult | null>(null);
+  const [progress, setProgress] = useState<number>(0);
 
   // Config state
   const [mode, setMode] = useState<"2D" | "3D">("2D");
@@ -104,15 +106,31 @@ export default function OptimizationSurfaceTab({
     setLoading(true);
     setError(null);
     setResult(null);
+    setProgress(0);
+
+    const taskId = `opt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     const pX = getParamById(paramX);
     const pY = getParamById(paramY);
-    if (!pX || !pY) return;
+    if (!pX || !pY) {
+      setLoading(false);
+      return;
+    }
 
     const configs: OptimizationParamConfig[] = [
       { id: pX.id, label: pX.label, path: pX.path, min: rangeX[0], max: rangeX[1], steps: gridSteps },
       { id: pY.id, label: pY.label, path: pY.path, min: rangeY[0], max: rangeY[1], steps: gridSteps },
     ];
+
+    // Start polling progress
+    const pollInterval = setInterval(async () => {
+      try {
+        const p = await fetchOptimizationProgress(taskId);
+        setProgress(p);
+      } catch (e) {
+        console.warn("Error polling progress:", e);
+      }
+    }, 500);
 
     try {
       const data = await runOptimizationSurface({
@@ -120,6 +138,7 @@ export default function OptimizationSurfaceTab({
         dataset_id: datasetId,
         metric,
         param_configs: configs,
+        task_id: taskId,
         ...backtestParams,
       });
       setResult(data);
@@ -130,6 +149,7 @@ export default function OptimizationSurfaceTab({
           : "Error en la optimización";
       setError(msg);
     } finally {
+      clearInterval(pollInterval);
       setLoading(false);
     }
   };
@@ -372,16 +392,31 @@ export default function OptimizationSurfaceTab({
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center space-y-3">
+        <div className="flex items-center justify-center h-64 border border-[var(--border)] rounded-lg bg-[var(--card-bg)] shadow-sm">
+          <div className="text-center space-y-4 w-full max-w-xs px-6">
             <svg className="animate-spin h-8 w-8 text-[var(--accent)] mx-auto" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <p className="text-sm text-[var(--muted)]">
-              Ejecutando grid de optimización ({gridSteps}×{gridSteps} = {gridSteps * gridSteps} backtests)...
-            </p>
-            <p className="text-xs text-[var(--muted)]">Esto puede tardar varios minutos</p>
+            <div className="space-y-3">
+              <div className="flex justify-between items-end mb-1">
+                <p className="text-sm font-semibold text-[var(--foreground)]">
+                  Ejecutando optimización
+                </p>
+                <span className="text-xs font-mono text-[var(--accent)] font-bold">
+                  {progress}%
+                </span>
+              </div>
+              <div className="h-2 w-full bg-[var(--sidebar-bg)] rounded-full overflow-hidden border border-[var(--border)]">
+                <div 
+                  className="h-full bg-[var(--accent)] transition-all duration-300 ease-out shadow-[0_0_10px_var(--accent)]"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-[var(--muted)] uppercase tracking-wider">
+                Procesando {gridSteps * gridSteps} backtests...
+              </p>
+            </div>
           </div>
         </div>
       )}

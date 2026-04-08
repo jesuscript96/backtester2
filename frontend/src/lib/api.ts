@@ -290,8 +290,14 @@ export async function runOptimizationSurface(params: {
   end_date?: string;
   market_sessions?: string[];
   look_ahead_prevention?: boolean;
+  task_id?: string;
 }): Promise<OptimizationResult> {
   const { data } = await api.post("/optimization/surface", params);
   return data;
+}
+
+export async function fetchOptimizationProgress(task_id: string): Promise<number> {
+  const { data } = await api.get(`/optimization/progress/${task_id}`);
+  return data.progress;
 }
 
