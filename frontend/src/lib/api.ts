@@ -144,7 +144,15 @@ export interface BacktestResult {
   trades: TradeRecord[];
   equity_curves: DayEquity[];
   global_equity: GlobalEquityPoint[];
+  global_equity_expenses?: GlobalEquityPoint[];
   global_drawdown: DrawdownPoint[];
+}
+
+export interface WhatIfResult {
+  trades: TradeRecord[];
+  global_equity: GlobalEquityPoint[];
+  global_drawdown: DrawdownPoint[];
+  aggregate_metrics: AggregateMetrics;
 }
 
 export interface MonteCarloPercentileCurve {
@@ -299,5 +307,15 @@ export async function runOptimizationSurface(params: {
 export async function fetchOptimizationProgress(task_id: string): Promise<number> {
   const { data } = await api.get(`/optimization/progress/${task_id}`);
   return data.progress;
+}
+
+export async function runWhatIf(params: {
+  trades: TradeRecord[];
+  init_cash: number;
+  risk_r: number;
+  params: Record<string, any>;
+}): Promise<WhatIfResult> {
+  const { data } = await api.post("/what-if", params);
+  return data;
 }
 

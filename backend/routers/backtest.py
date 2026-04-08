@@ -14,6 +14,7 @@ from backend.services.data_service import (
 )
 from backend.services.backtest_service import run_backtest
 from backend.services.montecarlo_service import run_montecarlo
+from backend.services.what_if_service import run_what_if
 
 logger = logging.getLogger("backtester.backtest")
 
@@ -46,6 +47,13 @@ class MonteCarloRequest(BaseModel):
     pnls: list[float]
     init_cash: float = 10000.0
     simulations: int = 1000
+
+
+class WhatIfRequest(BaseModel):
+    trades: list[dict]
+    init_cash: float = 10000.0
+    risk_r: float = 100.0
+    params: dict
 
 
 @router.post("/backtest")
@@ -167,3 +175,14 @@ def run_montecarlo_endpoint(req: MonteCarloRequest):
         raise HTTPException(
             status_code=500, detail=f"Error en Monte Carlo: {str(e)}"
         )
+
+
+@router.post("/what-if")
+def run_what_if_endpoint(req: WhatIfRequest):
+    if not req.trades:
+        raise HTTPException(status_code=400, detail="No trades provided for simulation")
+    try:
+        return run_what_if(req.trades, req.params, req.init_cash, req.risk_r)
+    except Exception as e:
+        logger.error(f"  what-if FAILED: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error en simulación What-if: {str(e)}")

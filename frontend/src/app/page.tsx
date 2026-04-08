@@ -226,6 +226,7 @@ export default function Home() {
                       globalEquity={result.global_equity}
                       globalDrawdown={result.global_drawdown}
                       trades={result.trades}
+                      metrics={result.aggregate_metrics}
                       initCash={initCashRef.current}
                       riskR={riskRRef.current}
                       monthlyExpenses={backtestParamsRef.current.monthly_expenses as number | undefined}
