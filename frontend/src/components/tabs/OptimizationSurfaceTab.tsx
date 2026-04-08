@@ -11,15 +11,18 @@ import {
   type OptimizationParamConfig,
 } from "@/lib/api";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Plot = dynamic(
   async () => {
+    // @ts-ignore
     const Plotly = await import("plotly.js-dist-min");
-    const createPlotComponent = (await import("react-plotly.js/factory")).default;
-    return createPlotComponent(Plotly);
+    // @ts-ignore
+    const factory = await import("react-plotly.js/factory");
+    const createPlotComponent = (factory as any).default;
+    return { default: createPlotComponent(Plotly) };
   },
   { ssr: false }
-);
+) as any;
 
 const METRIC_OPTIONS = [
   { value: "sharpe", label: "Sharpe Ratio" },
