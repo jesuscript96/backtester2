@@ -372,7 +372,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
   })();
 
   return (
-    <div className="flex flex-col h-[660px] bg-[var(--card-bg)]">
+    <div className="flex flex-col h-[685px] bg-[var(--card-bg)]">
       {/* MAIN TAB SWITCHER */}
       <div className="px-3 border-b border-[var(--border)] bg-[var(--sidebar-bg)] flex items-center h-[30px]">
         <div className="flex h-full">
