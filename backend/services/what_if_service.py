@@ -38,12 +38,21 @@ def run_what_if(
     exclude_hour_end = params.get("exclude_hour_end") # int
     random_monthly_days = params.get("random_monthly_days", 0)
 
-    # Prepare Month mapping if it's names
+    # Prepare Month mapping — accepts both numeric indices (0-based from frontend)
+    # and Spanish month name strings (legacy)
     month_map = {
         "Enero": 1, "Febrero": 2, "Marzo": 3, "Abril": 4, "Mayo": 5, "Junio": 6,
         "Julio": 7, "Agosto": 8, "Septiembre": 9, "Octubre": 10, "Noviembre": 11, "Diciembre": 12
     }
-    exclude_months_idx = [month_map.get(m, 0) for m in exclude_months if m in month_map]
+    exclude_months_idx = []
+    for m in exclude_months:
+        if isinstance(m, int):
+            # Frontend sends 0-based index (0=Jan, 11=Dec) → convert to 1-based month
+            exclude_months_idx.append(m + 1)
+        elif isinstance(m, str) and m in month_map:
+            exclude_months_idx.append(month_map[m])
+        elif isinstance(m, str) and m.isdigit():
+            exclude_months_idx.append(int(m) + 1)
 
     # Handle Random Monthly Days
     # We group trades by YYYY-MM and pick N random days to exclude
@@ -56,11 +65,9 @@ def run_what_if(
                 trades_by_month[m_key] = set()
             trades_by_month[m_key].add(t["date"])
         
-        # Fixed seed for consistency as proposed in the plan
-        rng = random.Random(42)
         for m_key, dates in trades_by_month.items():
             dates_list = sorted(list(dates))
-            to_drop = rng.sample(dates_list, min(len(dates_list), random_monthly_days))
+            to_drop = random.sample(dates_list, min(len(dates_list), random_monthly_days))
             days_to_exclude.update(to_drop)
 
     filtered_trades = []
@@ -104,7 +111,51 @@ def run_what_if(
 
         filtered_trades.append(t.copy())
 
-    # --- 3) Stress Test ---
+    # --- 3) Alternative Size Management (Dynamic Post-hoc) ---
+    size_mgmt_type = params.get("size_mgmt_type", "dd")
+    dd_threshold = params.get("dd_threshold", 5)
+    dd_reduction = params.get("dd_reduction", 50)
+    sma_period = params.get("sma_period", 20)
+    sma_reduction = params.get("sma_reduction", 50)
+
+    # We need to simulate the equity curve sequentially to calculate DD or SMA 
+    # and reduce size accordingly on the fly.
+    if dd_threshold > 0 or sma_period > 0:
+        current_eq = init_cash
+        running_max = init_cash
+        eq_history = [init_cash]
+        
+        for t in filtered_trades:
+            # 1. Evaluate current conditions (Before applying trade)
+            current_dd_pct = ((running_max - current_eq) / running_max * 100) if running_max > 0 else 0
+            
+            if len(eq_history) >= sma_period:
+                sma_val = sum(eq_history[-sma_period:]) / sma_period
+            else:
+                sma_val = sum(eq_history) / len(eq_history)
+
+            # 2. Decide size reduction factor
+            reduce_factor = 1.0
+            if size_mgmt_type == "dd":
+                if current_dd_pct > dd_threshold:
+                    reduce_factor = max(0.0, 1.0 - (dd_reduction / 100.0))
+            elif size_mgmt_type == "sma":
+                if current_eq < sma_val:
+                    reduce_factor = max(0.0, 1.0 - (sma_reduction / 100.0))
+            
+            # 3. Apply reduction to the trade PnL and Size
+            if reduce_factor < 1.0:
+                t["size"] = t["size"] * reduce_factor
+                t["pnl"] = t["pnl"] * reduce_factor
+
+            # 4. Advance states
+            current_eq += t["pnl"]
+            if current_eq > running_max:
+                running_max = current_eq
+            eq_history.append(current_eq)
+
+
+    # --- 4) Stress Test ---
     skip_top_pct = params.get("skip_top_pct", 0)
     extra_slippage = params.get("extra_slippage", 0)
     black_swan_count = params.get("black_swan_count", 0)
@@ -135,8 +186,7 @@ def run_what_if(
 
     # Black Swan (Random losses)
     if black_swan_count > 0 and filtered_trades:
-        rng = random.Random(42)
-        swan_indices = rng.sample(range(len(filtered_trades)), min(len(filtered_trades), black_swan_count))
+        swan_indices = random.sample(range(len(filtered_trades)), min(len(filtered_trades), black_swan_count))
         for idx in swan_indices:
             t = filtered_trades[idx]
             # Replace trade with a significant loss
@@ -144,7 +194,7 @@ def run_what_if(
             t["pnl"] = -abs(t["size"] * t["entry_price"] * (abs(t["return_pct"]) / 100.0))
             t["exit_reason"] = "BLACK SWAN"
 
-    # --- 4) Rebuild Equity & Finalize ---
+    # --- 5) Rebuild Equity & Finalize ---
     # We use the helpers from backtest_service to ensure consistency
     # Note: we pass monthly_expenses=0 for what-if often, unless requested
     monthly_expenses = params.get("monthly_expenses", 0.0)

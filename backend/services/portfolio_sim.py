@@ -20,6 +20,7 @@ def simulate(
     init_cash: float = 10000.0,
     risk_r: float = 100.0,
     risk_type: str = "FIXED",
+    fixed_ratio_delta: float = 500.0,
     size_by_sl: bool = False,
     prev_stats: dict | None = None,
     fees: float = 0.0,
@@ -398,9 +399,16 @@ def simulate(
                     if kelly_f > 0:
                         risk_amount = available_cash * kelly_f
                     else:
-                        # Kelly has no data yet (first days) — use a moderate 
-                        # bootstrap of 5% of equity so we can start building stats
-                        risk_amount = available_cash * 0.05
+                        risk_amount = 0.0 # Don't take trade if kelly negative or no edge
+                elif risk_type == "FIXED_RATIO":
+                    # Ryan Jones Fixed Ratio formula
+                    # N = 0.5 + 0.5 * sqrt(1 + (8 * Profit / Delta))
+                    if realized_pnl > 0 and fixed_ratio_delta > 0:
+                        import math
+                        n_units = 0.5 + 0.5 * math.sqrt(1 + (8 * realized_pnl / fixed_ratio_delta))
+                    else:
+                        n_units = 1.0
+                    risk_amount = risk_r * n_units
                 else:
                     risk_amount = risk_r
 

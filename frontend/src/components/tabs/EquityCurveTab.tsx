@@ -41,8 +41,9 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
   // --- What If Simulation States ---
   const [excludeDays, setExcludeDays] = useState<number[]>([]); // 0=Mon, 4=Fri
   const [excludeMonths, setExcludeMonths] = useState<number[]>([]); // 0=Jan
-  const [excludeHourStart, setExcludeHourStart] = useState<number | "any">("any");
-  const [excludeHourEnd, setExcludeHourEnd] = useState<number | "any">("any");
+  const [excludeHourStart, setExcludeHourStart] = useState<string>("");
+  const [excludeHourEnd, setExcludeHourEnd] = useState<string>("");
+  const [includeExpensesInWhatIf, setIncludeExpensesInWhatIf] = useState(false);
   const [randomMonthlyDays, setRandomMonthlyDays] = useState<number>(0);
   const [dailyMaxTrades, setDailyMaxTrades] = useState<number>(0);
   const [maxConcurrentTrades, setMaxConcurrentTrades] = useState<number>(0);
@@ -71,11 +72,18 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
     if (!trades || trades.length === 0) return;
     setSimLoading(true);
     try {
+      // Parse time strings to hour numbers for the backend
+      const parseHour = (t: string) => {
+        if (!t) return null;
+        const parts = t.split(":");
+        return parts.length >= 1 ? parseInt(parts[0], 10) : null;
+      };
+
       const params = {
         exclude_days: excludeDays,
         exclude_months: excludeMonths,
-        exclude_hour_start: excludeHourStart !== "any" ? Number(excludeHourStart) : null,
-        exclude_hour_end: excludeHourEnd !== "any" ? Number(excludeHourEnd) : null,
+        exclude_hour_start: parseHour(excludeHourStart),
+        exclude_hour_end: parseHour(excludeHourEnd),
         random_monthly_days: randomMonthlyDays,
         daily_max_trades: dailyMaxTrades,
         max_concurrent_trades: maxConcurrentTrades,
@@ -83,7 +91,12 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
         extra_slippage: extraSlippage,
         black_swan_count: blackSwanCount,
         black_swan_pct: blackSwanSize,
-        monthly_expenses: monthlyExpenses || 0
+        monthly_expenses: includeExpensesInWhatIf ? (monthlyExpenses || 0) : 0,
+        size_mgmt_type: sizeMgmtType,
+        dd_threshold: ddThreshold,
+        dd_reduction: ddReduction,
+        sma_period: smaPeriod,
+        sma_reduction: smaReduction
       };
 
       const result = await runWhatIf({
@@ -517,30 +530,25 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                         </div>
                       </div>
                       <div>
+                        <label className="text-[10px] font-medium text-[var(--muted)] mb-1.5 block">Excluir Rango de Horas</label>
                         <div className="flex items-center gap-4">
                           <div className="flex-1">
                             <label className="text-[10px] font-medium text-[var(--muted)] mb-1 block uppercase opacity-70">Desde:</label>
-                            <select
+                            <input
+                              type="time"
                               value={excludeHourStart}
-                              onChange={(e) => setExcludeHourStart(Number(e.target.value))}
-                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-[11px] outline-none"
-                            >
-                              {Array.from({ length: 24 }).map((_, h) => (
-                                <option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>
-                              ))}
-                            </select>
+                              onChange={(e) => setExcludeHourStart(e.target.value)}
+                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-[11px] outline-none focus:border-[var(--accent)]"
+                            />
                           </div>
                           <div className="flex-1">
                             <label className="text-[10px] font-medium text-[var(--muted)] mb-1 block uppercase opacity-70">Hasta:</label>
-                            <select
+                            <input
+                              type="time"
                               value={excludeHourEnd}
-                              onChange={(e) => setExcludeHourEnd(Number(e.target.value))}
-                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-[11px] outline-none"
-                            >
-                              {Array.from({ length: 24 }).map((_, h) => (
-                                <option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>
-                              ))}
-                            </select>
+                              onChange={(e) => setExcludeHourEnd(e.target.value)}
+                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-[11px] outline-none focus:border-[var(--accent)]"
+                            />
                           </div>
                         </div>
                       </div>
@@ -610,7 +618,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                     className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--sidebar-bg)] transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider">3) Gestión dinámica de size</span>
+                       <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider">3) Gestión alternativa del size</span>
                     </div>
                     <span className={`text-xs text-[var(--muted)] transform transition-transform ${openSections.includes("size") ? "rotate-180" : ""}`}>▼</span>
                   </button>
@@ -754,6 +762,23 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                   )}
                 </div>
 
+                {/* Include Expenses Checkbox */}
+                {monthlyExpenses && monthlyExpenses > 0 && (
+                  <div className="px-4 py-3 border-b border-[var(--border)]">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={includeExpensesInWhatIf}
+                        onChange={(e) => setIncludeExpensesInWhatIf(e.target.checked)}
+                        className="accent-[var(--accent)] w-3.5 h-3.5"
+                      />
+                      <span className="text-[10px] text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">
+                        Incluir costes fijos mensuales (${monthlyExpenses}/mes)
+                      </span>
+                    </label>
+                  </div>
+                )}
+
                 {/* Final Execution Button */}
                 <div className="p-5 mt-auto">
                   <button 
@@ -772,15 +797,15 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
             </div>
 
             {/* RIGHT COLUMN: SIMULATION RESULTS */}
-            <div className="w-1/2 p-6 flex flex-col bg-[var(--background)] overflow-y-auto custom-scrollbar">
-              <div className="flex-1 flex flex-col justify-start">
-                 <h4 className="text-[10px] font-bold uppercase text-[var(--muted)] mb-5 flex items-center gap-2 opacity-60">
+            <div className="w-1/2 pt-3 px-6 pb-6 flex flex-col bg-[var(--background)] overflow-y-auto custom-scrollbar">
+              <div className="flex-1 flex flex-col items-start justify-start">
+                 <h4 className="text-[10px] font-bold uppercase text-[var(--muted)] mb-5 flex items-center gap-2 opacity-60 w-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)]"></span>
                   Resultados Simulados
                  </h4>
                  
-                 <div className="flex flex-col">
-                    <div className="grid grid-cols-2 gap-x-10 gap-y-1.5 max-w-[480px]">
+                 <div className="flex w-full flex-col">
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-1.5 w-full max-w-[480px]">
                        {[
                          { label: "Días", base: metrics?.total_days ?? 0, sim: getSimValue("total_days") },
                          { label: "Trades", base: metrics?.total_trades ?? 0, sim: getSimValue("total_trades") },
@@ -809,17 +834,17 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                             </div>
                          </div>
                        ))}
-                    </div>
-
-                    <div className="mt-8">
-                       <div className="h-[140px] w-full bg-[var(--background)] flex items-center justify-center relative overflow-hidden group">
-                          <div className="absolute inset-0 border border-[var(--border)] border-dashed opacity-20"></div>
-                          <div className="text-center">
-                             <div className="text-xl opacity-10 mb-2">📊</div>
-                             <p className="text-[8px] text-[var(--muted)] opacity-40 uppercase tracking-widest">Plano de simulación</p>
-                          </div>
-                       </div>
-                    </div>
+                     </div>
+                     {/* What If Equity Curve: Ghost original + simulated */}
+                     <div className="mt-6">
+                        <WhatIfEquityChart
+                          originalEquity={globalEquity}
+                          originalDrawdown={globalDrawdown}
+                          simResult={simResult}
+                          initCash={initCash}
+                          isDarkMode={isDarkMode}
+                        />
+                     </div>
                  </div>
               </div>
             </div>
@@ -828,5 +853,207 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
       </div>
     </div>
 
+  );
+}
+
+// ---------------------------------------------------------------------------
+// What If Equity Chart — Ghost original + simulated
+// ---------------------------------------------------------------------------
+
+function WhatIfEquityChart({
+  originalEquity,
+  originalDrawdown,
+  simResult,
+  initCash,
+  isDarkMode = false,
+}: {
+  originalEquity: GlobalEquityPoint[];
+  originalDrawdown: DrawdownPoint[];
+  simResult: WhatIfResult | null;
+  initCash: number;
+  isDarkMode?: boolean;
+}) {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const ddContainerRef = useRef<HTMLDivElement>(null);
+  const chartInstanceRef = useRef<IChartApi | null>(null);
+  const ddInstanceRef = useRef<IChartApi | null>(null);
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    // Clean up previous chart
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.remove();
+      chartInstanceRef.current = null;
+    }
+
+    // Nothing to render if no simulation result
+    if (!simResult || !simResult.global_equity || simResult.global_equity.length === 0) return;
+
+    const container = chartContainerRef.current;
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: 180,
+      layout: {
+        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        textColor: isDarkMode ? "#94a3b8" : "#64748b",
+      },
+      grid: {
+        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+      },
+      rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+      timeScale: {
+        borderColor: isDarkMode ? "#334155" : "#e2e8f0",
+        timeVisible: false,
+      },
+    });
+    chartInstanceRef.current = chart;
+
+    // 1. Original equity as ghost (faded, dashed)
+    if (originalEquity.length > 0) {
+      const ghostSeries = chart.addSeries(LineSeries, {
+        color: isDarkMode ? "rgba(148,163,184,0.3)" : "rgba(100,116,139,0.25)",
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        crosshairMarkerVisible: false,
+      });
+      ghostSeries.setData(
+        originalEquity.map((p) => ({
+          time: p.time as Time,
+          value: p.value,
+        }))
+      );
+    }
+
+    // 2. What If equity as solid area
+    const simSeries = chart.addSeries(AreaSeries, {
+      lineColor: "#3b82f6",
+      topColor: "rgba(59,130,246,0.35)",
+      bottomColor: "rgba(59,130,246,0.05)",
+      lineWidth: 2,
+    });
+    simSeries.setData(
+      simResult.global_equity.map((p: GlobalEquityPoint) => ({
+        time: p.time as Time,
+        value: p.value,
+      }))
+    );
+
+    // --- Drawdown Chart ---
+    if (!ddContainerRef.current) return;
+    
+    if (ddInstanceRef.current) {
+      ddInstanceRef.current.remove();
+      ddInstanceRef.current = null;
+    }
+    
+    const ddContainer = ddContainerRef.current;
+    const ddChart = createChart(ddContainer, {
+      width: ddContainer.clientWidth,
+      height: 80,
+      layout: {
+        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        textColor: isDarkMode ? "#94a3b8" : "#64748b",
+      },
+      grid: {
+        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+      },
+      rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
+      timeScale: {
+        borderColor: isDarkMode ? "#334155" : "#e2e8f0",
+        timeVisible: true,
+      },
+    });
+    ddInstanceRef.current = ddChart;
+
+    if (originalDrawdown && originalDrawdown.length > 0) {
+      const origDdSeries = ddChart.addSeries(LineSeries, {
+        color: isDarkMode ? "rgba(220,38,38,0.3)" : "rgba(220,38,38,0.25)",
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        crosshairMarkerVisible: false,
+      });
+      origDdSeries.setData(
+        originalDrawdown.map((p) => ({
+          time: p.time as Time,
+          value: p.value,
+        }))
+      );
+    }
+    
+    if (simResult.global_drawdown) {
+      const simDdSeries = ddChart.addSeries(HistogramSeries, {
+        color: "rgba(220,38,38,0.5)",
+      });
+      simDdSeries.setData(
+        simResult.global_drawdown.map((p) => ({
+          time: p.time as Time,
+          value: p.value,
+        }))
+      );
+    }
+
+    // Sync axes
+    chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+      if (range) ddChart.timeScale().setVisibleLogicalRange(range);
+    });
+    ddChart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+      if (range) chart.timeScale().setVisibleLogicalRange(range);
+    });
+
+    chart.timeScale().fitContent();
+    ddChart.timeScale().fitContent();
+
+    const handleResize = () => {
+      if (container && ddContainer) {
+        chart.applyOptions({ width: container.clientWidth });
+        ddChart.applyOptions({ width: ddContainer.clientWidth });
+      }
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      chart.remove();
+      chartInstanceRef.current = null;
+      if (ddInstanceRef.current) {
+        ddInstanceRef.current.remove();
+        ddInstanceRef.current = null;
+      }
+    };
+  }, [originalEquity, originalDrawdown, simResult, initCash, isDarkMode]);
+
+  if (!simResult) {
+    return (
+      <div className="h-[140px] w-full bg-[var(--background)] flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 border border-[var(--border)] border-dashed opacity-20"></div>
+        <div className="text-center">
+          <div className="text-xl opacity-10 mb-2">📊</div>
+          <p className="text-[8px] text-[var(--muted)] opacity-40 uppercase tracking-widest">
+            Ejecuta una simulación para ver la curva comparativa
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-4 mb-2">
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-[2px] bg-gray-400 opacity-50" style={{ borderTop: "1px dashed" }}></div>
+          <span className="text-[9px] text-[var(--muted)]">Original</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-[2px] bg-blue-500"></div>
+          <span className="text-[9px] text-[var(--muted)]">What If</span>
+        </div>
+      </div>
+      <div ref={chartContainerRef} className="h-[180px] w-full rounded-t border border-b-0 border-[var(--border)]" />
+      <div ref={ddContainerRef} className="h-[80px] w-full rounded-b border border-[var(--border)]" />
+    </div>
   );
 }

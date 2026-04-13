@@ -23,6 +23,7 @@ interface BacktestPanelProps {
     size_by_sl?: boolean;
     fee_type?: string;
     monthly_expenses?: number;
+    fixed_ratio_delta?: number;
   }) => void;
   loading: boolean;
   isDarkMode?: boolean;
@@ -47,7 +48,8 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
   const [useMonthlyExpenses, setUseMonthlyExpenses] = useState(false);
   const [monthlyExpenses, setMonthlyExpenses] = useState(0);
   const [lookAheadPrevention, setLookAheadPrevention] = useState(true);
-  const [riskType, setRiskType] = useState<"FIXED" | "PERCENT" | "KELLY">("FIXED");
+  const [riskType, setRiskType] = useState<"FIXED" | "PERCENT" | "KELLY" | "FIXED_RATIO">("FIXED");
+  const [fixedRatioDelta, setFixedRatioDelta] = useState(500);
   const [sizeBySl, setSizeBySl] = useState(false);
   const [feeType, setFeeType] = useState<"PERCENT" | "FLAT">("PERCENT");
   const [loadingData, setLoadingData] = useState(true);
@@ -113,6 +115,7 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
       monthly_expenses: useMonthlyExpenses ? monthlyExpenses : 0,
       look_ahead_prevention: lookAheadPrevention,
       risk_type: riskType,
+      fixed_ratio_delta: riskType === "FIXED_RATIO" ? fixedRatioDelta : 500,
       size_by_sl: sizeBySl,
     });
   };
@@ -208,26 +211,40 @@ export default function BacktestPanel({ onRun, loading, isDarkMode = false }: Ba
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium text-[var(--muted)]">
-                  Riesgo 1R {riskType === "PERCENT" ? "(%)" : riskType === "KELLY" ? "(K)" : "($)"}
+                <label className="block text-xs font-medium text-[var(--muted)] truncate pr-2">
+                  Riesgo 1R
                 </label>
                 <select
                   value={riskType}
-                  onChange={(e) => setRiskType(e.target.value as "FIXED" | "PERCENT" | "KELLY")}
+                  onChange={(e) => setRiskType(e.target.value as "FIXED" | "PERCENT" | "KELLY" | "FIXED_RATIO")}
                   className="text-[10px] bg-transparent text-[var(--muted)] hover:text-[var(--foreground)] outline-none cursor-pointer"
                 >
                   <option value="FIXED">Fijo ($)</option>
                   <option value="PERCENT">% Eq</option>
                   <option value="KELLY">Kelly</option>
+                  <option value="FIXED_RATIO">Fixed Ratio</option>
                 </select>
               </div>
-              <input
-                type="number"
-                step={riskType === "PERCENT" ? "0.1" : "1"}
-                value={riskR}
-                onChange={(e) => setRiskR(Number(e.target.value))}
-                className="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm bg-[var(--card-muted-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step={riskType === "PERCENT" ? "0.1" : "1"}
+                  value={riskR}
+                  onChange={(e) => setRiskR(Number(e.target.value))}
+                  className="w-full border border-[var(--border)] rounded-md px-3 py-2 text-sm bg-[var(--card-muted-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                />
+                {riskType === "FIXED_RATIO" && (
+                  <input
+                    type="number"
+                    step="50"
+                    placeholder="Delta ($)"
+                    value={fixedRatioDelta}
+                    onChange={(e) => setFixedRatioDelta(Number(e.target.value))}
+                    title="Delta ($) requerido para +1 unidad de riesgo"
+                    className="w-20 border border-[var(--border)] rounded-md px-2 py-2 text-sm bg-[var(--card-muted-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                )}
+              </div>
             </div>
           </div>
 

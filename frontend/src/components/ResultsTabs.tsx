@@ -70,7 +70,7 @@ export default function ResultsTabs({
       </div>
 
       <div className="p-4">
-        {activeTab === "performance" && (
+        <div style={{ display: activeTab === "performance" ? "block" : "none" }}>
           <PerformanceTab
             dayResults={result.day_results}
             trades={result.trades}
@@ -78,12 +78,14 @@ export default function ResultsTabs({
             riskR={riskR}
             isDarkMode={isDarkMode}
           />
-        )}
-        {activeTab === "calendar" && (
+        </div>
+        <div style={{ display: activeTab === "calendar" ? "block" : "none" }}>
           <CalendarTab dayResults={result.day_results} trades={result.trades} isDarkMode={isDarkMode} />
-        )}
-        {activeTab === "trades" && <TradesTab trades={result.trades} />}
-        {activeTab === "analysis" && (
+        </div>
+        <div style={{ display: activeTab === "trades" ? "block" : "none" }}>
+          <TradesTab trades={result.trades} />
+        </div>
+        <div style={{ display: activeTab === "analysis" ? "block" : "none" }}>
           <div>
             {candlesLoading && (
               <div className="flex items-center justify-center p-8">
@@ -111,16 +113,18 @@ export default function ResultsTabs({
               </p>
             )}
           </div>
-        )}
-        {activeTab === "charts" && <ChartsTab trades={result.trades} riskR={riskR} isDarkMode={isDarkMode} />}
-        {activeTab === "optimization" && (
+        </div>
+        <div style={{ display: activeTab === "charts" ? "block" : "none" }}>
+          <ChartsTab trades={result.trades} riskR={riskR} isDarkMode={isDarkMode} />
+        </div>
+        <div style={{ display: activeTab === "optimization" ? "block" : "none" }}>
           <OptimizationSurfaceTab
             strategyId={strategyId}
             datasetId={datasetId}
             isDarkMode={isDarkMode}
             backtestParams={backtestParams}
           />
-        )}
+        </div>
       </div>
     </div>
   );

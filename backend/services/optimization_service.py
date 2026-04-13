@@ -52,6 +52,10 @@ def extract_parameters(strategy_def: dict) -> list[dict]:
             v = float(value)
         except (TypeError, ValueError):
             return
+        # Skip parameters with value 0 — they represent disabled features
+        # (e.g., SL=0 means no stop loss, TP=0 means no take profit)
+        if v == 0:
+            return
         params.append({
             "id": param_id,
             "label": label,

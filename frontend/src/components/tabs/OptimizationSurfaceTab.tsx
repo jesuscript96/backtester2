@@ -73,6 +73,9 @@ export default function OptimizationSurfaceTab({
     if (!strategyId) return;
     setLoadingParams(true);
     setError(null);
+    setResult(null); // Clear old optimization result when strategy changes
+    setParamX("");
+    setParamY("");
     fetchOptimizationParams(strategyId)
       .then((res) => {
         setParams(res.parameters);

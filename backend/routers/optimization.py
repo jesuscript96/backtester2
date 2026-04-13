@@ -99,6 +99,7 @@ def run_surface(req: SurfaceRequest):
                 "locates_cost": req.locates_cost,
                 "look_ahead_prevention": req.look_ahead_prevention,
             },
+            task_id=req.task_id,
         )
         if req.task_id:
             OPTIMIZATION_PROGRESS.pop(req.task_id, None)

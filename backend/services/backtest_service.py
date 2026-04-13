@@ -43,6 +43,7 @@ def run_backtest(
     init_cash: float = 10000.0,
     risk_r: float = 100.0,
     risk_type: str = "FIXED",
+    fixed_ratio_delta: float = 500.0,
     size_by_sl: bool = False,
     fees: float = 0.0,
     fee_type: str = "PERCENT",
@@ -213,8 +214,12 @@ def run_backtest(
 
         # --- TEMPORARY PATCH FOR MISPRINTS ---
         # 8:00 to 8:45 restriction to ignore misprints
-        times = pd.to_datetime(mini_df["timestamp"]).dt.time
-        patch_mask = (times >= _PATCH_START) & (times < _PATCH_END)
+        ts_series = mini_df["timestamp"]
+        if not pd.api.types.is_datetime64_any_dtype(ts_series):
+            ts_series = pd.to_datetime(ts_series)
+            
+        # Avoid .dt.time which creates expensive python datetime.time objects
+        patch_mask = (ts_series.dt.hour == 8) & (ts_series.dt.minute >= 0) & (ts_series.dt.minute < 45)
         patch_mask = patch_mask.values
 
         # If after masking we have no entries, skip simulation
@@ -234,6 +239,7 @@ def run_backtest(
                 init_cash=compounding_cash,
                 risk_r=risk_r,
                 risk_type=risk_type,
+                fixed_ratio_delta=fixed_ratio_delta,
                 size_by_sl=size_by_sl,
                 prev_stats=running_stats,
                 fees=fees,
@@ -280,8 +286,14 @@ def run_backtest(
             running_stats["avg_win"] = running_stats["total_win_pnl"] / running_stats["win_count"] if running_stats["win_count"] > 0 else 0.0
             running_stats["avg_loss"] = running_stats["total_loss_pnl"] / running_stats["loss_count"] if running_stats["loss_count"] > 0 else 0.0
 
-        timestamps = pd.Series(pd.to_datetime(arrays["timestamp"]))
-        ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
+        # Avoid pd.to_datetime parsing if array is already datetime kind natively
+        ts_arr = arrays["timestamp"]
+        if getattr(ts_arr.dtype, "kind", "") in ("M", "m"):
+            timestamps = pd.Series(ts_arr)
+            ts_epoch = ts_arr.astype("datetime64[s]").astype("int64")
+        else:
+            timestamps = pd.Series(pd.to_datetime(ts_arr))
+            ts_epoch = timestamps.values.astype("datetime64[s]").astype("int64")
 
         # --- Calculate Risk Unit for "R" reporting ---
         if risk_type == "FIXED":
@@ -649,11 +661,16 @@ def _aggregate_metrics(
         "max_consecutive_losses": 0, "expectancy": 0, "payoff_ratio": 0,
         "avg_r_per_day": 0,
     }
-    if not day_results:
+    if not day_results and not trades:
         return empty
 
-    total_days = len(day_results)
-    total_trades = sum(d.get("total_trades", 0) for d in day_results)
+    if not day_results and trades:
+        unique_dates = {t.get("date", "")[:10] for t in trades if t.get("date")}
+        total_days = len(unique_dates)
+        total_trades = len(trades)
+    else:
+        total_days = len(day_results)
+        total_trades = sum(d.get("total_trades", 0) for d in day_results)
 
     # Re-calculate total expenses for the net profit metric
     # (Since total_expenses was previously removed from loop)
@@ -832,32 +849,28 @@ def _get_market_sessions_mask(
     if not pd.api.types.is_datetime64_any_dtype(timestamps):
         timestamps = pd.to_datetime(timestamps)
     
-    times = timestamps.dt.time
+    total_mins = timestamps.dt.hour * 60 + timestamps.dt.minute
     mask = np.zeros(len(timestamps), dtype=bool)
     
     import datetime
     
     for s in sessions:
         if s == "pre":
-            # 04:00 - 09:30
-            start = datetime.time(4, 0)
-            end = datetime.time(9, 30)
-            mask |= (times >= start) & (times < end)
+            # 04:00 - 09:30 (240 - 570)
+            mask |= (total_mins >= 240) & (total_mins < 570)
         elif s == "rth":
-            # 09:30 - 16:00
-            start = datetime.time(9, 30)
-            end = datetime.time(16, 0)
-            mask |= (times >= start) & (times < end)
+            # 09:30 - 16:00 (570 - 960)
+            mask |= (total_mins >= 570) & (total_mins < 960)
         elif s == "post":
-            # 16:00 - 20:00
-            start = datetime.time(16, 0)
-            end = datetime.time(20, 0)
-            mask |= (times >= start) & (times < end)
+            # 16:00 - 20:00 (960 - 1200)
+            mask |= (total_mins >= 960) & (total_mins < 1200)
         elif s == "custom" and custom_start and custom_end:
             try:
-                c_start = datetime.datetime.strptime(custom_start, "%H:%M").time()
-                c_end = datetime.datetime.strptime(custom_end, "%H:%M").time()
-                mask |= (times >= c_start) & (times < c_end)
+                c_start = datetime.datetime.strptime(custom_start, "%H:%M")
+                c_end = datetime.datetime.strptime(custom_end, "%H:%M")
+                s_mins = c_start.hour * 60 + c_start.minute
+                e_mins = c_end.hour * 60 + c_end.minute
+                mask |= (total_mins >= s_mins) & (total_mins < e_mins)
             except Exception:
                 pass
                 

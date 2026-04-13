@@ -29,6 +29,7 @@ class BacktestRequest(BaseModel):
     init_cash: float = 10000.0
     risk_r: float = 100.0
     risk_type: str = "FIXED"
+    fixed_ratio_delta: float = 500.0
     size_by_sl: bool = False
     fees: float = 0.0
     fee_type: str = "PERCENT"
@@ -123,6 +124,7 @@ def run_backtest_endpoint(req: BacktestRequest):
             init_cash=req.init_cash,
             risk_r=req.risk_r,
             risk_type=req.risk_type,
+            fixed_ratio_delta=req.fixed_ratio_delta,
             size_by_sl=req.size_by_sl,
             fees=req.fees,
             fee_type=req.fee_type,
