@@ -4,6 +4,7 @@ gunicorn==25.1.0
 duckdb==1.4.4
 pandas
 numpy==2.2.6
+scipy
 pandas-ta
 python-dotenv==1.2.1
 pydantic==2.12.5
