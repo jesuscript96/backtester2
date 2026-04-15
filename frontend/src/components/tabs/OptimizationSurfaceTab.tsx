@@ -6,6 +6,7 @@ import {
   fetchOptimizationParams,
   runOptimizationSurface,
   fetchOptimizationProgress,
+  fetchOptimizationResult,
   type OptimizationParam,
   type OptimizationResult,
   type OptimizationParamConfig,
@@ -128,18 +129,8 @@ export default function OptimizationSurfaceTab({
       { id: pY.id, label: pY.label, path: pY.path, min: rangeY[0], max: rangeY[1], steps: gridSteps },
     ];
 
-    // Start polling progress
-    const pollInterval = setInterval(async () => {
-      try {
-        const p = await fetchOptimizationProgress(taskId);
-        setProgress(p);
-      } catch (e) {
-        console.warn("Error polling progress:", e);
-      }
-    }, 500);
-
     try {
-      const data = await runOptimizationSurface({
+      await runOptimizationSurface({
         strategy_id: strategyId,
         dataset_id: datasetId,
         metric,
@@ -147,15 +138,32 @@ export default function OptimizationSurfaceTab({
         task_id: taskId,
         ...backtestParams,
       });
-      setResult(data);
+
+      const pollInterval = window.setInterval(async () => {
+        try {
+          const res = await fetchOptimizationResult(taskId);
+          if ("status" in res && res.status === "running") {
+            setProgress(res.progress);
+          } else {
+            window.clearInterval(pollInterval);
+            setResult(res as OptimizationResult);
+            setLoading(false);
+          }
+        } catch (e: any) {
+          window.clearInterval(pollInterval);
+          console.error("Error polling optimization result", e);
+          const msg = e.response?.data?.detail || e.message || "Error al recuperar resultados de optimización";
+          setError(msg);
+          setLoading(false);
+        }
+      }, 500);
+
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err
           ? (err as { message: string }).message
-          : "Error en la optimización";
+          : "Error al iniciar la optimización";
       setError(msg);
-    } finally {
-      clearInterval(pollInterval);
       setLoading(false);
     }
   };

@@ -121,6 +121,7 @@ export default function RollingEVChart({ trades, riskR, isDarkMode = false }: Ro
             bottomFillColor1: "rgba(230,126,34,0.02)",
             bottomFillColor2: "rgba(230,126,34,0.3)",
             lineWidth: 2,
+            priceFormat: { type: "price", precision: 2, minMove: 0.01 },
         });
         series.setData(evData);
 

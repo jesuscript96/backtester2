@@ -15,11 +15,16 @@ import {
 import type { GlobalEquityPoint, DrawdownPoint, TradeRecord, AggregateMetrics, WhatIfResult } from "@/lib/api";
 import { runWhatIf } from "@/lib/api";
 
+interface DrawdownPoint {
+  time: Time | number;
+  value: number;
+}
+
 interface EquityCurveTabProps {
   globalEquity: GlobalEquityPoint[];
   globalDrawdown: DrawdownPoint[];
-  trades: TradeRecord[];
-  metrics: AggregateMetrics | null;
+  trades: any[];
+  metrics: Record<string, any> | null;
   initCash: number;
   riskR: number;
   monthlyExpenses?: number;
@@ -48,11 +53,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
   const [dailyMaxTrades, setDailyMaxTrades] = useState<number>(0);
   const [maxConcurrentTrades, setMaxConcurrentTrades] = useState<number>(0);
   
-  const [sizeMgmtType, setSizeMgmtType] = useState<"dd" | "sma">("dd");
-  const [ddThreshold, setDdThreshold] = useState<number>(5);
-  const [ddReduction, setDdReduction] = useState<number>(50);
-  const [smaPeriod, setSmaPeriod] = useState<number>(20);
-  const [smaReduction, setSmaReduction] = useState<number>(50);
+
   
   const [skipTopPct, setSkipTopPct] = useState<number>(0);
   const [extraSlippage, setExtraSlippage] = useState<number>(0);
@@ -92,11 +93,6 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
         black_swan_count: blackSwanCount,
         black_swan_pct: blackSwanSize,
         monthly_expenses: includeExpensesInWhatIf ? (monthlyExpenses || 0) : 0,
-        size_mgmt_type: sizeMgmtType,
-        dd_threshold: ddThreshold,
-        dd_reduction: ddReduction,
-        sma_period: smaPeriod,
-        sma_reduction: smaReduction
       };
 
       const result = await runWhatIf({
@@ -414,7 +410,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
 
       <div className="flex-1 overflow-hidden">
         {activeMainTab === "equity" ? (
-          <div className="px-4 pt-4 pb-2">
+          <div key="equity-tab" className="px-4 pt-4 pb-2">
             {globalDrawdown && globalDrawdown.length > 0 && (
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex flex-wrap items-center gap-4">
@@ -471,7 +467,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
             </div>
           </div>
         ) : (
-          <div className="flex h-full overflow-hidden">
+          <div key="whatif-tab" className="flex h-full overflow-hidden">
             {/* LEFT COLUMN: SIMULATION SETTINGS */}
             <div className="w-1/2 flex flex-col border-r border-[var(--border)]">
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -609,83 +605,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* Size Management */}
-                <div className="border-b border-[var(--border)]">
-                  <button 
-                    onClick={() => toggleSection("size")}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--sidebar-bg)] transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider">3) Gestión alternativa del size</span>
-                    </div>
-                    <span className={`text-xs text-[var(--muted)] transform transition-transform ${openSections.includes("size") ? "rotate-180" : ""}`}>▼</span>
-                  </button>
-
-                  {openSections.includes("size") && (
-                    <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="flex bg-[var(--card-bg)] p-1 rounded-md border border-[var(--border)] text-[10px]">
-                        <button
-                          onClick={() => setSizeMgmtType("dd")}
-                          className={`flex-1 py-1 rounded transition-all ${sizeMgmtType === "dd" ? "bg-[var(--accent)] text-white font-bold" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
-                        >
-                          Por Drawdown
-                        </button>
-                        <button
-                          onClick={() => setSizeMgmtType("sma")}
-                          className={`flex-1 py-1 rounded transition-all ${sizeMgmtType === "sma" ? "bg-[var(--accent)] text-white font-bold" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
-                        >
-                          Por SMA
-                        </button>
-                      </div>
-
-                      {sizeMgmtType === "dd" ? (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[10px] text-[var(--muted)] block mb-1">Si DD {">"} (%):</label>
-                            <input
-                              type="number"
-                              value={ddThreshold}
-                              onChange={(e) => setDdThreshold(Number(e.target.value))}
-                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-xs"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-[var(--muted)] block mb-1">Reducir Size (%):</label>
-                            <input
-                              type="number"
-                              value={ddReduction}
-                              onChange={(e) => setDdReduction(Number(e.target.value))}
-                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-xs"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[10px] text-[var(--muted)] block mb-1">SMA Period (Trades):</label>
-                            <input
-                              type="number"
-                              value={smaPeriod}
-                              onChange={(e) => setSmaPeriod(Number(e.target.value))}
-                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-xs"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-[var(--muted)] block mb-1">Reducir Size si Eq {"<"} SMA (%):</label>
-                            <input
-                              type="number"
-                              value={smaReduction}
-                              onChange={(e) => setSmaReduction(Number(e.target.value))}
-                              className="w-full bg-[var(--card-bg)] border border-[var(--border)] rounded px-2 py-1 text-xs"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                       </div>
 
                 {/* Stress Test & Black Swan */}
                 <div className="border-b border-[var(--border)]">
@@ -694,7 +614,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                     className="w-full px-4 py-3 flex items-center justify-between hover:bg-[var(--sidebar-bg)] transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider">4) Peor escenario y Black Swan</span>
+                       <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider">3) Peor escenario y Black Swan</span>
                     </div>
                     <span className={`text-xs text-[var(--muted)] transform transition-transform ${openSections.includes("stress") ? "rotate-180" : ""}`}>▼</span>
                   </button>
@@ -797,56 +717,55 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
             </div>
 
             {/* RIGHT COLUMN: SIMULATION RESULTS */}
-            <div className="w-1/2 pt-3 px-6 pb-6 flex flex-col bg-[var(--background)] overflow-y-auto custom-scrollbar">
-              <div className="flex-1 flex flex-col items-start justify-start">
-                 <h4 className="text-[10px] font-bold uppercase text-[var(--muted)] mb-5 flex items-center gap-2 opacity-60 w-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)]"></span>
-                  Resultados Simulados
-                 </h4>
-                 
-                 <div className="flex w-full flex-col">
-                    <div className="grid grid-cols-2 gap-x-10 gap-y-1.5 w-full max-w-[480px]">
-                       {[
-                         { label: "Días", base: metrics?.total_days ?? 0, sim: getSimValue("total_days") },
-                         { label: "Trades", base: metrics?.total_trades ?? 0, sim: getSimValue("total_trades") },
-                         { label: "Win Rate", base: `${(metrics?.win_rate_pct ?? 0).toFixed(1)}%`, sim: getSimValue("win_rate_pct", v => `${v.toFixed(1)}%`) },
-                         { label: "Profit Factor", base: (metrics?.avg_profit_factor ?? 0).toFixed(3), sim: getSimValue("avg_profit_factor", v => v.toFixed(3)) },
-                         { label: "Total Return", base: `${(metrics?.total_return_pct ?? 0).toFixed(2)}%`, sim: getSimValue("total_return_pct", v => `${v.toFixed(2)}%`) },
-                         { label: "Max MAE", base: `${(metrics?.max_mae ?? 0).toFixed(2)}%`, sim: getSimValue("max_mae", v => `${v.toFixed(2)}%`) },
-                         { label: "Avg Return/Día", base: `${(metrics?.avg_return_per_day_pct ?? 0).toFixed(3)}%`, sim: getSimValue("avg_return_per_day_pct", v => `${v.toFixed(3)}%`) },
-                         { label: "Avg R/Día", base: `${(metrics?.avg_r_per_day ?? 0).toFixed(3)}R`, sim: getSimValue("avg_r_per_day", v => `${v.toFixed(3)}R`) },
-                         { label: "Sharpe", base: (metrics?.avg_sharpe ?? 0).toFixed(3), sim: getSimValue("avg_sharpe", v => v.toFixed(3)) },
-                         { label: "Sortino", base: (metrics?.sortino_ratio ?? 0).toFixed(3), sim: getSimValue("sortino_ratio", v => v.toFixed(3)) },
-                         { label: "Calmar", base: (metrics?.calmar_ratio ?? 0).toFixed(3), sim: getSimValue("calmar_ratio", v => v.toFixed(3)) },
-                         { label: "R²", base: (metrics?.r_squared ?? 0).toFixed(4), sim: getSimValue("r_squared", v => v.toFixed(4)) },
-                         { label: "DD/Return", base: (metrics?.dd_return_ratio ?? 0).toFixed(3), sim: getSimValue("dd_return_ratio", v => v.toFixed(3)) },
-                         { label: "Max DD", base: `${(metrics?.max_drawdown_pct ?? 0).toFixed(2)}%`, sim: getSimValue("max_drawdown_pct", v => `${v.toFixed(2)}%`), danger: true },
-                         { label: "Max Consec. Wins", base: metrics?.max_consecutive_wins ?? 0, sim: getSimValue("max_consecutive_wins") },
-                         { label: "Max Consec. Losses", base: metrics?.max_consecutive_losses ?? 0, sim: getSimValue("max_consecutive_losses"), danger: true },
-                       ].map((m, idx) => (
-                         <div key={idx} className="flex items-baseline justify-between py-0.5 text-[11px]">
-                            <span className="text-[var(--muted)] font-medium tracking-tight mr-4">{m.label}:</span>
-                            <div className="flex items-center gap-3 font-mono">
-                               <span className="opacity-25 text-[10px]">{m.base}</span>
-                               <span className={m.danger && m.sim !== "---" ? "text-red-600 font-bold" : "text-[var(--accent)] font-bold"}>
-                                 {m.sim}
-                               </span>
-                            </div>
-                         </div>
-                       ))}
-                     </div>
-                     {/* What If Equity Curve: Ghost original + simulated */}
-                     <div className="mt-6">
-                        <WhatIfEquityChart
-                          originalEquity={globalEquity}
-                          originalDrawdown={globalDrawdown}
-                          simResult={simResult}
-                          initCash={initCash}
-                          isDarkMode={isDarkMode}
-                        />
-                     </div>
-                 </div>
-              </div>
+            <div className="w-1/2 h-full overflow-y-auto px-5 py-4 bg-[var(--background)] custom-scrollbar">
+               <h4 className="text-[10px] font-bold uppercase text-[var(--muted)] mb-4 flex items-center gap-2 opacity-60">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)]"></span>
+                Resultados Simulados
+               </h4>
+               
+               <div className="w-full">
+                  <div className="grid grid-cols-2 gap-x-10 gap-y-1.5 w-full max-w-[480px]">
+                     {[
+                       { label: "Días", base: metrics?.total_days ?? 0, sim: getSimValue("total_days") },
+                       { label: "Trades", base: metrics?.total_trades ?? 0, sim: getSimValue("total_trades") },
+                       { label: "Win Rate", base: `${(metrics?.win_rate_pct ?? 0).toFixed(1)}%`, sim: getSimValue("win_rate_pct", v => `${v.toFixed(1)}%`) },
+                       { label: "Profit Factor", base: (metrics?.avg_profit_factor ?? 0).toFixed(3), sim: getSimValue("avg_profit_factor", v => v.toFixed(3)) },
+                       { label: "Total Return", base: `${(metrics?.total_return_pct ?? 0).toFixed(2)}%`, sim: getSimValue("total_return_pct", v => `${v.toFixed(2)}%`) },
+                       { label: "Max MAE", base: `${(metrics?.max_mae ?? 0).toFixed(2)}%`, sim: getSimValue("max_mae", v => `${v.toFixed(2)}%`) },
+                       { label: "Avg Return/Día", base: `${(metrics?.avg_return_per_day_pct ?? 0).toFixed(3)}%`, sim: getSimValue("avg_return_per_day_pct", v => `${v.toFixed(3)}%`) },
+                       { label: "Avg R/Día", base: `${(metrics?.avg_r_per_day ?? 0).toFixed(3)}R`, sim: getSimValue("avg_r_per_day", v => `${v.toFixed(3)}R`) },
+                       { label: "Sharpe", base: (metrics?.avg_sharpe ?? 0).toFixed(3), sim: getSimValue("avg_sharpe", v => v.toFixed(3)) },
+                       { label: "Sortino", base: (metrics?.sortino_ratio ?? 0).toFixed(3), sim: getSimValue("sortino_ratio", v => v.toFixed(3)) },
+                       { label: "Calmar", base: (metrics?.calmar_ratio ?? 0).toFixed(3), sim: getSimValue("calmar_ratio", v => v.toFixed(3)) },
+                       { label: "R²", base: (metrics?.r_squared ?? 0).toFixed(4), sim: getSimValue("r_squared", v => v.toFixed(4)) },
+                       { label: "DD/Return", base: (metrics?.dd_return_ratio ?? 0).toFixed(3), sim: getSimValue("dd_return_ratio", v => v.toFixed(3)) },
+                       { label: "Max DD", base: `${(metrics?.max_drawdown_pct ?? 0).toFixed(2)}%`, sim: getSimValue("max_drawdown_pct", v => `${v.toFixed(2)}%`), danger: true },
+                       { label: "Max Consec. Wins", base: metrics?.max_consecutive_wins ?? 0, sim: getSimValue("max_consecutive_wins") },
+                       { label: "Max Consec. Losses", base: metrics?.max_consecutive_losses ?? 0, sim: getSimValue("max_consecutive_losses"), danger: true },
+                     ].map((m, idx) => (
+                       <div key={idx} className="flex items-baseline justify-between py-0.5 text-[11px]">
+                          <span className="text-[var(--muted)] font-medium tracking-tight mr-4">{m.label}:</span>
+                          <div className="flex items-center gap-3 font-mono">
+                             <span className="opacity-25 text-[10px]">{m.base}</span>
+                             <span className={m.danger && m.sim !== "---" ? "text-red-600 font-bold" : "text-[var(--accent)] font-bold"}>
+                               {m.sim}
+                             </span>
+                          </div>
+                       </div>
+                     ))}
+                   </div>
+                   {/* What If Equity Curve: Ghost original + simulated */}
+                   <div className="mt-10 pt-6 border-t border-dashed border-[var(--border)] w-full">
+                      <WhatIfEquityChart
+                        originalEquity={globalEquity}
+                        originalDrawdown={globalDrawdown}
+                        simResult={simResult}
+                        initCash={initCash}
+                        riskR={riskR}
+                        isDarkMode={isDarkMode}
+                      />
+                   </div>
+               </div>
             </div>
           </div>
         )}
@@ -865,18 +784,36 @@ function WhatIfEquityChart({
   originalDrawdown,
   simResult,
   initCash,
+  riskR,
   isDarkMode = false,
 }: {
   originalEquity: GlobalEquityPoint[];
   originalDrawdown: DrawdownPoint[];
   simResult: WhatIfResult | null;
   initCash: number;
+  riskR: number;
   isDarkMode?: boolean;
 }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const ddContainerRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<IChartApi | null>(null);
   const ddInstanceRef = useRef<IChartApi | null>(null);
+
+  type WIViewMode = "$" | "%" | "R";
+  const [wiViewMode, setWiViewMode] = useState<WIViewMode>("$");
+
+  const transformEquity = (p: GlobalEquityPoint): number => {
+    if (wiViewMode === "%") return ((p.value / initCash) - 1) * 100;
+    if (wiViewMode === "R") return riskR > 0 ? (p.value - initCash) / riskR : 0;
+    return p.value;
+  };
+
+  // Drawdown is natively in % from the backend
+  const transformDrawdown = (p: DrawdownPoint): number => {
+    if (wiViewMode === "$") return (p.value / 100) * initCash;
+    if (wiViewMode === "R") return riskR > 0 ? ((p.value / 100) * initCash) / riskR : 0;
+    return p.value; // Already in %
+  };
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -922,7 +859,7 @@ function WhatIfEquityChart({
       ghostSeries.setData(
         originalEquity.map((p) => ({
           time: p.time as Time,
-          value: p.value,
+          value: transformEquity(p),
         }))
       );
     }
@@ -937,7 +874,7 @@ function WhatIfEquityChart({
     simSeries.setData(
       simResult.global_equity.map((p: GlobalEquityPoint) => ({
         time: p.time as Time,
-        value: p.value,
+        value: transformEquity(p),
       }))
     );
 
@@ -979,7 +916,7 @@ function WhatIfEquityChart({
       origDdSeries.setData(
         originalDrawdown.map((p) => ({
           time: p.time as Time,
-          value: p.value,
+          value: transformDrawdown(p),
         }))
       );
     }
@@ -991,7 +928,7 @@ function WhatIfEquityChart({
       simDdSeries.setData(
         simResult.global_drawdown.map((p) => ({
           time: p.time as Time,
-          value: p.value,
+          value: transformDrawdown(p),
         }))
       );
     }
@@ -1024,7 +961,7 @@ function WhatIfEquityChart({
         ddInstanceRef.current = null;
       }
     };
-  }, [originalEquity, originalDrawdown, simResult, initCash, isDarkMode]);
+  }, [originalEquity, originalDrawdown, simResult, initCash, riskR, isDarkMode, wiViewMode]);
 
   if (!simResult) {
     return (
@@ -1042,14 +979,31 @@ function WhatIfEquityChart({
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-[2px] bg-gray-400 opacity-50" style={{ borderTop: "1px dashed" }}></div>
-          <span className="text-[9px] text-[var(--muted)]">Original</span>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-[2px] bg-gray-400 opacity-50" style={{ borderTop: "1px dashed" }}></div>
+            <span className="text-[9px] text-[var(--muted)]">Original</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-[2px] bg-blue-500"></div>
+            <span className="text-[9px] text-[var(--muted)]">What If</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-[2px] bg-blue-500"></div>
-          <span className="text-[9px] text-[var(--muted)]">What If</span>
+        <div className="flex bg-[var(--sidebar-bg)] p-0.5 rounded text-[9px] border border-[var(--border)]">
+          {(["$", "%", "R"] as WIViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setWiViewMode(mode)}
+              className={`px-2 py-0.5 rounded transition-colors ${
+                wiViewMode === mode
+                  ? "bg-[var(--card-bg)] text-[var(--foreground)] shadow-sm font-bold"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {mode}
+            </button>
+          ))}
         </div>
       </div>
       <div ref={chartContainerRef} className="h-[180px] w-full rounded-t border border-b-0 border-[var(--border)]" />
@@ -1057,3 +1011,4 @@ function WhatIfEquityChart({
     </div>
   );
 }
+

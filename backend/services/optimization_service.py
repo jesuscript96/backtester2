@@ -20,6 +20,9 @@ logger = logging.getLogger("backtester.optimization")
 # Global dict to track progress of long-running optimizations (in-memory for local use)
 OPTIMIZATION_PROGRESS = {}
 
+# Global dict to store completed optimization results (in-memory for local use)
+OPTIMIZATION_RESULTS = {}
+
 # Performance metrics we can optimise for
 METRICS = {
     "sharpe": "avg_sharpe",
@@ -362,8 +365,6 @@ def run_optimization_grid(
     elapsed = round(time.time() - t0, 1)
     logger.info(f"[OPT] Grid sweep complete in {elapsed}s")
 
-    if task_id:
-        OPTIMIZATION_PROGRESS.pop(task_id, None)
 
     # Replace NaN with None for JSON serialization
     def clean(v):

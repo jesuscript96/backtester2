@@ -299,7 +299,7 @@ export async function runOptimizationSurface(params: {
   market_sessions?: string[];
   look_ahead_prevention?: boolean;
   task_id?: string;
-}): Promise<OptimizationResult> {
+}): Promise<{ task_id: string; status: string }> {
   const { data } = await api.post("/optimization/surface", params);
   return data;
 }
@@ -307,6 +307,11 @@ export async function runOptimizationSurface(params: {
 export async function fetchOptimizationProgress(task_id: string): Promise<number> {
   const { data } = await api.get(`/optimization/progress/${task_id}`);
   return data.progress;
+}
+
+export async function fetchOptimizationResult(task_id: string): Promise<OptimizationResult | { status: string; progress: number }> {
+  const { data } = await api.get(`/optimization/result/${task_id}`);
+  return data;
 }
 
 export async function runWhatIf(params: {
