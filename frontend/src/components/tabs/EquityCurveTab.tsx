@@ -15,10 +15,6 @@ import {
 import type { GlobalEquityPoint, DrawdownPoint, TradeRecord, AggregateMetrics, WhatIfResult } from "@/lib/api";
 import { runWhatIf } from "@/lib/api";
 
-interface DrawdownPoint {
-  time: Time | number;
-  value: number;
-}
 
 interface EquityCurveTabProps {
   globalEquity: GlobalEquityPoint[];

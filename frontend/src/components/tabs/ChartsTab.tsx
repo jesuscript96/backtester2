@@ -272,7 +272,7 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
                 <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
                 <XAxis dataKey="time" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
                 <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
-                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} formatter={(value: number) => [`$${value.toFixed(2)}`, 'EV']} />
+                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'EV']} />
                 <ReferenceLine y={0} stroke="#94a3b8" />
                 <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
                   {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
@@ -293,7 +293,7 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
                 <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
                 <XAxis dataKey="day" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
                 <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
-                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} formatter={(value: number) => [`$${value.toFixed(2)}`, 'EV']} />
+                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'EV']} />
                 <ReferenceLine y={0} stroke="#94a3b8" />
                 <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
                   {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
