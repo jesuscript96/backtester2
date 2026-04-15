@@ -17,6 +17,25 @@ const api = axios.create({
   timeout: 1800000, // 30 minutes to handle large GCS backtests
 });
 
+// Diagnostic logging for Production Network Error
+console.log("[API] Base URL configured as:", apiBaseUrl());
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error("[API ERROR DIAGNOSTIC]", {
+      url: error.config?.url,
+      fullUrl: error.config?.baseURL + (error.config?.url || ""),
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      stack: error.stack,
+    });
+    return Promise.reject(error);
+  }
+);
+
 
 export interface Dataset {
   id: string;
