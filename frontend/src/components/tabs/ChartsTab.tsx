@@ -251,7 +251,7 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
                 <YAxis tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
                 <Tooltip
                   contentStyle={{ fontSize: '10px', backgroundColor: tooltipBg, border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
-                  formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'EV']}
+                  formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'EV']}
                   cursor={{ fill: "rgba(120,113,108,0.04)" }}
                 />
                 <ReferenceLine y={0} stroke={tickColor} strokeWidth={0.5} />
@@ -276,7 +276,7 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
                 <YAxis tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
                 <Tooltip
                   contentStyle={{ fontSize: '10px', backgroundColor: tooltipBg, border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
-                  formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'EV']}
+                  formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'EV']}
                   cursor={{ fill: "rgba(120,113,108,0.04)" }}
                 />
                 <ReferenceLine y={0} stroke={tickColor} strokeWidth={0.5} />
