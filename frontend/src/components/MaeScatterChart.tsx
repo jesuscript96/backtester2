@@ -68,18 +68,24 @@ function calculateRegression(points: { x: number, y: number }[]) {
 
 const CustomTooltip = ({ active, payload, isDarkMode }: { active?: boolean, payload?: unknown[], isDarkMode?: boolean }) => {
     if (active && payload && payload.length) {
-        // Only show tooltip for dots, not lines
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const data = (payload[0] as any).payload;
         if (!data.trade) return null;
 
         return (
-            <div className={`p-2 shadow-md rounded text-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-gray-200 text-gray-800'} border`}>
-                <p className="font-semibold mb-1">{data.trade.direction} Trade</p>
-                <p>Retorno: {data.x.toFixed(2)}%</p>
-                <p>MAE: {data.y.toFixed(2)}%</p>
-                <p>MFE: {data.trade.mfe !== undefined ? `${data.trade.mfe.toFixed(2)}%` : '-'}</p>
-                <p>PnL: ${data.trade.pnl.toFixed(2)}</p>
+            <div
+                className="p-2 rounded text-[10px] font-mono"
+                style={{
+                    backgroundColor: isDarkMode ? '#1e293b' : '#fafaf7',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-data)'
+                }}
+            >
+                <p className="font-semibold mb-0.5">{data.trade.direction} Trade</p>
+                <p>ret: {data.x.toFixed(2)}%</p>
+                <p>mae: {data.y.toFixed(2)}%</p>
+                <p>mfe: {data.trade.mfe !== undefined ? `${data.trade.mfe.toFixed(2)}%` : '-'}</p>
+                <p>pnl: ${data.trade.pnl.toFixed(2)}</p>
             </div>
         );
     }
@@ -142,53 +148,56 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
     }, [trades]);
 
     if (!trades.length) {
-        return <div className="p-4 text-center text-[var(--muted)] text-sm">Sin datos para gráfico</div>;
+        return <div className="p-4 text-center text-[var(--muted)] text-[11px] font-mono">Sin datos</div>;
     }
 
     const dotColor = "#f97316";
+    const gridColor = isDarkMode ? "#303033" : "#f0eeea";
+    const tickColor = isDarkMode ? "#94a3b8" : "#a8a29e";
 
     return (
-        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col h-full transition-colors relative">
-            <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5 flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-[var(--foreground)] tracking-wide uppercase">
+        <div className="flex flex-col h-full transition-colors relative">
+            <div className="px-1 py-2 flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
                     MAE/MFE vs Rets
                 </span>
-                <div className="flex gap-4 text-[10px] text-[var(--muted)] font-medium">
-                    <span>Avg MAE: {processed.avgMae.toFixed(2)}%</span>
-                    <span>Avg MFE: {processed.avgMfe.toFixed(2)}%</span>
+                <div className="flex gap-3 text-[10px] text-[var(--muted)] font-mono">
+                    <span>avg mae: <strong className="text-[var(--text-data)]">{processed.avgMae.toFixed(2)}%</strong></span>
+                    <span>avg mfe: <strong className="text-[var(--text-data)]">{processed.avgMfe.toFixed(2)}%</strong></span>
                 </div>
             </div>
-            <div className="flex-1 p-2 min-h-[140px] relative">
-                <div className="absolute top-4 right-4 text-[10px] text-[var(--muted)] flex flex-col items-end gap-0.5 pointer-events-none z-10 bg-[var(--card-bg)]/80 p-1.5 rounded backdrop-blur border border-[var(--border)]">
-                    {processed.winR2 !== undefined && <span>Ganadoras R² = {(processed.winR2 * 100).toFixed(1)}%</span>}
-                    {processed.lossR2 !== undefined && <span>Perdedoras R² = {(processed.lossR2 * 100).toFixed(1)}%</span>}
+            <div className="flex-1 min-h-[140px] relative">
+                <div className="absolute top-2 right-3 text-[9px] text-[var(--muted)] flex flex-col items-end gap-0.5 pointer-events-none z-10 font-mono">
+                    {processed.winR2 !== undefined && <span>W R² = {(processed.winR2 * 100).toFixed(1)}%</span>}
+                    {processed.lossR2 !== undefined && <span>L R² = {(processed.lossR2 * 100).toFixed(1)}%</span>}
                 </div>
                 <ResponsiveContainer width="100%" height="100%">
                     <ScatterChart margin={{ top: 10, right: 10, bottom: 5, left: -20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis
                             type="number"
                             dataKey="x"
                             name="Retorno"
                             unit="%"
-                            tick={{ fontSize: 10, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                            tick={{ fontSize: 9, fill: tickColor, fontFamily: 'monospace' }}
                             tickFormatter={(v: number) => `${v.toFixed(0)}`}
                             axisLine={false}
+                            tickLine={false}
                         />
                         <YAxis
                             type="number"
                             dataKey="y"
                             name="MAE"
                             unit="%"
-                            tick={{ fontSize: 10, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                            tick={{ fontSize: 9, fill: tickColor, fontFamily: 'monospace' }}
                             tickFormatter={(v: number) => `${v.toFixed(0)}`}
                             axisLine={false}
                             tickLine={false}
                         />
                         <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip isDarkMode={isDarkMode} />} />
 
-                        <ReferenceLine y={0} stroke={isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"} strokeWidth={1} />
-                        <ReferenceLine x={0} stroke={isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"} strokeWidth={1.5} />
+                        <ReferenceLine y={0} stroke={gridColor} strokeWidth={1} />
+                        <ReferenceLine x={0} stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"} strokeWidth={1} />
 
                         <Scatter name="Perdedoras" data={processed.losers} shape={<CustomDot dotColor={dotColor} />} isAnimationActive={false} />
                         <Scatter name="Ganadoras" data={processed.winners} shape={<CustomDot dotColor={dotColor} />} isAnimationActive={false} />
@@ -198,9 +207,9 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
                                 data={processed.lossLineData}
                                 shape={() => null}
                                 line={{
-                                    stroke: isDarkMode ? "#ffffff" : "#000000",
+                                    stroke: isDarkMode ? "#94a3b8" : "#44403c",
                                     strokeDasharray: "4 4",
-                                    strokeWidth: 2
+                                    strokeWidth: 1.5
                                 }}
                                 tooltipType="none"
                                 isAnimationActive={false}
@@ -211,9 +220,9 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
                                 data={processed.winLineData}
                                 shape={() => null}
                                 line={{
-                                    stroke: isDarkMode ? "#ffffff" : "#000000",
+                                    stroke: isDarkMode ? "#94a3b8" : "#44403c",
                                     strokeDasharray: "4 4",
-                                    strokeWidth: 2
+                                    strokeWidth: 1.5
                                 }}
                                 tooltipType="none"
                                 isAnimationActive={false}
@@ -222,14 +231,14 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
                     </ScatterChart>
                 </ResponsiveContainer>
             </div>
-            <div className="flex justify-center gap-6 pb-2 text-[11px] text-[var(--muted)]">
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full border border-[var(--foreground)]" style={{ borderColor: dotColor }}></div>
-                    <span>Operaciones</span>
+            <div className="flex justify-center gap-4 pb-1 text-[9px] text-[var(--muted)] font-mono">
+                <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ borderColor: dotColor, border: `1px solid ${dotColor}` }}></div>
+                    <span>ops</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-4 border-b border-[var(--foreground)] border-dashed" style={{ borderColor: isDarkMode ? '#fff' : '#000' }}></div>
-                    <span>Tendencia Lineal</span>
+                <div className="flex items-center gap-1">
+                    <div className="w-3 border-b border-dashed" style={{ borderColor: isDarkMode ? '#94a3b8' : '#44403c' }}></div>
+                    <span>trend</span>
                 </div>
             </div>
         </div>

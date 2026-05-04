@@ -50,17 +50,17 @@ export default function ResultsTabs({
   const [activeTab, setActiveTab] = useState<TabId>("performance");
 
   return (
-    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden transition-colors">
-      <div className="border-b border-[var(--border)] overflow-x-auto">
+    <div className="transition-colors">
+      <div className="overflow-x-auto" style={{ borderBottom: '1px solid var(--border)' }}>
         <nav className="flex min-w-max">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors
+              className={`px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-colors
                 ${activeTab === tab.id
-                  ? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                  ? "text-[var(--foreground)] border-b-2 border-[var(--foreground)]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)] border-b-2 border-transparent"
                 }`}
             >
               {tab.label}
@@ -69,7 +69,7 @@ export default function ResultsTabs({
         </nav>
       </div>
 
-      <div className="p-4">
+      <div className="pt-5 pb-2">
         <div style={{ display: activeTab === "performance" ? "block" : "none" }}>
           <PerformanceTab
             dayResults={result.day_results}
@@ -90,11 +90,11 @@ export default function ResultsTabs({
             {candlesLoading && (
               <div className="flex items-center justify-center p-8">
                 <div className="text-center space-y-2">
-                  <svg className="animate-spin h-6 w-6 text-[var(--accent)] mx-auto" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-5 w-5 text-[var(--muted)] mx-auto" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  <p className="text-xs text-[var(--muted)]">Cargando chart...</p>
+                  <p className="text-[10px] text-[var(--muted)] font-mono">loading chart...</p>
                 </div>
               </div>
             )}
@@ -108,8 +108,8 @@ export default function ResultsTabs({
               />
             )}
             {!candlesLoading && (!dayCandles || dayCandles.candles.length === 0) && (
-              <p className="text-sm text-[var(--muted)] text-center py-8">
-                Selecciona un día en el panel lateral para ver el análisis del trade.
+              <p className="text-[10px] text-[var(--muted)] text-center py-8 font-mono">
+                Selecciona un dia en el panel lateral para ver el analisis del trade.
               </p>
             )}
           </div>

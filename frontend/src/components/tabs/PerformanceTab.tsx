@@ -124,7 +124,7 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
 
   // Render a specific cell based on the selected metric
   const renderCell = (cell: CellData) => {
-    if (cell.dailyReturns.length === 0 && cell.trades === 0) return { text: "-", color: "transparent", tColor: "var(--muted)" };
+    if (cell.dailyReturns.length === 0 && cell.trades === 0) return { text: "—", color: "transparent", tColor: "var(--muted)" };
 
     let val = 0;
     let text = "";
@@ -132,19 +132,19 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
     switch (metric) {
       case "PnL %":
         val = cell.dailyReturns.reduce((acc, r) => acc * (1 + r / 100), 1) * 100 - 100;
-        text = `${val > 0 ? "+" : ""}${val.toFixed(2)}%`;
+        text = `${val > 0 ? "+" : ""}${val.toFixed(2)}`;
         break;
       case "PnL $":
         val = cell.pnl;
-        text = `${val >= 0 ? "+" : ""}$${val.toFixed(2)}`;
+        text = `${val >= 0 ? "+" : ""}${val.toFixed(0)}`;
         break;
       case "PnL R":
         val = riskR > 0 ? cell.pnl / riskR : 0;
-        text = `${val >= 0 ? "+" : ""}${val.toFixed(2)}R`;
+        text = `${val >= 0 ? "+" : ""}${val.toFixed(2)}`;
         break;
       case "Win Rate":
         val = cell.trades > 0 ? (cell.wins / cell.trades) * 100 : 0;
-        text = `${val.toFixed(1)}%`;
+        text = `${val.toFixed(1)}`;
         break;
       case "Trades":
         val = cell.trades;
@@ -155,35 +155,35 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
         text = val.toFixed(2);
         // Custom coloring for PF: > 1.5 is green, < 1 is red
         let pfColor = "transparent";
-        let pfText = "text-gray-800";
+        let pfText = "var(--text-data)";
         if (cell.trades > 0) {
-          if (val >= 1.5) { pfColor = "rgba(16,185,129,0.2)"; pfText = "text-[var(--success)]"; }
-          else if (val >= 1.0) { pfColor = "rgba(16,185,129,0.05)"; pfText = "text-[var(--success)]"; }
-          else { pfColor = "rgba(239,68,68,0.1)"; pfText = "text-[var(--danger)]"; }
+          if (val >= 1.5) { pfColor = "rgba(16,185,129,0.08)"; pfText = "#10b981"; }
+          else if (val >= 1.0) { pfColor = "rgba(16,185,129,0.03)"; pfText = "#10b981"; }
+          else { pfColor = "rgba(239,68,68,0.06)"; pfText = "#ef4444"; }
         }
         return { text, color: pfColor, tColor: pfText };
     }
 
     // Default coloring for PnL/WinRate
     let bgColor = "transparent";
-    let tColor = "text-gray-800";
+    let tColor = "var(--text-data)";
 
     if (metric.startsWith("PnL")) {
       if (val > 0) {
-        bgColor = `rgba(16,185,129,${Math.min(val / (metric === "PnL %" ? 10 : 1000), 0.5)})`;
-        tColor = "text-[var(--success)]";
+        bgColor = `rgba(16,185,129,${Math.min(val / (metric === "PnL %" ? 15 : 1500), 0.25)})`;
+        tColor = "#10b981";
       } else if (val < 0) {
-        bgColor = `rgba(239,68,68,${Math.min(Math.abs(val) / (metric === "PnL %" ? 10 : 1000), 0.5)})`;
-        tColor = "text-[var(--danger)]";
+        bgColor = `rgba(239,68,68,${Math.min(Math.abs(val) / (metric === "PnL %" ? 15 : 1500), 0.25)})`;
+        tColor = "#ef4444";
       }
     } else if (metric === "Win Rate") {
       if (cell.trades > 0) {
         if (val >= 50) {
-          bgColor = `rgba(16,185,129,${Math.min((val - 50) / 50, 0.5)})`;
-          tColor = "text-[var(--success)]";
+          bgColor = `rgba(16,185,129,${Math.min((val - 50) / 80, 0.2)})`;
+          tColor = "#10b981";
         } else {
-          bgColor = `rgba(239,68,68,${Math.min((50 - val) / 50, 0.5)})`;
-          tColor = "text-[var(--danger)]";
+          bgColor = `rgba(239,68,68,${Math.min((50 - val) / 80, 0.2)})`;
+          tColor = "#ef4444";
         }
       }
     }
@@ -246,68 +246,71 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
       // For trades histogram, we'll show actual count of trades on that specific day
       const dayTradesCount = sortedTrades.filter(t => t.exit_time!.startsWith(dateStr)).length;
       if (dayTradesCount > 0) {
-        trData.push({ time, value: dayTradesCount, color: "rgba(59, 130, 246, 0.3)" });
+        trData.push({ time, value: dayTradesCount, color: isDarkMode ? "rgba(148,163,184,0.12)" : "rgba(120,113,108,0.1)" });
       }
     }
 
     return { wrData, pfData, trData };
-  }, [trades, rollingWindow]);
+  }, [trades, rollingWindow, isDarkMode]);
 
   // --- 3. Chart Initialization ---
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
+    const bgColor = isDarkMode ? "#18181a" : "#fafaf7";
+    const gridColor = isDarkMode ? "#303033" : "#f0eeea";
+    const textColor = isDarkMode ? "#94a3b8" : "#a8a29e";
+
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 300,
+      height: 280,
       layout: {
-        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
-        textColor: isDarkMode ? "#f8fafc" : "#333"
+        background: { color: bgColor },
+        textColor: textColor,
+        fontFamily: "'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace",
+        fontSize: 10,
       },
       grid: {
-        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
-        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" }
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
       },
       rightPriceScale: {
-        borderColor: isDarkMode ? "#334155" : "#e2e8f0",
-        visible: true,
-        scaleMargins: { top: 0.1, bottom: 0.1 }
+        borderVisible: false,
+        scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       leftPriceScale: {
-        borderColor: isDarkMode ? "#334155" : "#e2e8f0",
+        borderVisible: false,
         visible: true,
-        scaleMargins: { top: 0.6, bottom: 0 } // Push histogram down
+        scaleMargins: { top: 0.6, bottom: 0 },
       },
-      timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
+      timeScale: { borderVisible: false, timeVisible: true },
+      crosshair: { mode: 0 },
     });
     chartRef.current = chart;
 
     // Series 1: Trades (Left Axis, Histogram)
     const trSeries = chart.addSeries(HistogramSeries, {
       priceScaleId: 'left',
-      color: 'rgba(59, 130, 246, 0.4)',
+      color: isDarkMode ? 'rgba(148,163,184,0.12)' : 'rgba(120,113,108,0.1)',
     });
     trSeries.setData(chartData.trData);
 
     // Series 2: Win Rate (Right Axis, Line)
     const wrSeries = chart.addSeries(LineSeries, {
       priceScaleId: 'right',
-      color: '#10b981', // Green
+      color: '#10b981',
       lineWidth: 2,
     });
     wrSeries.setData(chartData.wrData);
 
-    // Series 3: Profit Factor (Right Axis, Line)
-    // We need to scale PF slightly or give it its own axis if ranges differ too much from WR (0-100%).
-    // Better: Give PF a separate invisible scale or just map it so it fits perfectly.
-    // Wait, lightweight charts allows multiple right scales! Let's just use 'right' for WR and create a new one for PF.
+    // Series 3: Profit Factor
     const pfSeries = chart.addSeries(LineSeries, {
       priceScaleId: 'pfScale',
-      color: '#f59e0b', // Amber
+      color: '#d97706',
       lineWidth: 2,
     });
     chart.priceScale('pfScale').applyOptions({
-      visible: false, // Don't clutter the UI with a 3rd axis, just scale it internally
+      visible: false,
       scaleMargins: { top: 0.1, bottom: 0.1 }
     });
     pfSeries.setData(chartData.pfData);
@@ -326,7 +329,7 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
       chart.remove();
       chartRef.current = null;
     };
-  }, [chartData]);
+  }, [chartData, isDarkMode]);
 
 
   if (!dayResults.length) {
@@ -336,19 +339,24 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
   const years = Array.from(gridData.keys()).sort((a, b) => parseInt(b) - parseInt(a)); // Descending years
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
 
-      {/* GRID SECTION */}
-      <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] overflow-hidden">
-        <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[var(--foreground)]">Monthly Returns</h3>
-          <div className="flex bg-[var(--card-bg)] rounded-md border border-[var(--border)] p-0.5 shadow-sm text-xs">
+      {/* MONTHLY RETURNS — no card wrapper */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
+            Monthly Returns
+          </span>
+          <div className="flex items-center gap-0.5 text-[10px]">
             {(["PnL %", "PnL $", "PnL R", "Win Rate", "Trades", "Profit Factor"] as GridMetric[]).map((m) => (
               <button
+
                 key={m}
                 onClick={() => setMetric(m)}
-                className={`px-3 py-1.5 rounded-sm transition-colors ${metric === m ? "bg-[var(--accent)] text-white font-medium" : "text-[var(--muted)] hover:bg-[var(--card-muted-bg)] hover:text-[var(--foreground)]"
-                  }`}
+                className={`px-2.5 py-1 rounded-sm transition-all font-mono ${metric === m
+                  ? "bg-[var(--foreground)] text-[var(--background)] font-semibold"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                }`}
               >
                 {m}
               </button>
@@ -357,33 +365,49 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-center">
+          <table className="w-full text-center" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead>
-              <tr className="border-b border-[var(--border)] bg-[var(--sidebar-bg)]">
-                <th className="px-2 py-2 font-medium text-[var(--muted)] text-left pl-4">Year</th>
+              <tr>
+                <th className="px-2 py-2 text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider text-left" style={{ borderBottom: '1px solid var(--border)' }}>Year</th>
                 {MONTH_NAMES.map(m => (
-                  <th key={m} className="px-1 py-2 font-medium text-[var(--muted)]">{m}</th>
+                  <th key={m} className="px-1 py-2 text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border)' }}>{m}</th>
                 ))}
-                <th className="px-2 py-2 font-semibold text-[var(--foreground)] border-l border-[var(--border)]">YTD</th>
+                <th className="px-2 py-2 text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider" style={{ borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)' }}>YTD</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]">
+            <tbody>
               {years.map(year => {
                 const mMap = gridData.get(year)!;
                 const ytdCell = renderCell(mMap.get("YTD")!);
                 return (
-                  <tr key={year} className="hover:bg-[var(--card-muted-bg)] transition-colors">
-                    <td className="px-2 py-3 font-semibold text-[var(--foreground)] text-left pl-4">{year}</td>
+                  <tr key={year} className="group">
+                    <td className="px-2 py-2.5 text-[12px] font-bold font-mono text-[var(--foreground)] text-left" style={{ borderBottom: '1px solid color-mix(in srgb, var(--border) 40%, transparent)' }}>{year}</td>
                     {MONTHS.map(m => {
                       const c = renderCell(mMap.get(m)!);
                       return (
-                        <td key={m} className="px-1 py-2 font-mono" style={{ backgroundColor: c.color }}>
-                          <span className={c.tColor}>{c.text}</span>
+                        <td
+                          key={m}
+                          className="px-1 py-2.5 font-mono text-[12px] transition-colors"
+                          style={{
+                            backgroundColor: c.color,
+                            color: c.tColor,
+                            borderBottom: '1px solid color-mix(in srgb, var(--border) 40%, transparent)',
+                          }}
+                        >
+                          {c.text}
                         </td>
                       )
                     })}
-                    <td className="px-2 py-2 font-mono font-bold border-l border-[var(--border)]" style={{ backgroundColor: ytdCell.color }}>
-                      <span className={ytdCell.tColor}>{ytdCell.text}</span>
+                    <td
+                      className="px-2 py-2.5 font-mono text-[12px] font-bold"
+                      style={{
+                        backgroundColor: ytdCell.color,
+                        color: ytdCell.tColor,
+                        borderLeft: '1px solid var(--border)',
+                        borderBottom: '1px solid color-mix(in srgb, var(--border) 40%, transparent)',
+                      }}
+                    >
+                      {ytdCell.text}
                     </td>
                   </tr>
                 )
@@ -393,21 +417,31 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
         </div>
       </div>
 
-      <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] p-4 shadow-sm transition-colors">
+      {/* ROLLING METRICS — no card wrapper */}
+      <div className="pt-6" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between mb-4">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-sm font-semibold text-[var(--foreground)] flex items-center gap-4">
-              Métricas Rolling ({rollingWindow} días)
-            </h3>
-            <div className="flex items-center gap-3 text-[10px] font-normal normal-case">
-              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-blue-400"></div> Trades/Día</span>
-              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Win Rate {rollingWindow}d</span>
-              <span className="flex items-center gap-1 text-[var(--muted)]"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Profit Factor {rollingWindow}d</span>
+          <div className="flex items-center gap-6">
+            <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
+              Rolling {rollingWindow}d
+            </span>
+            <div className="flex items-center gap-4 text-[9px] font-mono">
+              <span className="flex items-center gap-1.5 text-[var(--muted)]">
+                <span className="inline-block w-3 h-[2px] rounded-full" style={{ backgroundColor: isDarkMode ? 'rgba(148,163,184,0.3)' : 'rgba(120,113,108,0.2)' }}></span>
+                trades/d
+              </span>
+              <span className="flex items-center gap-1.5" style={{ color: '#10b981' }}>
+                <span className="inline-block w-3 h-[2px] rounded-full bg-emerald-500"></span>
+                win rate
+              </span>
+              <span className="flex items-center gap-1.5" style={{ color: '#d97706' }}>
+                <span className="inline-block w-3 h-[2px] rounded-full bg-amber-600"></span>
+                profit factor
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-[var(--card-bg)] border border-[var(--border)] px-3 py-1.5 rounded-md">
-            <span className="text-xs font-medium text-[var(--muted)]">Ventana:</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-[var(--muted)] font-mono uppercase">window</span>
             <input
               type="range"
               min="7"
@@ -415,12 +449,13 @@ export default function PerformanceTab({ dayResults, trades, initCash, riskR, is
               step="1"
               value={rollingWindow}
               onChange={(e) => setRollingWindow(parseInt(e.target.value))}
-              className="w-32 accent-[var(--accent)]"
+              className="w-24 accent-[var(--foreground)] h-[2px]"
+              style={{ opacity: 0.6 }}
             />
-            <span className="text-xs font-bold text-[var(--accent)] min-w-[40px]">{rollingWindow} días</span>
+            <span className="text-[10px] font-bold font-mono text-[var(--foreground)] min-w-[28px] text-right">{rollingWindow}</span>
           </div>
         </div>
-        <div ref={chartContainerRef} style={{ width: "100%", height: "300px" }} />
+        <div ref={chartContainerRef} style={{ width: "100%", height: "280px" }} />
       </div>
 
     </div>

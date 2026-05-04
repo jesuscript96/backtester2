@@ -86,12 +86,12 @@ export default function RollingAvgRChart({ trades, isDarkMode = false }: Rolling
             width: containerRef.current.clientWidth,
             height: containerRef.current.clientHeight || 120,
             layout: {
-                background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+                background: { color: isDarkMode ? "#18181a" : "#fafaf7" },
                 textColor: isDarkMode ? "#94a3b8" : "#999"
             },
             grid: {
-                vertLines: { color: isDarkMode ? "#1e293b" : "#f5f5f5" },
-                horzLines: { color: isDarkMode ? "#1e293b" : "#f5f5f5" },
+                vertLines: { color: isDarkMode ? "#303033" : "#f5f5f5" },
+                horzLines: { color: isDarkMode ? "#303033" : "#f5f5f5" },
             },
             rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
             timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },

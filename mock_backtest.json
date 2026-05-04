@@ -1,0 +1,5530 @@
+{
+  "aggregate_metrics": {
+    "total_days": 86,
+    "total_trades": 111,
+    "win_rate_pct": 54.95,
+    "avg_return_per_day_pct": 0.7338,
+    "total_return_pct": 63.1026,
+    "avg_sharpe": 0.35,
+    "max_drawdown_pct": -5.67,
+    "avg_profit_factor": 2.17,
+    "avg_pnl": 56.85,
+    "total_pnl": 6310.26,
+    "sortino_ratio": 0.42,
+    "calmar_ratio": 11.12,
+    "dd_return_ratio": 11.12,
+    "r_squared": 0.8153,
+    "max_mae": 131.06,
+    "max_profit_pct": 2.8279,
+    "avg_win": 191.83,
+    "avg_loss": -107.83,
+    "max_consecutive_wins": 12,
+    "max_consecutive_losses": 5,
+    "expectancy": 56.85,
+    "payoff_ratio": 1.78,
+    "avg_r_per_day": 0.57
+  },
+  "day_results": [
+    {
+      "ticker": "TSLA",
+      "date": "2024-01-02",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 10000.0,
+      "end_value": 10000.0
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-03",
+      "total_return_pct": 0.8521,
+      "max_drawdown_pct": -3.84,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.7,
+      "sortino_ratio": 1.9,
+      "expectancy": 85.21,
+      "best_trade_pct": 0.8521,
+      "worst_trade_pct": 0.8521,
+      "init_value": 10000.0,
+      "end_value": 10085.21
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-04",
+      "total_return_pct": -0.926,
+      "max_drawdown_pct": -4.54,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 0.69,
+      "sortino_ratio": 2.62,
+      "expectancy": -93.39,
+      "best_trade_pct": -0.926,
+      "worst_trade_pct": -0.926,
+      "init_value": 10085.21,
+      "end_value": 9991.82
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-05",
+      "total_return_pct": 0.7,
+      "max_drawdown_pct": -3.1,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 1.95,
+      "sharpe_ratio": 1.41,
+      "sortino_ratio": 2.59,
+      "expectancy": 34.97,
+      "best_trade_pct": 1.4404,
+      "worst_trade_pct": -0.7404,
+      "init_value": 9991.82,
+      "end_value": 10061.76
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-08",
+      "total_return_pct": 2.352,
+      "max_drawdown_pct": -2.69,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.04,
+      "sortino_ratio": 2.81,
+      "expectancy": 236.65,
+      "best_trade_pct": 2.352,
+      "worst_trade_pct": 2.352,
+      "init_value": 10061.76,
+      "end_value": 10298.41
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-09",
+      "total_return_pct": -1.4279,
+      "max_drawdown_pct": -2.08,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.3,
+      "sortino_ratio": 1.5,
+      "expectancy": -73.53,
+      "best_trade_pct": -0.6771,
+      "worst_trade_pct": -0.7508,
+      "init_value": 10298.41,
+      "end_value": 10151.36
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-10",
+      "total_return_pct": -1.6043,
+      "max_drawdown_pct": -4.98,
+      "win_rate_pct": 33.33,
+      "total_trades": 3,
+      "profit_factor": 0.36,
+      "sharpe_ratio": 1.94,
+      "sortino_ratio": 2.3,
+      "expectancy": -54.29,
+      "best_trade_pct": 0.9043,
+      "worst_trade_pct": -1.4312,
+      "init_value": 10151.36,
+      "end_value": 9988.5
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-11",
+      "total_return_pct": 1.1782,
+      "max_drawdown_pct": -0.39,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 2.34,
+      "sortino_ratio": 2.0,
+      "expectancy": 117.68,
+      "best_trade_pct": 1.1782,
+      "worst_trade_pct": 1.1782,
+      "init_value": 9988.5,
+      "end_value": 10106.18
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-01-12",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 10106.18,
+      "end_value": 10106.18
+    },
+    {
+      "ticker": "META",
+      "date": "2024-01-15",
+      "total_return_pct": 1.0324,
+      "max_drawdown_pct": -0.18,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 1.91,
+      "sharpe_ratio": 2.36,
+      "sortino_ratio": 2.39,
+      "expectancy": 52.17,
+      "best_trade_pct": 2.1713,
+      "worst_trade_pct": -1.1389,
+      "init_value": 10106.18,
+      "end_value": 10210.52
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-16",
+      "total_return_pct": 2.847,
+      "max_drawdown_pct": -0.7,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 0.64,
+      "sortino_ratio": 1.1,
+      "expectancy": 145.34,
+      "best_trade_pct": 2.0577,
+      "worst_trade_pct": 0.7893,
+      "init_value": 10210.52,
+      "end_value": 10501.21
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-01-17",
+      "total_return_pct": 1.8775,
+      "max_drawdown_pct": -2.84,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.35,
+      "sortino_ratio": 1.67,
+      "expectancy": 197.16,
+      "best_trade_pct": 1.8775,
+      "worst_trade_pct": 1.8775,
+      "init_value": 10501.21,
+      "end_value": 10698.37
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-18",
+      "total_return_pct": -0.6378,
+      "max_drawdown_pct": -4.75,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 0.55,
+      "sharpe_ratio": 2.5,
+      "sortino_ratio": 2.59,
+      "expectancy": -34.12,
+      "best_trade_pct": 0.7652,
+      "worst_trade_pct": -1.4029,
+      "init_value": 10698.37,
+      "end_value": 10630.14
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-01-19",
+      "total_return_pct": 3.0986,
+      "max_drawdown_pct": -2.62,
+      "win_rate_pct": 66.67,
+      "total_trades": 3,
+      "profit_factor": 3.06,
+      "sharpe_ratio": 2.34,
+      "sortino_ratio": 1.83,
+      "expectancy": 109.8,
+      "best_trade_pct": 2.5574,
+      "worst_trade_pct": -1.5023,
+      "init_value": 10630.14,
+      "end_value": 10959.53
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-22",
+      "total_return_pct": 6.0087,
+      "max_drawdown_pct": -0.32,
+      "win_rate_pct": 100.0,
+      "total_trades": 3,
+      "profit_factor": null,
+      "sharpe_ratio": 0.52,
+      "sortino_ratio": 2.05,
+      "expectancy": 219.51,
+      "best_trade_pct": 2.8279,
+      "worst_trade_pct": 0.8937,
+      "init_value": 10959.53,
+      "end_value": 11618.05
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-01-23",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 11618.05,
+      "end_value": 11618.05
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-24",
+      "total_return_pct": 1.4388,
+      "max_drawdown_pct": -3.49,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 2.47,
+      "sortino_ratio": 2.52,
+      "expectancy": 167.16,
+      "best_trade_pct": 1.4388,
+      "worst_trade_pct": 1.4388,
+      "init_value": 11618.05,
+      "end_value": 11785.21
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-25",
+      "total_return_pct": -0.2283,
+      "max_drawdown_pct": -4.54,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 0.84,
+      "sharpe_ratio": 1.35,
+      "sortino_ratio": 1.19,
+      "expectancy": -13.45,
+      "best_trade_pct": 1.1587,
+      "worst_trade_pct": -1.387,
+      "init_value": 11785.21,
+      "end_value": 11758.31
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-26",
+      "total_return_pct": 2.2507,
+      "max_drawdown_pct": -0.48,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.59,
+      "sortino_ratio": 2.59,
+      "expectancy": 264.64,
+      "best_trade_pct": 2.2507,
+      "worst_trade_pct": 2.2507,
+      "init_value": 11758.31,
+      "end_value": 12022.95
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-29",
+      "total_return_pct": 0.5953,
+      "max_drawdown_pct": -4.49,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 2.06,
+      "sortino_ratio": 2.71,
+      "expectancy": 71.57,
+      "best_trade_pct": 0.5953,
+      "worst_trade_pct": 0.5953,
+      "init_value": 12022.95,
+      "end_value": 12094.52
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-30",
+      "total_return_pct": 0.7527,
+      "max_drawdown_pct": -3.36,
+      "win_rate_pct": 33.33,
+      "total_trades": 3,
+      "profit_factor": 1.41,
+      "sharpe_ratio": 2.23,
+      "sortino_ratio": 2.92,
+      "expectancy": 30.35,
+      "best_trade_pct": 2.5853,
+      "worst_trade_pct": -1.2536,
+      "init_value": 12094.52,
+      "end_value": 12185.56
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-31",
+      "total_return_pct": 0.558,
+      "max_drawdown_pct": -0.19,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.03,
+      "sortino_ratio": 0.77,
+      "expectancy": 68.0,
+      "best_trade_pct": 0.558,
+      "worst_trade_pct": 0.558,
+      "init_value": 12185.56,
+      "end_value": 12253.56
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-02-01",
+      "total_return_pct": -1.346,
+      "max_drawdown_pct": -2.4,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.11,
+      "sortino_ratio": 2.22,
+      "expectancy": -164.93,
+      "best_trade_pct": -1.346,
+      "worst_trade_pct": -1.346,
+      "init_value": 12253.56,
+      "end_value": 12088.63
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-02",
+      "total_return_pct": 2.0877,
+      "max_drawdown_pct": -3.45,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.32,
+      "sortino_ratio": 1.51,
+      "expectancy": 252.38,
+      "best_trade_pct": 2.0877,
+      "worst_trade_pct": 2.0877,
+      "init_value": 12088.63,
+      "end_value": 12341.01
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-05",
+      "total_return_pct": 0.8951,
+      "max_drawdown_pct": -3.48,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 0.92,
+      "sortino_ratio": 2.46,
+      "expectancy": 110.47,
+      "best_trade_pct": 0.8951,
+      "worst_trade_pct": 0.8951,
+      "init_value": 12341.01,
+      "end_value": 12451.48
+    },
+    {
+      "ticker": "META",
+      "date": "2024-02-06",
+      "total_return_pct": 2.7173,
+      "max_drawdown_pct": -2.42,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.77,
+      "sortino_ratio": 1.34,
+      "expectancy": 338.35,
+      "best_trade_pct": 2.7173,
+      "worst_trade_pct": 2.7173,
+      "init_value": 12451.48,
+      "end_value": 12789.83
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-07",
+      "total_return_pct": 4.0399,
+      "max_drawdown_pct": -4.97,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 2.0,
+      "sortino_ratio": 2.43,
+      "expectancy": 258.34,
+      "best_trade_pct": 2.7001,
+      "worst_trade_pct": 1.3397,
+      "init_value": 12789.83,
+      "end_value": 13306.52
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-08",
+      "total_return_pct": 3.0909,
+      "max_drawdown_pct": -2.87,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 2.31,
+      "sortino_ratio": 1.61,
+      "expectancy": 205.64,
+      "best_trade_pct": 2.0969,
+      "worst_trade_pct": 0.994,
+      "init_value": 13306.52,
+      "end_value": 13717.81
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-02-09",
+      "total_return_pct": 2.171,
+      "max_drawdown_pct": -3.84,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 1.89,
+      "sortino_ratio": 2.27,
+      "expectancy": 148.91,
+      "best_trade_pct": 1.1474,
+      "worst_trade_pct": 1.0236,
+      "init_value": 13717.81,
+      "end_value": 14015.63
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-12",
+      "total_return_pct": 1.2974,
+      "max_drawdown_pct": -4.9,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 2.26,
+      "sortino_ratio": 1.94,
+      "expectancy": 181.84,
+      "best_trade_pct": 1.2974,
+      "worst_trade_pct": 1.2974,
+      "init_value": 14015.63,
+      "end_value": 14197.47
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-13",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 14197.47,
+      "end_value": 14197.47
+    },
+    {
+      "ticker": "META",
+      "date": "2024-02-14",
+      "total_return_pct": 2.0564,
+      "max_drawdown_pct": -2.82,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 0.56,
+      "sortino_ratio": 1.34,
+      "expectancy": 291.96,
+      "best_trade_pct": 2.0564,
+      "worst_trade_pct": 2.0564,
+      "init_value": 14197.47,
+      "end_value": 14489.43
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-02-15",
+      "total_return_pct": -1.0411,
+      "max_drawdown_pct": -1.24,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.16,
+      "sortino_ratio": 1.13,
+      "expectancy": -75.42,
+      "best_trade_pct": -0.4262,
+      "worst_trade_pct": -0.6149,
+      "init_value": 14489.43,
+      "end_value": 14338.58
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-16",
+      "total_return_pct": -1.0265,
+      "max_drawdown_pct": -0.8,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.74,
+      "sortino_ratio": 1.1,
+      "expectancy": -147.18,
+      "best_trade_pct": -1.0265,
+      "worst_trade_pct": -1.0265,
+      "init_value": 14338.58,
+      "end_value": 14191.4
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-19",
+      "total_return_pct": -1.1424,
+      "max_drawdown_pct": -4.01,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.68,
+      "sortino_ratio": 2.58,
+      "expectancy": -81.06,
+      "best_trade_pct": -0.5411,
+      "worst_trade_pct": -0.6013,
+      "init_value": 14191.4,
+      "end_value": 14029.28
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-20",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 14029.28,
+      "end_value": 14029.28
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-21",
+      "total_return_pct": -1.4785,
+      "max_drawdown_pct": -1.33,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.43,
+      "sortino_ratio": 1.18,
+      "expectancy": -103.71,
+      "best_trade_pct": -0.5851,
+      "worst_trade_pct": -0.8934,
+      "init_value": 14029.28,
+      "end_value": 13821.86
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-22",
+      "total_return_pct": -1.1186,
+      "max_drawdown_pct": -2.68,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.72,
+      "sortino_ratio": 1.45,
+      "expectancy": -154.61,
+      "best_trade_pct": -1.1186,
+      "worst_trade_pct": -1.1186,
+      "init_value": 13821.86,
+      "end_value": 13667.25
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-02-23",
+      "total_return_pct": 1.1612,
+      "max_drawdown_pct": -2.22,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.53,
+      "sortino_ratio": 0.98,
+      "expectancy": 158.7,
+      "best_trade_pct": 1.1612,
+      "worst_trade_pct": 1.1612,
+      "init_value": 13667.25,
+      "end_value": 13825.95
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-26",
+      "total_return_pct": 2.8901,
+      "max_drawdown_pct": -2.25,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 1.2,
+      "sortino_ratio": 1.63,
+      "expectancy": 199.8,
+      "best_trade_pct": 1.4635,
+      "worst_trade_pct": 1.4267,
+      "init_value": 13825.95,
+      "end_value": 14225.54
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-27",
+      "total_return_pct": 2.3602,
+      "max_drawdown_pct": -2.58,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.95,
+      "sortino_ratio": 2.94,
+      "expectancy": 335.75,
+      "best_trade_pct": 2.3602,
+      "worst_trade_pct": 2.3602,
+      "init_value": 14225.54,
+      "end_value": 14561.29
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-28",
+      "total_return_pct": 2.4718,
+      "max_drawdown_pct": -4.73,
+      "win_rate_pct": 66.67,
+      "total_trades": 3,
+      "profit_factor": 12.21,
+      "sharpe_ratio": 0.8,
+      "sortino_ratio": 1.91,
+      "expectancy": 119.97,
+      "best_trade_pct": 2.1502,
+      "worst_trade_pct": -0.2206,
+      "init_value": 14561.29,
+      "end_value": 14921.21
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-29",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 14921.21,
+      "end_value": 14921.21
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-01",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 14921.21,
+      "end_value": 14921.21
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-04",
+      "total_return_pct": -2.0822,
+      "max_drawdown_pct": -3.8,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.6,
+      "sortino_ratio": 0.89,
+      "expectancy": -155.34,
+      "best_trade_pct": -0.9678,
+      "worst_trade_pct": -1.1144,
+      "init_value": 14921.21,
+      "end_value": 14610.52
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-05",
+      "total_return_pct": -0.4956,
+      "max_drawdown_pct": -1.06,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.75,
+      "sortino_ratio": 2.15,
+      "expectancy": -72.41,
+      "best_trade_pct": -0.4956,
+      "worst_trade_pct": -0.4956,
+      "init_value": 14610.52,
+      "end_value": 14538.11
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-06",
+      "total_return_pct": 0.5552,
+      "max_drawdown_pct": -0.88,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 2.34,
+      "sortino_ratio": 1.6,
+      "expectancy": 80.71,
+      "best_trade_pct": 0.5552,
+      "worst_trade_pct": 0.5552,
+      "init_value": 14538.11,
+      "end_value": 14618.82
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-07",
+      "total_return_pct": 1.2637,
+      "max_drawdown_pct": -0.89,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 5.39,
+      "sharpe_ratio": 1.65,
+      "sortino_ratio": 2.41,
+      "expectancy": 92.37,
+      "best_trade_pct": 1.5515,
+      "worst_trade_pct": -0.2878,
+      "init_value": 14618.82,
+      "end_value": 14803.56
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-08",
+      "total_return_pct": -1.0277,
+      "max_drawdown_pct": -3.39,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 0.71,
+      "sortino_ratio": 0.9,
+      "expectancy": -152.14,
+      "best_trade_pct": -1.0277,
+      "worst_trade_pct": -1.0277,
+      "init_value": 14803.56,
+      "end_value": 14651.42
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-11",
+      "total_return_pct": 2.7932,
+      "max_drawdown_pct": -1.89,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 1.5,
+      "sortino_ratio": 1.61,
+      "expectancy": 204.62,
+      "best_trade_pct": 1.4835,
+      "worst_trade_pct": 1.3098,
+      "init_value": 14651.42,
+      "end_value": 15060.67
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-03-12",
+      "total_return_pct": 0.454,
+      "max_drawdown_pct": -4.21,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.6,
+      "sortino_ratio": 1.88,
+      "expectancy": 68.37,
+      "best_trade_pct": 0.454,
+      "worst_trade_pct": 0.454,
+      "init_value": 15060.67,
+      "end_value": 15129.04
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-03-13",
+      "total_return_pct": -0.351,
+      "max_drawdown_pct": -0.83,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.46,
+      "sortino_ratio": 1.11,
+      "expectancy": -53.1,
+      "best_trade_pct": -0.351,
+      "worst_trade_pct": -0.351,
+      "init_value": 15129.04,
+      "end_value": 15075.94
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-14",
+      "total_return_pct": -0.4739,
+      "max_drawdown_pct": -4.99,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.95,
+      "sortino_ratio": 2.59,
+      "expectancy": -71.44,
+      "best_trade_pct": -0.4739,
+      "worst_trade_pct": -0.4739,
+      "init_value": 15075.94,
+      "end_value": 15004.5
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-15",
+      "total_return_pct": 0.4749,
+      "max_drawdown_pct": -0.06,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 1.49,
+      "sharpe_ratio": 2.08,
+      "sortino_ratio": 2.13,
+      "expectancy": 35.63,
+      "best_trade_pct": 1.4502,
+      "worst_trade_pct": -0.9752,
+      "init_value": 15004.5,
+      "end_value": 15075.76
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-18",
+      "total_return_pct": 2.0796,
+      "max_drawdown_pct": -4.92,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 0.79,
+      "sortino_ratio": 2.68,
+      "expectancy": 313.52,
+      "best_trade_pct": 2.0796,
+      "worst_trade_pct": 2.0796,
+      "init_value": 15075.76,
+      "end_value": 15389.28
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-19",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 15389.28,
+      "end_value": 15389.28
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-20",
+      "total_return_pct": -1.0325,
+      "max_drawdown_pct": -4.82,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 0.64,
+      "sortino_ratio": 2.08,
+      "expectancy": -158.9,
+      "best_trade_pct": -1.0325,
+      "worst_trade_pct": -1.0325,
+      "init_value": 15389.28,
+      "end_value": 15230.38
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-21",
+      "total_return_pct": 1.1887,
+      "max_drawdown_pct": -3.84,
+      "win_rate_pct": 66.67,
+      "total_trades": 3,
+      "profit_factor": 2.13,
+      "sharpe_ratio": 1.78,
+      "sortino_ratio": 1.65,
+      "expectancy": 60.35,
+      "best_trade_pct": 1.574,
+      "worst_trade_pct": -1.0564,
+      "init_value": 15230.38,
+      "end_value": 15411.43
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-03-22",
+      "total_return_pct": 0.832,
+      "max_drawdown_pct": -2.14,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 3.14,
+      "sharpe_ratio": 1.65,
+      "sortino_ratio": 2.98,
+      "expectancy": 64.11,
+      "best_trade_pct": 1.2205,
+      "worst_trade_pct": -0.3885,
+      "init_value": 15411.43,
+      "end_value": 15539.65
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-25",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 15539.65,
+      "end_value": 15539.65
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-26",
+      "total_return_pct": -1.072,
+      "max_drawdown_pct": -1.01,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.71,
+      "sortino_ratio": 1.38,
+      "expectancy": -166.59,
+      "best_trade_pct": -1.072,
+      "worst_trade_pct": -1.072,
+      "init_value": 15539.65,
+      "end_value": 15373.06
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-27",
+      "total_return_pct": -0.6117,
+      "max_drawdown_pct": -4.34,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.58,
+      "sortino_ratio": 2.93,
+      "expectancy": -47.02,
+      "best_trade_pct": -0.2831,
+      "worst_trade_pct": -0.3286,
+      "init_value": 15373.06,
+      "end_value": 15279.02
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-28",
+      "total_return_pct": -0.1228,
+      "max_drawdown_pct": -1.05,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 0.89,
+      "sharpe_ratio": 0.53,
+      "sortino_ratio": 1.84,
+      "expectancy": -9.38,
+      "best_trade_pct": 1.0356,
+      "worst_trade_pct": -1.1584,
+      "init_value": 15279.02,
+      "end_value": 15260.26
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-29",
+      "total_return_pct": -1.1208,
+      "max_drawdown_pct": -0.58,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.62,
+      "sortino_ratio": 2.79,
+      "expectancy": -171.04,
+      "best_trade_pct": -1.1208,
+      "worst_trade_pct": -1.1208,
+      "init_value": 15260.26,
+      "end_value": 15089.22
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-04-01",
+      "total_return_pct": 0.6648,
+      "max_drawdown_pct": -2.9,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 2.1,
+      "sharpe_ratio": 1.98,
+      "sortino_ratio": 0.89,
+      "expectancy": 50.16,
+      "best_trade_pct": 1.2695,
+      "worst_trade_pct": -0.6047,
+      "init_value": 15089.22,
+      "end_value": 15189.54
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-02",
+      "total_return_pct": -1.1541,
+      "max_drawdown_pct": -1.69,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.78,
+      "sortino_ratio": 1.99,
+      "expectancy": -87.65,
+      "best_trade_pct": -0.5634,
+      "worst_trade_pct": -0.5907,
+      "init_value": 15189.54,
+      "end_value": 15014.24
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-04-03",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 15014.24,
+      "end_value": 15014.24
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-04",
+      "total_return_pct": 1.4701,
+      "max_drawdown_pct": -3.36,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 0.8,
+      "sortino_ratio": 2.75,
+      "expectancy": 220.72,
+      "best_trade_pct": 1.4701,
+      "worst_trade_pct": 1.4701,
+      "init_value": 15014.24,
+      "end_value": 15234.96
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-04-05",
+      "total_return_pct": -0.3052,
+      "max_drawdown_pct": -1.06,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.68,
+      "sortino_ratio": 0.54,
+      "expectancy": -46.49,
+      "best_trade_pct": -0.3052,
+      "worst_trade_pct": -0.3052,
+      "init_value": 15234.96,
+      "end_value": 15188.47
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-04-08",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 15188.47,
+      "end_value": 15188.47
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-09",
+      "total_return_pct": -0.7838,
+      "max_drawdown_pct": -1.08,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.23,
+      "sortino_ratio": 1.8,
+      "expectancy": -119.05,
+      "best_trade_pct": -0.7838,
+      "worst_trade_pct": -0.7838,
+      "init_value": 15188.47,
+      "end_value": 15069.42
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-10",
+      "total_return_pct": 2.2224,
+      "max_drawdown_pct": -2.35,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 1.41,
+      "sortino_ratio": 2.01,
+      "expectancy": 167.45,
+      "best_trade_pct": 1.6165,
+      "worst_trade_pct": 0.6059,
+      "init_value": 15069.42,
+      "end_value": 15404.32
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-11",
+      "total_return_pct": 2.9968,
+      "max_drawdown_pct": -1.57,
+      "win_rate_pct": 100.0,
+      "total_trades": 2,
+      "profit_factor": null,
+      "sharpe_ratio": 1.45,
+      "sortino_ratio": 0.73,
+      "expectancy": 230.81,
+      "best_trade_pct": 2.0188,
+      "worst_trade_pct": 0.9779,
+      "init_value": 15404.32,
+      "end_value": 15865.95
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-12",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 15865.95,
+      "end_value": 15865.95
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-15",
+      "total_return_pct": 0.9437,
+      "max_drawdown_pct": -1.72,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 3.05,
+      "sharpe_ratio": 0.95,
+      "sortino_ratio": 0.77,
+      "expectancy": 74.86,
+      "best_trade_pct": 1.4046,
+      "worst_trade_pct": -0.461,
+      "init_value": 15865.95,
+      "end_value": 16015.67
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-16",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 16015.67,
+      "end_value": 16015.67
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-04-17",
+      "total_return_pct": -0.8195,
+      "max_drawdown_pct": -4.1,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.91,
+      "sortino_ratio": 1.27,
+      "expectancy": -131.25,
+      "best_trade_pct": -0.8195,
+      "worst_trade_pct": -0.8195,
+      "init_value": 16015.67,
+      "end_value": 15884.42
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-18",
+      "total_return_pct": 0.6367,
+      "max_drawdown_pct": -2.35,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.25,
+      "sortino_ratio": 1.63,
+      "expectancy": 101.14,
+      "best_trade_pct": 0.6367,
+      "worst_trade_pct": 0.6367,
+      "init_value": 15884.42,
+      "end_value": 15985.56
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-04-19",
+      "total_return_pct": -0.3337,
+      "max_drawdown_pct": -2.78,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 1.35,
+      "sortino_ratio": 2.02,
+      "expectancy": -53.34,
+      "best_trade_pct": -0.3337,
+      "worst_trade_pct": -0.3337,
+      "init_value": 15985.56,
+      "end_value": 15932.22
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-22",
+      "total_return_pct": -0.8268,
+      "max_drawdown_pct": -3.9,
+      "win_rate_pct": 0.0,
+      "total_trades": 1,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.47,
+      "sortino_ratio": 0.64,
+      "expectancy": -131.73,
+      "best_trade_pct": -0.8268,
+      "worst_trade_pct": -0.8268,
+      "init_value": 15932.22,
+      "end_value": 15800.49
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-04-23",
+      "total_return_pct": 0.6,
+      "max_drawdown_pct": -3.1,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 1.91,
+      "sortino_ratio": 1.75,
+      "expectancy": 94.8,
+      "best_trade_pct": 0.6,
+      "worst_trade_pct": 0.6,
+      "init_value": 15800.49,
+      "end_value": 15895.29
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-24",
+      "total_return_pct": 0.0,
+      "max_drawdown_pct": null,
+      "win_rate_pct": null,
+      "total_trades": 0,
+      "profit_factor": null,
+      "sharpe_ratio": null,
+      "sortino_ratio": null,
+      "expectancy": null,
+      "best_trade_pct": null,
+      "worst_trade_pct": null,
+      "init_value": 15895.29,
+      "end_value": 15895.29
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-04-25",
+      "total_return_pct": 1.4236,
+      "max_drawdown_pct": -2.97,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 2.43,
+      "sortino_ratio": 0.93,
+      "expectancy": 226.29,
+      "best_trade_pct": 1.4236,
+      "worst_trade_pct": 1.4236,
+      "init_value": 15895.29,
+      "end_value": 16121.58
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-26",
+      "total_return_pct": 0.7773,
+      "max_drawdown_pct": -3.25,
+      "win_rate_pct": 50.0,
+      "total_trades": 2,
+      "profit_factor": 2.06,
+      "sharpe_ratio": 1.95,
+      "sortino_ratio": 2.55,
+      "expectancy": 62.65,
+      "best_trade_pct": 1.5113,
+      "worst_trade_pct": -0.734,
+      "init_value": 16121.58,
+      "end_value": 16246.89
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-04-29",
+      "total_return_pct": 1.7243,
+      "max_drawdown_pct": -2.53,
+      "win_rate_pct": 100.0,
+      "total_trades": 1,
+      "profit_factor": null,
+      "sharpe_ratio": 2.01,
+      "sortino_ratio": 2.4,
+      "expectancy": 280.15,
+      "best_trade_pct": 1.7243,
+      "worst_trade_pct": 1.7243,
+      "init_value": 16246.89,
+      "end_value": 16527.04
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-30",
+      "total_return_pct": -1.3117,
+      "max_drawdown_pct": -4.62,
+      "win_rate_pct": 0.0,
+      "total_trades": 2,
+      "profit_factor": 0.0,
+      "sharpe_ratio": 2.23,
+      "sortino_ratio": 2.64,
+      "expectancy": -108.39,
+      "best_trade_pct": -0.2489,
+      "worst_trade_pct": -1.0628,
+      "init_value": 16527.04,
+      "end_value": 16310.26
+    }
+  ],
+  "trades": [
+    {
+      "ticker": "AMD",
+      "date": "2024-01-03",
+      "entry_time": "2024-01-03T09:51:00",
+      "exit_time": "2024-01-03T11:40:00",
+      "entry_idx": 0,
+      "exit_idx": 42,
+      "entry_time_epoch": 1704271860,
+      "exit_time_epoch": 1704278400,
+      "entry_price": 269.81,
+      "exit_price": 272.11,
+      "pnl": 85.21,
+      "return_pct": 0.8521,
+      "direction": "long",
+      "status": "closed",
+      "size": 37,
+      "exit_reason": "take_profit",
+      "mae": 17.98,
+      "mfe": 45.14,
+      "r_multiple": 0.85,
+      "entry_hour": 9,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-04",
+      "entry_time": "2024-01-04T09:54:00",
+      "exit_time": "2024-01-04T11:52:00",
+      "entry_idx": 0,
+      "exit_idx": 28,
+      "entry_time_epoch": 1704358440,
+      "exit_time_epoch": 1704365520,
+      "entry_price": 64.7,
+      "exit_price": 64.1,
+      "pnl": -93.39,
+      "return_pct": -0.926,
+      "direction": "long",
+      "status": "closed",
+      "size": 155,
+      "exit_reason": "time_exit",
+      "mae": 12.98,
+      "mfe": 66.8,
+      "r_multiple": -0.93,
+      "entry_hour": 9,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-05",
+      "entry_time": "2024-01-05T13:07:00",
+      "exit_time": "2024-01-05T14:10:00",
+      "entry_idx": 0,
+      "exit_idx": 88,
+      "entry_time_epoch": 1704456420,
+      "exit_time_epoch": 1704460200,
+      "entry_price": 42.06,
+      "exit_price": 41.75,
+      "pnl": -73.98,
+      "return_pct": -0.7404,
+      "direction": "long",
+      "status": "closed",
+      "size": 238,
+      "exit_reason": "time_exit",
+      "mae": 23.25,
+      "mfe": 102.5,
+      "r_multiple": -0.74,
+      "entry_hour": 13,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-05",
+      "entry_time": "2024-01-05T09:31:00",
+      "exit_time": "2024-01-05T11:10:00",
+      "entry_idx": 15,
+      "exit_idx": 42,
+      "entry_time_epoch": 1704443460,
+      "exit_time_epoch": 1704449400,
+      "entry_price": 83.81,
+      "exit_price": 85.03,
+      "pnl": 143.92,
+      "return_pct": 1.4511,
+      "direction": "long",
+      "status": "closed",
+      "size": 117,
+      "exit_reason": "take_profit",
+      "mae": 5.74,
+      "mfe": 105.46,
+      "r_multiple": 1.44,
+      "entry_hour": 9,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-08",
+      "entry_time": "2024-01-08T11:44:00",
+      "exit_time": "2024-01-08T13:26:00",
+      "entry_idx": 0,
+      "exit_idx": 35,
+      "entry_time_epoch": 1704710640,
+      "exit_time_epoch": 1704716760,
+      "entry_price": 201.45,
+      "exit_price": 206.19,
+      "pnl": 236.65,
+      "return_pct": 2.352,
+      "direction": "long",
+      "status": "closed",
+      "size": 49,
+      "exit_reason": "take_profit",
+      "mae": 20.25,
+      "mfe": 290.87,
+      "r_multiple": 2.37,
+      "entry_hour": 11,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-09",
+      "entry_time": "2024-01-09T09:37:00",
+      "exit_time": "2024-01-09T11:37:00",
+      "entry_idx": 0,
+      "exit_idx": 42,
+      "entry_time_epoch": 1704789420,
+      "exit_time_epoch": 1704796620,
+      "entry_price": 28.99,
+      "exit_price": 28.77,
+      "pnl": -77.32,
+      "return_pct": -0.7508,
+      "direction": "long",
+      "status": "closed",
+      "size": 351,
+      "exit_reason": "time_exit",
+      "mae": 10.35,
+      "mfe": 54.97,
+      "r_multiple": -0.77,
+      "entry_hour": 9,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-09",
+      "entry_time": "2024-01-09T12:56:00",
+      "exit_time": "2024-01-09T14:33:00",
+      "entry_idx": 15,
+      "exit_idx": 125,
+      "entry_time_epoch": 1704801360,
+      "exit_time_epoch": 1704807180,
+      "entry_price": 148.48,
+      "exit_price": 147.47,
+      "pnl": -69.73,
+      "return_pct": -0.6822,
+      "direction": "long",
+      "status": "closed",
+      "size": 69,
+      "exit_reason": "time_exit",
+      "mae": 8.6,
+      "mfe": 74.01,
+      "r_multiple": -0.7,
+      "entry_hour": 12,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-10",
+      "entry_time": "2024-01-10T12:05:00",
+      "exit_time": "2024-01-10T13:56:00",
+      "entry_idx": 0,
+      "exit_idx": 69,
+      "entry_time_epoch": 1704884700,
+      "exit_time_epoch": 1704891360,
+      "entry_price": 33.19,
+      "exit_price": 33.49,
+      "pnl": 91.8,
+      "return_pct": 0.9043,
+      "direction": "long",
+      "status": "closed",
+      "size": 305,
+      "exit_reason": "take_profit",
+      "mae": 28.8,
+      "mfe": 118.61,
+      "r_multiple": 0.92,
+      "entry_hour": 12,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-10",
+      "entry_time": "2024-01-10T12:24:00",
+      "exit_time": "2024-01-10T13:55:00",
+      "entry_idx": 15,
+      "exit_idx": 117,
+      "entry_time_epoch": 1704885840,
+      "exit_time_epoch": 1704891300,
+      "entry_price": 298.91,
+      "exit_price": 295.72,
+      "pnl": -109.37,
+      "return_pct": -1.0677,
+      "direction": "long",
+      "status": "closed",
+      "size": 34,
+      "exit_reason": "stop_loss",
+      "mae": 53.1,
+      "mfe": 148.83,
+      "r_multiple": -1.09,
+      "entry_hour": 12,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-10",
+      "entry_time": "2024-01-10T14:56:00",
+      "exit_time": "2024-01-10T16:19:00",
+      "entry_idx": 30,
+      "exit_idx": 103,
+      "entry_time_epoch": 1704894960,
+      "exit_time_epoch": 1704899940,
+      "entry_price": 230.25,
+      "exit_price": 226.95,
+      "pnl": -145.29,
+      "return_pct": -1.4337,
+      "direction": "long",
+      "status": "closed",
+      "size": 44,
+      "exit_reason": "stop_loss",
+      "mae": 24.71,
+      "mfe": 115.29,
+      "r_multiple": -1.45,
+      "entry_hour": 14,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-11",
+      "entry_time": "2024-01-11T14:19:00",
+      "exit_time": "2024-01-11T15:55:00",
+      "entry_idx": 0,
+      "exit_idx": 114,
+      "entry_time_epoch": 1704979140,
+      "exit_time_epoch": 1704984900,
+      "entry_price": 162.15,
+      "exit_price": 164.06,
+      "pnl": 117.68,
+      "return_pct": 1.1782,
+      "direction": "long",
+      "status": "closed",
+      "size": 61,
+      "exit_reason": "take_profit",
+      "mae": 22.0,
+      "mfe": 77.85,
+      "r_multiple": 1.18,
+      "entry_hour": 14,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "META",
+      "date": "2024-01-15",
+      "entry_time": "2024-01-15T11:15:00",
+      "exit_time": "2024-01-15T11:37:00",
+      "entry_idx": 0,
+      "exit_idx": 112,
+      "entry_time_epoch": 1705313700,
+      "exit_time_epoch": 1705315020,
+      "entry_price": 87.44,
+      "exit_price": 86.44,
+      "pnl": -115.1,
+      "return_pct": -1.1389,
+      "direction": "long",
+      "status": "closed",
+      "size": 115,
+      "exit_reason": "stop_loss",
+      "mae": 4.53,
+      "mfe": 141.79,
+      "r_multiple": -1.15,
+      "entry_hour": 11,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "META",
+      "date": "2024-01-15",
+      "entry_time": "2024-01-15T10:08:00",
+      "exit_time": "2024-01-15T11:47:00",
+      "entry_idx": 15,
+      "exit_idx": 84,
+      "entry_time_epoch": 1705309680,
+      "exit_time_epoch": 1705315620,
+      "entry_price": 153.08,
+      "exit_price": 156.44,
+      "pnl": 219.44,
+      "return_pct": 2.1964,
+      "direction": "long",
+      "status": "closed",
+      "size": 65,
+      "exit_reason": "take_profit",
+      "mae": 29.08,
+      "mfe": 301.17,
+      "r_multiple": 2.19,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-16",
+      "entry_time": "2024-01-16T14:41:00",
+      "exit_time": "2024-01-16T15:43:00",
+      "entry_idx": 0,
+      "exit_idx": 58,
+      "entry_time_epoch": 1705412460,
+      "exit_time_epoch": 1705416180,
+      "entry_price": 142.67,
+      "exit_price": 145.61,
+      "pnl": 210.1,
+      "return_pct": 2.0577,
+      "direction": "long",
+      "status": "closed",
+      "size": 71,
+      "exit_reason": "take_profit",
+      "mae": 12.71,
+      "mfe": 152.26,
+      "r_multiple": 2.1,
+      "entry_hour": 14,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-16",
+      "entry_time": "2024-01-16T13:14:00",
+      "exit_time": "2024-01-16T14:44:00",
+      "entry_idx": 15,
+      "exit_idx": 34,
+      "entry_time_epoch": 1705407240,
+      "exit_time_epoch": 1705412640,
+      "entry_price": 81.66,
+      "exit_price": 82.29,
+      "pnl": 80.59,
+      "return_pct": 0.7734,
+      "direction": "long",
+      "status": "closed",
+      "size": 127,
+      "exit_reason": "take_profit",
+      "mae": 25.43,
+      "mfe": 58.75,
+      "r_multiple": 0.81,
+      "entry_hour": 13,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-01-17",
+      "entry_time": "2024-01-17T13:36:00",
+      "exit_time": "2024-01-17T14:51:00",
+      "entry_idx": 0,
+      "exit_idx": 99,
+      "entry_time_epoch": 1705494960,
+      "exit_time_epoch": 1705499460,
+      "entry_price": 88.04,
+      "exit_price": 89.69,
+      "pnl": 197.16,
+      "return_pct": 1.8775,
+      "direction": "long",
+      "status": "closed",
+      "size": 119,
+      "exit_reason": "take_profit",
+      "mae": 40.13,
+      "mfe": 117.18,
+      "r_multiple": 1.97,
+      "entry_hour": 13,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-18",
+      "entry_time": "2024-01-18T09:31:00",
+      "exit_time": "2024-01-18T10:37:00",
+      "entry_idx": 0,
+      "exit_idx": 32,
+      "entry_time_epoch": 1705566660,
+      "exit_time_epoch": 1705570620,
+      "entry_price": 223.9,
+      "exit_price": 220.76,
+      "pnl": -150.09,
+      "return_pct": -1.4029,
+      "direction": "long",
+      "status": "closed",
+      "size": 47,
+      "exit_reason": "time_exit",
+      "mae": 8.2,
+      "mfe": 103.8,
+      "r_multiple": -1.5,
+      "entry_hour": 9,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-18",
+      "entry_time": "2024-01-18T11:29:00",
+      "exit_time": "2024-01-18T12:15:00",
+      "entry_idx": 15,
+      "exit_idx": 42,
+      "entry_time_epoch": 1705573740,
+      "exit_time_epoch": 1705576500,
+      "entry_price": 264.86,
+      "exit_price": 266.92,
+      "pnl": 81.86,
+      "return_pct": 0.7761,
+      "direction": "long",
+      "status": "closed",
+      "size": 39,
+      "exit_reason": "take_profit",
+      "mae": 33.07,
+      "mfe": 111.0,
+      "r_multiple": 0.82,
+      "entry_hour": 11,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-01-19",
+      "entry_time": "2024-01-19T10:26:00",
+      "exit_time": "2024-01-19T11:43:00",
+      "entry_idx": 0,
+      "exit_idx": 64,
+      "entry_time_epoch": 1705656360,
+      "exit_time_epoch": 1705660980,
+      "entry_price": 154.78,
+      "exit_price": 152.45,
+      "pnl": -159.7,
+      "return_pct": -1.5023,
+      "direction": "long",
+      "status": "closed",
+      "size": 68,
+      "exit_reason": "stop_loss",
+      "mae": 72.06,
+      "mfe": 106.14,
+      "r_multiple": -1.6,
+      "entry_hour": 10,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-01-19",
+      "entry_time": "2024-01-19T12:18:00",
+      "exit_time": "2024-01-19T13:27:00",
+      "entry_idx": 15,
+      "exit_idx": 92,
+      "entry_time_epoch": 1705663080,
+      "exit_time_epoch": 1705667220,
+      "entry_price": 215.05,
+      "exit_price": 220.63,
+      "pnl": 271.85,
+      "return_pct": 2.5964,
+      "direction": "long",
+      "status": "closed",
+      "size": 48,
+      "exit_reason": "take_profit",
+      "mae": 106.48,
+      "mfe": 315.85,
+      "r_multiple": 2.72,
+      "entry_hour": 12,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-01-19",
+      "entry_time": "2024-01-19T11:13:00",
+      "exit_time": "2024-01-19T11:35:00",
+      "entry_idx": 30,
+      "exit_idx": 119,
+      "entry_time_epoch": 1705659180,
+      "exit_time_epoch": 1705660500,
+      "entry_price": 182.17,
+      "exit_price": 185.85,
+      "pnl": 217.24,
+      "return_pct": 2.0223,
+      "direction": "long",
+      "status": "closed",
+      "size": 59,
+      "exit_reason": "take_profit",
+      "mae": 81.25,
+      "mfe": 121.04,
+      "r_multiple": 2.17,
+      "entry_hour": 11,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-22",
+      "entry_time": "2024-01-22T10:04:00",
+      "exit_time": "2024-01-22T11:35:00",
+      "entry_idx": 0,
+      "exit_idx": 87,
+      "entry_time_epoch": 1705914240,
+      "exit_time_epoch": 1705919700,
+      "entry_price": 39.03,
+      "exit_price": 40.13,
+      "pnl": 309.93,
+      "return_pct": 2.8279,
+      "direction": "long",
+      "status": "closed",
+      "size": 281,
+      "exit_reason": "take_profit",
+      "mae": 62.57,
+      "mfe": 446.79,
+      "r_multiple": 3.1,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-22",
+      "entry_time": "2024-01-22T13:02:00",
+      "exit_time": "2024-01-22T14:36:00",
+      "entry_idx": 15,
+      "exit_idx": 63,
+      "entry_time_epoch": 1705924920,
+      "exit_time_epoch": 1705930560,
+      "entry_price": 42.96,
+      "exit_price": 43.92,
+      "pnl": 250.64,
+      "return_pct": 2.2241,
+      "direction": "long",
+      "status": "closed",
+      "size": 261,
+      "exit_reason": "take_profit",
+      "mae": 70.83,
+      "mfe": 204.61,
+      "r_multiple": 2.51,
+      "entry_hour": 13,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-22",
+      "entry_time": "2024-01-22T14:20:00",
+      "exit_time": "2024-01-22T15:05:00",
+      "entry_idx": 30,
+      "exit_idx": 141,
+      "entry_time_epoch": 1705929600,
+      "exit_time_epoch": 1705932300,
+      "entry_price": 94.37,
+      "exit_price": 95.17,
+      "pnl": 97.95,
+      "return_pct": 0.8503,
+      "direction": "long",
+      "status": "closed",
+      "size": 122,
+      "exit_reason": "take_profit",
+      "mae": 31.61,
+      "mfe": 93.76,
+      "r_multiple": 0.98,
+      "entry_hour": 14,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-24",
+      "entry_time": "2024-01-24T11:56:00",
+      "exit_time": "2024-01-24T12:19:00",
+      "entry_idx": 0,
+      "exit_idx": 105,
+      "entry_time_epoch": 1706093760,
+      "exit_time_epoch": 1706095140,
+      "entry_price": 266.2,
+      "exit_price": 270.03,
+      "pnl": 167.16,
+      "return_pct": 1.4388,
+      "direction": "long",
+      "status": "closed",
+      "size": 43,
+      "exit_reason": "take_profit",
+      "mae": 13.18,
+      "mfe": 222.95,
+      "r_multiple": 1.67,
+      "entry_hour": 11,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-25",
+      "entry_time": "2024-01-25T14:06:00",
+      "exit_time": "2024-01-25T14:38:00",
+      "entry_idx": 0,
+      "exit_idx": 92,
+      "entry_time_epoch": 1706187960,
+      "exit_time_epoch": 1706189880,
+      "entry_price": 94.05,
+      "exit_price": 92.75,
+      "pnl": -163.46,
+      "return_pct": -1.387,
+      "direction": "long",
+      "status": "closed",
+      "size": 125,
+      "exit_reason": "time_exit",
+      "mae": 60.68,
+      "mfe": 107.14,
+      "r_multiple": -1.63,
+      "entry_hour": 14,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-25",
+      "entry_time": "2024-01-25T11:13:00",
+      "exit_time": "2024-01-25T12:55:00",
+      "entry_idx": 15,
+      "exit_idx": 36,
+      "entry_time_epoch": 1706177580,
+      "exit_time_epoch": 1706183700,
+      "entry_price": 197.59,
+      "exit_price": 199.91,
+      "pnl": 136.56,
+      "return_pct": 1.175,
+      "direction": "long",
+      "status": "closed",
+      "size": 58,
+      "exit_reason": "take_profit",
+      "mae": 33.36,
+      "mfe": 191.91,
+      "r_multiple": 1.37,
+      "entry_hour": 11,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-26",
+      "entry_time": "2024-01-26T11:10:00",
+      "exit_time": "2024-01-26T12:59:00",
+      "entry_idx": 0,
+      "exit_idx": 103,
+      "entry_time_epoch": 1706263800,
+      "exit_time_epoch": 1706270340,
+      "entry_price": 143.71,
+      "exit_price": 146.94,
+      "pnl": 264.64,
+      "return_pct": 2.2507,
+      "direction": "long",
+      "status": "closed",
+      "size": 81,
+      "exit_reason": "take_profit",
+      "mae": 74.22,
+      "mfe": 161.93,
+      "r_multiple": 2.65,
+      "entry_hour": 11,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-29",
+      "entry_time": "2024-01-29T11:57:00",
+      "exit_time": "2024-01-29T13:53:00",
+      "entry_idx": 0,
+      "exit_idx": 100,
+      "entry_time_epoch": 1706525820,
+      "exit_time_epoch": 1706532780,
+      "entry_price": 292.21,
+      "exit_price": 293.95,
+      "pnl": 71.57,
+      "return_pct": 0.5953,
+      "direction": "long",
+      "status": "closed",
+      "size": 41,
+      "exit_reason": "take_profit",
+      "mae": 12.8,
+      "mfe": 84.6,
+      "r_multiple": 0.72,
+      "entry_hour": 11,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-30",
+      "entry_time": "2024-01-30T10:55:00",
+      "exit_time": "2024-01-30T11:30:00",
+      "entry_idx": 0,
+      "exit_idx": 115,
+      "entry_time_epoch": 1706608500,
+      "exit_time_epoch": 1706610600,
+      "entry_price": 293.34,
+      "exit_price": 289.66,
+      "pnl": -151.62,
+      "return_pct": -1.2536,
+      "direction": "long",
+      "status": "closed",
+      "size": 41,
+      "exit_reason": "time_exit",
+      "mae": 66.82,
+      "mfe": 79.57,
+      "r_multiple": -1.52,
+      "entry_hour": 10,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-30",
+      "entry_time": "2024-01-30T14:55:00",
+      "exit_time": "2024-01-30T16:44:00",
+      "entry_idx": 15,
+      "exit_idx": 90,
+      "entry_time_epoch": 1706622900,
+      "exit_time_epoch": 1706629440,
+      "entry_price": 247.01,
+      "exit_price": 245.56,
+      "pnl": -70.02,
+      "return_pct": -0.5863,
+      "direction": "long",
+      "status": "closed",
+      "size": 48,
+      "exit_reason": "stop_loss",
+      "mae": 27.57,
+      "mfe": 42.58,
+      "r_multiple": -0.7,
+      "entry_hour": 14,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-30",
+      "entry_time": "2024-01-30T12:22:00",
+      "exit_time": "2024-01-30T13:16:00",
+      "entry_idx": 30,
+      "exit_idx": 96,
+      "entry_time_epoch": 1706613720,
+      "exit_time_epoch": 1706616960,
+      "entry_price": 249.75,
+      "exit_price": 256.33,
+      "pnl": 312.68,
+      "return_pct": 2.6336,
+      "direction": "long",
+      "status": "closed",
+      "size": 47,
+      "exit_reason": "take_profit",
+      "mae": 34.85,
+      "mfe": 362.72,
+      "r_multiple": 3.13,
+      "entry_hour": 12,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-31",
+      "entry_time": "2024-01-31T14:53:00",
+      "exit_time": "2024-01-31T16:16:00",
+      "entry_idx": 0,
+      "exit_idx": 89,
+      "entry_time_epoch": 1706709180,
+      "exit_time_epoch": 1706714160,
+      "entry_price": 112.72,
+      "exit_price": 113.35,
+      "pnl": 68.0,
+      "return_pct": 0.558,
+      "direction": "long",
+      "status": "closed",
+      "size": 107,
+      "exit_reason": "take_profit",
+      "mae": 29.82,
+      "mfe": 51.76,
+      "r_multiple": 0.68,
+      "entry_hour": 14,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-02-01",
+      "entry_time": "2024-02-01T12:38:00",
+      "exit_time": "2024-02-01T13:58:00",
+      "entry_idx": 0,
+      "exit_idx": 15,
+      "entry_time_epoch": 1706787480,
+      "exit_time_epoch": 1706792280,
+      "entry_price": 52.38,
+      "exit_price": 51.67,
+      "pnl": -164.93,
+      "return_pct": -1.346,
+      "direction": "long",
+      "status": "closed",
+      "size": 232,
+      "exit_reason": "time_exit",
+      "mae": 15.67,
+      "mfe": 89.79,
+      "r_multiple": -1.65,
+      "entry_hour": 12,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-02",
+      "entry_time": "2024-02-02T14:58:00",
+      "exit_time": "2024-02-02T15:55:00",
+      "entry_idx": 0,
+      "exit_idx": 79,
+      "entry_time_epoch": 1706882280,
+      "exit_time_epoch": 1706885700,
+      "entry_price": 194.48,
+      "exit_price": 198.54,
+      "pnl": 252.38,
+      "return_pct": 2.0877,
+      "direction": "long",
+      "status": "closed",
+      "size": 62,
+      "exit_reason": "take_profit",
+      "mae": 15.73,
+      "mfe": 353.34,
+      "r_multiple": 2.52,
+      "entry_hour": 14,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-05",
+      "entry_time": "2024-02-05T14:24:00",
+      "exit_time": "2024-02-05T16:05:00",
+      "entry_idx": 0,
+      "exit_idx": 15,
+      "entry_time_epoch": 1707139440,
+      "exit_time_epoch": 1707145500,
+      "entry_price": 229.48,
+      "exit_price": 231.53,
+      "pnl": 110.47,
+      "return_pct": 0.8951,
+      "direction": "long",
+      "status": "closed",
+      "size": 53,
+      "exit_reason": "take_profit",
+      "mae": 31.43,
+      "mfe": 100.09,
+      "r_multiple": 1.1,
+      "entry_hour": 14,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "META",
+      "date": "2024-02-06",
+      "entry_time": "2024-02-06T10:32:00",
+      "exit_time": "2024-02-06T11:47:00",
+      "entry_idx": 0,
+      "exit_idx": 51,
+      "entry_time_epoch": 1707211920,
+      "exit_time_epoch": 1707216420,
+      "entry_price": 242.25,
+      "exit_price": 248.83,
+      "pnl": 338.35,
+      "return_pct": 2.7173,
+      "direction": "long",
+      "status": "closed",
+      "size": 51,
+      "exit_reason": "take_profit",
+      "mae": 124.51,
+      "mfe": 392.1,
+      "r_multiple": 3.38,
+      "entry_hour": 10,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-07",
+      "entry_time": "2024-02-07T10:09:00",
+      "exit_time": "2024-02-07T10:27:00",
+      "entry_idx": 0,
+      "exit_idx": 73,
+      "entry_time_epoch": 1707296940,
+      "exit_time_epoch": 1707298020,
+      "entry_price": 32.94,
+      "exit_price": 33.83,
+      "pnl": 345.34,
+      "return_pct": 2.7001,
+      "direction": "long",
+      "status": "closed",
+      "size": 388,
+      "exit_reason": "take_profit",
+      "mae": 105.55,
+      "mfe": 438.06,
+      "r_multiple": 3.45,
+      "entry_hour": 10,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-07",
+      "entry_time": "2024-02-07T14:36:00",
+      "exit_time": "2024-02-07T15:15:00",
+      "entry_idx": 15,
+      "exit_idx": 118,
+      "entry_time_epoch": 1707312960,
+      "exit_time_epoch": 1707315300,
+      "entry_price": 221.14,
+      "exit_price": 224.02,
+      "pnl": 171.35,
+      "return_pct": 1.3045,
+      "direction": "long",
+      "status": "closed",
+      "size": 59,
+      "exit_reason": "take_profit",
+      "mae": 34.24,
+      "mfe": 110.96,
+      "r_multiple": 1.71,
+      "entry_hour": 14,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-08",
+      "entry_time": "2024-02-08T14:33:00",
+      "exit_time": "2024-02-08T15:47:00",
+      "entry_idx": 0,
+      "exit_idx": 117,
+      "entry_time_epoch": 1707399180,
+      "exit_time_epoch": 1707403620,
+      "entry_price": 34.06,
+      "exit_price": 34.4,
+      "pnl": 132.27,
+      "return_pct": 0.994,
+      "direction": "long",
+      "status": "closed",
+      "size": 389,
+      "exit_reason": "take_profit",
+      "mae": 56.1,
+      "mfe": 126.51,
+      "r_multiple": 1.32,
+      "entry_hour": 14,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-08",
+      "entry_time": "2024-02-08T13:35:00",
+      "exit_time": "2024-02-08T15:06:00",
+      "entry_idx": 15,
+      "exit_idx": 94,
+      "entry_time_epoch": 1707395700,
+      "exit_time_epoch": 1707401160,
+      "entry_price": 108.84,
+      "exit_price": 111.1,
+      "pnl": 279.02,
+      "return_pct": 2.0762,
+      "direction": "long",
+      "status": "closed",
+      "size": 123,
+      "exit_reason": "take_profit",
+      "mae": 61.74,
+      "mfe": 366.91,
+      "r_multiple": 2.79,
+      "entry_hour": 13,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-02-09",
+      "entry_time": "2024-02-09T11:48:00",
+      "exit_time": "2024-02-09T12:34:00",
+      "entry_idx": 0,
+      "exit_idx": 45,
+      "entry_time_epoch": 1707475680,
+      "exit_time_epoch": 1707478440,
+      "entry_price": 255.16,
+      "exit_price": 257.77,
+      "pnl": 140.42,
+      "return_pct": 1.0236,
+      "direction": "long",
+      "status": "closed",
+      "size": 53,
+      "exit_reason": "take_profit",
+      "mae": 54.6,
+      "mfe": 138.26,
+      "r_multiple": 1.4,
+      "entry_hour": 11,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-02-09",
+      "entry_time": "2024-02-09T09:52:00",
+      "exit_time": "2024-02-09T10:43:00",
+      "entry_idx": 15,
+      "exit_idx": 49,
+      "entry_time_epoch": 1707468720,
+      "exit_time_epoch": 1707471780,
+      "entry_price": 85.66,
+      "exit_price": 86.63,
+      "pnl": 157.4,
+      "return_pct": 1.1358,
+      "direction": "long",
+      "status": "closed",
+      "size": 162,
+      "exit_reason": "take_profit",
+      "mae": 70.28,
+      "mfe": 91.38,
+      "r_multiple": 1.57,
+      "entry_hour": 9,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-12",
+      "entry_time": "2024-02-12T12:26:00",
+      "exit_time": "2024-02-12T12:48:00",
+      "entry_idx": 0,
+      "exit_idx": 104,
+      "entry_time_epoch": 1707737160,
+      "exit_time_epoch": 1707738480,
+      "entry_price": 77.91,
+      "exit_price": 78.92,
+      "pnl": 181.84,
+      "return_pct": 1.2974,
+      "direction": "long",
+      "status": "closed",
+      "size": 180,
+      "exit_reason": "take_profit",
+      "mae": 82.27,
+      "mfe": 197.13,
+      "r_multiple": 1.82,
+      "entry_hour": 12,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "META",
+      "date": "2024-02-14",
+      "entry_time": "2024-02-14T12:34:00",
+      "exit_time": "2024-02-14T14:24:00",
+      "entry_idx": 0,
+      "exit_idx": 49,
+      "entry_time_epoch": 1707910440,
+      "exit_time_epoch": 1707917040,
+      "entry_price": 225.7,
+      "exit_price": 230.34,
+      "pnl": 291.96,
+      "return_pct": 2.0564,
+      "direction": "long",
+      "status": "closed",
+      "size": 62,
+      "exit_reason": "take_profit",
+      "mae": 131.06,
+      "mfe": 288.52,
+      "r_multiple": 2.92,
+      "entry_hour": 12,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-02-15",
+      "entry_time": "2024-02-15T10:39:00",
+      "exit_time": "2024-02-15T12:02:00",
+      "entry_idx": 0,
+      "exit_idx": 32,
+      "entry_time_epoch": 1707989940,
+      "exit_time_epoch": 1707994920,
+      "entry_price": 27.55,
+      "exit_price": 27.38,
+      "pnl": -89.1,
+      "return_pct": -0.6149,
+      "direction": "long",
+      "status": "closed",
+      "size": 524,
+      "exit_reason": "time_exit",
+      "mae": 25.14,
+      "mfe": 46.96,
+      "r_multiple": -0.89,
+      "entry_hour": 10,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-02-15",
+      "entry_time": "2024-02-15T10:03:00",
+      "exit_time": "2024-02-15T10:51:00",
+      "entry_idx": 15,
+      "exit_idx": 65,
+      "entry_time_epoch": 1707987780,
+      "exit_time_epoch": 1707990660,
+      "entry_price": 126.15,
+      "exit_price": 125.61,
+      "pnl": -61.75,
+      "return_pct": -0.4288,
+      "direction": "long",
+      "status": "closed",
+      "size": 114,
+      "exit_reason": "time_exit",
+      "mae": 10.09,
+      "mfe": 77.88,
+      "r_multiple": -0.62,
+      "entry_hour": 10,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-16",
+      "entry_time": "2024-02-16T09:41:00",
+      "exit_time": "2024-02-16T10:24:00",
+      "entry_idx": 0,
+      "exit_idx": 40,
+      "entry_time_epoch": 1708072860,
+      "exit_time_epoch": 1708075440,
+      "entry_price": 202.04,
+      "exit_price": 199.97,
+      "pnl": -147.18,
+      "return_pct": -1.0265,
+      "direction": "long",
+      "status": "closed",
+      "size": 71,
+      "exit_reason": "stop_loss",
+      "mae": 47.96,
+      "mfe": 184.6,
+      "r_multiple": -1.47,
+      "entry_hour": 9,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-19",
+      "entry_time": "2024-02-19T10:29:00",
+      "exit_time": "2024-02-19T12:13:00",
+      "entry_idx": 0,
+      "exit_idx": 114,
+      "entry_time_epoch": 1708334940,
+      "exit_time_epoch": 1708341180,
+      "entry_price": 91.75,
+      "exit_price": 91.2,
+      "pnl": -85.33,
+      "return_pct": -0.6013,
+      "direction": "long",
+      "status": "closed",
+      "size": 155,
+      "exit_reason": "stop_loss",
+      "mae": 25.85,
+      "mfe": 124.9,
+      "r_multiple": -0.85,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-19",
+      "entry_time": "2024-02-19T11:06:00",
+      "exit_time": "2024-02-19T12:35:00",
+      "entry_idx": 15,
+      "exit_idx": 121,
+      "entry_time_epoch": 1708337160,
+      "exit_time_epoch": 1708342500,
+      "entry_price": 27.19,
+      "exit_price": 27.04,
+      "pnl": -76.79,
+      "return_pct": -0.5444,
+      "direction": "long",
+      "status": "closed",
+      "size": 511,
+      "exit_reason": "time_exit",
+      "mae": 26.01,
+      "mfe": 111.97,
+      "r_multiple": -0.77,
+      "entry_hour": 11,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-21",
+      "entry_time": "2024-02-21T09:55:00",
+      "exit_time": "2024-02-21T11:22:00",
+      "entry_idx": 0,
+      "exit_idx": 16,
+      "entry_time_epoch": 1708505700,
+      "exit_time_epoch": 1708510920,
+      "entry_price": 239.14,
+      "exit_price": 237.74,
+      "pnl": -82.08,
+      "return_pct": -0.5851,
+      "direction": "long",
+      "status": "closed",
+      "size": 58,
+      "exit_reason": "time_exit",
+      "mae": 17.58,
+      "mfe": 71.46,
+      "r_multiple": -0.82,
+      "entry_hour": 9,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-21",
+      "entry_time": "2024-02-21T12:06:00",
+      "exit_time": "2024-02-21T13:16:00",
+      "entry_idx": 15,
+      "exit_idx": 52,
+      "entry_time_epoch": 1708513560,
+      "exit_time_epoch": 1708517760,
+      "entry_price": 289.02,
+      "exit_price": 286.42,
+      "pnl": -125.34,
+      "return_pct": -0.8987,
+      "direction": "long",
+      "status": "closed",
+      "size": 48,
+      "exit_reason": "time_exit",
+      "mae": 51.94,
+      "mfe": 151.32,
+      "r_multiple": -1.25,
+      "entry_hour": 12,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-22",
+      "entry_time": "2024-02-22T13:17:00",
+      "exit_time": "2024-02-22T14:13:00",
+      "entry_idx": 0,
+      "exit_idx": 111,
+      "entry_time_epoch": 1708604220,
+      "exit_time_epoch": 1708607580,
+      "entry_price": 258.48,
+      "exit_price": 255.59,
+      "pnl": -154.61,
+      "return_pct": -1.1186,
+      "direction": "long",
+      "status": "closed",
+      "size": 53,
+      "exit_reason": "stop_loss",
+      "mae": 6.7,
+      "mfe": 213.61,
+      "r_multiple": -1.55,
+      "entry_hour": 13,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-02-23",
+      "entry_time": "2024-02-23T12:13:00",
+      "exit_time": "2024-02-23T13:13:00",
+      "entry_idx": 0,
+      "exit_idx": 50,
+      "entry_time_epoch": 1708686780,
+      "exit_time_epoch": 1708690380,
+      "entry_price": 243.39,
+      "exit_price": 246.22,
+      "pnl": 158.7,
+      "return_pct": 1.1612,
+      "direction": "long",
+      "status": "closed",
+      "size": 56,
+      "exit_reason": "take_profit",
+      "mae": 69.85,
+      "mfe": 190.63,
+      "r_multiple": 1.59,
+      "entry_hour": 12,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-26",
+      "entry_time": "2024-02-26T10:44:00",
+      "exit_time": "2024-02-26T11:59:00",
+      "entry_idx": 0,
+      "exit_idx": 43,
+      "entry_time_epoch": 1708940640,
+      "exit_time_epoch": 1708945140,
+      "entry_price": 200.85,
+      "exit_price": 203.79,
+      "pnl": 202.34,
+      "return_pct": 1.4635,
+      "direction": "long",
+      "status": "closed",
+      "size": 68,
+      "exit_reason": "take_profit",
+      "mae": 80.22,
+      "mfe": 120.0,
+      "r_multiple": 2.02,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-26",
+      "entry_time": "2024-02-26T10:19:00",
+      "exit_time": "2024-02-26T11:58:00",
+      "entry_idx": 15,
+      "exit_idx": 125,
+      "entry_time_epoch": 1708939140,
+      "exit_time_epoch": 1708945080,
+      "entry_price": 182.84,
+      "exit_price": 185.41,
+      "pnl": 197.25,
+      "return_pct": 1.4061,
+      "direction": "long",
+      "status": "closed",
+      "size": 76,
+      "exit_reason": "take_profit",
+      "mae": 52.36,
+      "mfe": 182.56,
+      "r_multiple": 1.97,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-27",
+      "entry_time": "2024-02-27T10:20:00",
+      "exit_time": "2024-02-27T10:50:00",
+      "entry_idx": 0,
+      "exit_idx": 109,
+      "entry_time_epoch": 1709025600,
+      "exit_time_epoch": 1709027400,
+      "entry_price": 228.01,
+      "exit_price": 233.39,
+      "pnl": 335.75,
+      "return_pct": 2.3602,
+      "direction": "long",
+      "status": "closed",
+      "size": 62,
+      "exit_reason": "take_profit",
+      "mae": 115.86,
+      "mfe": 232.18,
+      "r_multiple": 3.36,
+      "entry_hour": 10,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-28",
+      "entry_time": "2024-02-28T11:14:00",
+      "exit_time": "2024-02-28T12:15:00",
+      "entry_idx": 0,
+      "exit_idx": 85,
+      "entry_time_epoch": 1709115240,
+      "exit_time_epoch": 1709118900,
+      "entry_price": 70.24,
+      "exit_price": 70.09,
+      "pnl": -32.12,
+      "return_pct": -0.2206,
+      "direction": "long",
+      "status": "closed",
+      "size": 214,
+      "exit_reason": "stop_loss",
+      "mae": 8.58,
+      "mfe": 24.87,
+      "r_multiple": -0.32,
+      "entry_hour": 11,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-28",
+      "entry_time": "2024-02-28T10:40:00",
+      "exit_time": "2024-02-28T12:31:00",
+      "entry_idx": 15,
+      "exit_idx": 86,
+      "entry_time_epoch": 1709113200,
+      "exit_time_epoch": 1709119860,
+      "entry_price": 157.45,
+      "exit_price": 160.84,
+      "pnl": 313.09,
+      "return_pct": 2.1549,
+      "direction": "long",
+      "status": "closed",
+      "size": 92,
+      "exit_reason": "take_profit",
+      "mae": 89.87,
+      "mfe": 303.51,
+      "r_multiple": 3.13,
+      "entry_hour": 10,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-28",
+      "entry_time": "2024-02-28T09:38:00",
+      "exit_time": "2024-02-28T10:54:00",
+      "entry_idx": 30,
+      "exit_idx": 132,
+      "entry_time_epoch": 1709109480,
+      "exit_time_epoch": 1709114040,
+      "entry_price": 51.94,
+      "exit_price": 52.22,
+      "pnl": 78.95,
+      "return_pct": 0.5319,
+      "direction": "long",
+      "status": "closed",
+      "size": 281,
+      "exit_reason": "take_profit",
+      "mae": 19.41,
+      "mfe": 85.03,
+      "r_multiple": 0.79,
+      "entry_hour": 9,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-04",
+      "entry_time": "2024-03-04T10:49:00",
+      "exit_time": "2024-03-04T12:10:00",
+      "entry_idx": 0,
+      "exit_idx": 54,
+      "entry_time_epoch": 1709545740,
+      "exit_time_epoch": 1709550600,
+      "entry_price": 126.51,
+      "exit_price": 125.1,
+      "pnl": -166.28,
+      "return_pct": -1.1144,
+      "direction": "long",
+      "status": "closed",
+      "size": 117,
+      "exit_reason": "time_exit",
+      "mae": 24.72,
+      "mfe": 181.0,
+      "r_multiple": -1.66,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-04",
+      "entry_time": "2024-03-04T09:49:00",
+      "exit_time": "2024-03-04T11:38:00",
+      "entry_idx": 15,
+      "exit_idx": 50,
+      "entry_time_epoch": 1709542140,
+      "exit_time_epoch": 1709548680,
+      "entry_price": 47.79,
+      "exit_price": 47.32,
+      "pnl": -144.41,
+      "return_pct": -0.9787,
+      "direction": "long",
+      "status": "closed",
+      "size": 307,
+      "exit_reason": "stop_loss",
+      "mae": 45.17,
+      "mfe": 110.42,
+      "r_multiple": -1.44,
+      "entry_hour": 9,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-05",
+      "entry_time": "2024-03-05T11:02:00",
+      "exit_time": "2024-03-05T11:46:00",
+      "entry_idx": 0,
+      "exit_idx": 48,
+      "entry_time_epoch": 1709632920,
+      "exit_time_epoch": 1709635560,
+      "entry_price": 100.67,
+      "exit_price": 100.17,
+      "pnl": -72.41,
+      "return_pct": -0.4956,
+      "direction": "long",
+      "status": "closed",
+      "size": 144,
+      "exit_reason": "stop_loss",
+      "mae": 31.12,
+      "mfe": 41.36,
+      "r_multiple": -0.72,
+      "entry_hour": 11,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-06",
+      "entry_time": "2024-03-06T14:09:00",
+      "exit_time": "2024-03-06T14:58:00",
+      "entry_idx": 0,
+      "exit_idx": 110,
+      "entry_time_epoch": 1709730540,
+      "exit_time_epoch": 1709733480,
+      "entry_price": 251.46,
+      "exit_price": 252.86,
+      "pnl": 80.71,
+      "return_pct": 0.5552,
+      "direction": "long",
+      "status": "closed",
+      "size": 57,
+      "exit_reason": "take_profit",
+      "mae": 6.7,
+      "mfe": 65.18,
+      "r_multiple": 0.81,
+      "entry_hour": 14,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-07",
+      "entry_time": "2024-03-07T11:32:00",
+      "exit_time": "2024-03-07T12:56:00",
+      "entry_idx": 0,
+      "exit_idx": 92,
+      "entry_time_epoch": 1709807520,
+      "exit_time_epoch": 1709812560,
+      "entry_price": 158.26,
+      "exit_price": 157.8,
+      "pnl": -42.07,
+      "return_pct": -0.2878,
+      "direction": "long",
+      "status": "closed",
+      "size": 91,
+      "exit_reason": "time_exit",
+      "mae": 0.84,
+      "mfe": 39.21,
+      "r_multiple": -0.42,
+      "entry_hour": 11,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-07",
+      "entry_time": "2024-03-07T09:37:00",
+      "exit_time": "2024-03-07T11:18:00",
+      "entry_idx": 15,
+      "exit_idx": 116,
+      "entry_time_epoch": 1709800620,
+      "exit_time_epoch": 1709806680,
+      "entry_price": 254.07,
+      "exit_price": 258.02,
+      "pnl": 226.81,
+      "return_pct": 1.556,
+      "direction": "long",
+      "status": "closed",
+      "size": 57,
+      "exit_reason": "take_profit",
+      "mae": 107.82,
+      "mfe": 340.12,
+      "r_multiple": 2.27,
+      "entry_hour": 9,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-08",
+      "entry_time": "2024-03-08T11:11:00",
+      "exit_time": "2024-03-08T12:40:00",
+      "entry_idx": 0,
+      "exit_idx": 57,
+      "entry_time_epoch": 1709892660,
+      "exit_time_epoch": 1709898000,
+      "entry_price": 142.05,
+      "exit_price": 140.59,
+      "pnl": -152.14,
+      "return_pct": -1.0277,
+      "direction": "long",
+      "status": "closed",
+      "size": 104,
+      "exit_reason": "time_exit",
+      "mae": 73.72,
+      "mfe": 147.58,
+      "r_multiple": -1.52,
+      "entry_hour": 11,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-11",
+      "entry_time": "2024-03-11T12:52:00",
+      "exit_time": "2024-03-11T14:44:00",
+      "entry_idx": 0,
+      "exit_idx": 113,
+      "entry_time_epoch": 1710157920,
+      "exit_time_epoch": 1710164640,
+      "entry_price": 174.03,
+      "exit_price": 176.31,
+      "pnl": 191.9,
+      "return_pct": 1.3098,
+      "direction": "long",
+      "status": "closed",
+      "size": 84,
+      "exit_reason": "take_profit",
+      "mae": 30.18,
+      "mfe": 157.99,
+      "r_multiple": 1.92,
+      "entry_hour": 12,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-11",
+      "entry_time": "2024-03-11T13:52:00",
+      "exit_time": "2024-03-11T14:07:00",
+      "entry_idx": 15,
+      "exit_idx": 76,
+      "entry_time_epoch": 1710161520,
+      "exit_time_epoch": 1710162420,
+      "entry_price": 204.14,
+      "exit_price": 207.13,
+      "pnl": 217.35,
+      "return_pct": 1.4643,
+      "direction": "long",
+      "status": "closed",
+      "size": 72,
+      "exit_reason": "take_profit",
+      "mae": 44.91,
+      "mfe": 149.45,
+      "r_multiple": 2.17,
+      "entry_hour": 13,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-03-12",
+      "entry_time": "2024-03-12T11:28:00",
+      "exit_time": "2024-03-12T13:12:00",
+      "entry_idx": 0,
+      "exit_idx": 105,
+      "entry_time_epoch": 1710239280,
+      "exit_time_epoch": 1710245520,
+      "entry_price": 155.72,
+      "exit_price": 156.43,
+      "pnl": 68.37,
+      "return_pct": 0.454,
+      "direction": "long",
+      "status": "closed",
+      "size": 96,
+      "exit_reason": "take_profit",
+      "mae": 21.54,
+      "mfe": 88.83,
+      "r_multiple": 0.68,
+      "entry_hour": 11,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-03-13",
+      "entry_time": "2024-03-13T09:44:00",
+      "exit_time": "2024-03-13T10:14:00",
+      "entry_idx": 0,
+      "exit_idx": 68,
+      "entry_time_epoch": 1710319440,
+      "exit_time_epoch": 1710321240,
+      "entry_price": 201.36,
+      "exit_price": 200.65,
+      "pnl": -53.1,
+      "return_pct": -0.351,
+      "direction": "long",
+      "status": "closed",
+      "size": 74,
+      "exit_reason": "time_exit",
+      "mae": 24.76,
+      "mfe": 42.05,
+      "r_multiple": -0.53,
+      "entry_hour": 9,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-14",
+      "entry_time": "2024-03-14T13:47:00",
+      "exit_time": "2024-03-14T14:19:00",
+      "entry_idx": 0,
+      "exit_idx": 120,
+      "entry_time_epoch": 1710420420,
+      "exit_time_epoch": 1710422340,
+      "entry_price": 261.93,
+      "exit_price": 260.69,
+      "pnl": -71.44,
+      "return_pct": -0.4739,
+      "direction": "long",
+      "status": "closed",
+      "size": 57,
+      "exit_reason": "time_exit",
+      "mae": 28.22,
+      "mfe": 65.36,
+      "r_multiple": -0.71,
+      "entry_hour": 13,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-15",
+      "entry_time": "2024-03-15T12:22:00",
+      "exit_time": "2024-03-15T13:19:00",
+      "entry_idx": 0,
+      "exit_idx": 39,
+      "entry_time_epoch": 1710501720,
+      "exit_time_epoch": 1710505140,
+      "entry_price": 174.54,
+      "exit_price": 177.07,
+      "pnl": 217.59,
+      "return_pct": 1.4502,
+      "direction": "long",
+      "status": "closed",
+      "size": 86,
+      "exit_reason": "take_profit",
+      "mae": 49.54,
+      "mfe": 178.81,
+      "r_multiple": 2.18,
+      "entry_hour": 12,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-15",
+      "entry_time": "2024-03-15T10:36:00",
+      "exit_time": "2024-03-15T11:40:00",
+      "entry_idx": 15,
+      "exit_idx": 79,
+      "entry_time_epoch": 1710495360,
+      "exit_time_epoch": 1710499200,
+      "entry_price": 85.4,
+      "exit_price": 84.58,
+      "pnl": -146.33,
+      "return_pct": -0.9613,
+      "direction": "long",
+      "status": "closed",
+      "size": 178,
+      "exit_reason": "time_exit",
+      "mae": 3.19,
+      "mfe": 182.14,
+      "r_multiple": -1.46,
+      "entry_hour": 10,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-18",
+      "entry_time": "2024-03-18T13:37:00",
+      "exit_time": "2024-03-18T14:34:00",
+      "entry_idx": 0,
+      "exit_idx": 73,
+      "entry_time_epoch": 1710765420,
+      "exit_time_epoch": 1710768840,
+      "entry_price": 263.52,
+      "exit_price": 269.0,
+      "pnl": 313.52,
+      "return_pct": 2.0796,
+      "direction": "long",
+      "status": "closed",
+      "size": 57,
+      "exit_reason": "take_profit",
+      "mae": 69.02,
+      "mfe": 321.66,
+      "r_multiple": 3.14,
+      "entry_hour": 13,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-20",
+      "entry_time": "2024-03-20T14:05:00",
+      "exit_time": "2024-03-20T15:02:00",
+      "entry_idx": 0,
+      "exit_idx": 84,
+      "entry_time_epoch": 1710939900,
+      "exit_time_epoch": 1710943320,
+      "entry_price": 258.66,
+      "exit_price": 255.99,
+      "pnl": -158.9,
+      "return_pct": -1.0325,
+      "direction": "long",
+      "status": "closed",
+      "size": 59,
+      "exit_reason": "time_exit",
+      "mae": 30.19,
+      "mfe": 129.77,
+      "r_multiple": -1.59,
+      "entry_hour": 14,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-21",
+      "entry_time": "2024-03-21T12:06:00",
+      "exit_time": "2024-03-21T13:58:00",
+      "entry_idx": 0,
+      "exit_idx": 20,
+      "entry_time_epoch": 1711019160,
+      "exit_time_epoch": 1711025880,
+      "entry_price": 197.45,
+      "exit_price": 195.36,
+      "pnl": -160.89,
+      "return_pct": -1.0564,
+      "direction": "long",
+      "status": "closed",
+      "size": 76,
+      "exit_reason": "stop_loss",
+      "mae": 35.69,
+      "mfe": 192.1,
+      "r_multiple": -1.61,
+      "entry_hour": 12,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-21",
+      "entry_time": "2024-03-21T09:39:00",
+      "exit_time": "2024-03-21T10:39:00",
+      "entry_idx": 15,
+      "exit_idx": 131,
+      "entry_time_epoch": 1711010340,
+      "exit_time_epoch": 1711013940,
+      "entry_price": 124.96,
+      "exit_price": 125.81,
+      "pnl": 102.22,
+      "return_pct": 0.6783,
+      "direction": "long",
+      "status": "closed",
+      "size": 120,
+      "exit_reason": "take_profit",
+      "mae": 27.15,
+      "mfe": 108.96,
+      "r_multiple": 1.02,
+      "entry_hour": 9,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-21",
+      "entry_time": "2024-03-21T10:05:00",
+      "exit_time": "2024-03-21T11:38:00",
+      "entry_idx": 30,
+      "exit_idx": 63,
+      "entry_time_epoch": 1711011900,
+      "exit_time_epoch": 1711017480,
+      "entry_price": 263.84,
+      "exit_price": 268.01,
+      "pnl": 239.72,
+      "return_pct": 1.58,
+      "direction": "long",
+      "status": "closed",
+      "size": 57,
+      "exit_reason": "take_profit",
+      "mae": 28.87,
+      "mfe": 338.68,
+      "r_multiple": 2.4,
+      "entry_hour": 10,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-03-22",
+      "entry_time": "2024-03-22T11:43:00",
+      "exit_time": "2024-03-22T13:07:00",
+      "entry_idx": 0,
+      "exit_idx": 96,
+      "entry_time_epoch": 1711104180,
+      "exit_time_epoch": 1711109220,
+      "entry_price": 64.23,
+      "exit_price": 65.01,
+      "pnl": 188.1,
+      "return_pct": 1.2205,
+      "direction": "long",
+      "status": "closed",
+      "size": 241,
+      "exit_reason": "take_profit",
+      "mae": 32.5,
+      "mfe": 204.57,
+      "r_multiple": 1.88,
+      "entry_hour": 11,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-03-22",
+      "entry_time": "2024-03-22T14:16:00",
+      "exit_time": "2024-03-22T15:29:00",
+      "entry_idx": 15,
+      "exit_idx": 78,
+      "entry_time_epoch": 1711113360,
+      "exit_time_epoch": 1711117740,
+      "entry_price": 256.69,
+      "exit_price": 255.7,
+      "pnl": -59.88,
+      "return_pct": -0.3839,
+      "direction": "long",
+      "status": "closed",
+      "size": 60,
+      "exit_reason": "stop_loss",
+      "mae": 11.52,
+      "mfe": 58.87,
+      "r_multiple": -0.6,
+      "entry_hour": 14,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-26",
+      "entry_time": "2024-03-26T14:49:00",
+      "exit_time": "2024-03-26T16:39:00",
+      "entry_idx": 0,
+      "exit_idx": 114,
+      "entry_time_epoch": 1711460940,
+      "exit_time_epoch": 1711467540,
+      "entry_price": 292.61,
+      "exit_price": 289.47,
+      "pnl": -166.59,
+      "return_pct": -1.072,
+      "direction": "long",
+      "status": "closed",
+      "size": 53,
+      "exit_reason": "time_exit",
+      "mae": 62.07,
+      "mfe": 222.04,
+      "r_multiple": -1.67,
+      "entry_hour": 14,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-27",
+      "entry_time": "2024-03-27T14:49:00",
+      "exit_time": "2024-03-27T16:28:00",
+      "entry_idx": 0,
+      "exit_idx": 54,
+      "entry_time_epoch": 1711547340,
+      "exit_time_epoch": 1711553280,
+      "entry_price": 210.64,
+      "exit_price": 209.95,
+      "pnl": -50.52,
+      "return_pct": -0.3286,
+      "direction": "long",
+      "status": "closed",
+      "size": 73,
+      "exit_reason": "stop_loss",
+      "mae": 2.45,
+      "mfe": 56.96,
+      "r_multiple": -0.51,
+      "entry_hour": 14,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-27",
+      "entry_time": "2024-03-27T09:48:00",
+      "exit_time": "2024-03-27T10:49:00",
+      "entry_idx": 15,
+      "exit_idx": 55,
+      "entry_time_epoch": 1711529280,
+      "exit_time_epoch": 1711532940,
+      "entry_price": 225.06,
+      "exit_price": 224.42,
+      "pnl": -43.52,
+      "return_pct": -0.284,
+      "direction": "long",
+      "status": "closed",
+      "size": 67,
+      "exit_reason": "stop_loss",
+      "mae": 6.42,
+      "mfe": 54.29,
+      "r_multiple": -0.44,
+      "entry_hour": 9,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-28",
+      "entry_time": "2024-03-28T12:51:00",
+      "exit_time": "2024-03-28T13:43:00",
+      "entry_idx": 0,
+      "exit_idx": 33,
+      "entry_time_epoch": 1711626660,
+      "exit_time_epoch": 1711629780,
+      "entry_price": 229.04,
+      "exit_price": 231.41,
+      "pnl": 158.23,
+      "return_pct": 1.0356,
+      "direction": "long",
+      "status": "closed",
+      "size": 66,
+      "exit_reason": "take_profit",
+      "mae": 9.11,
+      "mfe": 231.47,
+      "r_multiple": 1.58,
+      "entry_hour": 12,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-28",
+      "entry_time": "2024-03-28T10:55:00",
+      "exit_time": "2024-03-28T12:36:00",
+      "entry_idx": 15,
+      "exit_idx": 41,
+      "entry_time_epoch": 1711619700,
+      "exit_time_epoch": 1711625760,
+      "entry_price": 222.78,
+      "exit_price": 220.23,
+      "pnl": -176.99,
+      "return_pct": -1.1465,
+      "direction": "long",
+      "status": "closed",
+      "size": 69,
+      "exit_reason": "time_exit",
+      "mae": 85.6,
+      "mfe": 230.9,
+      "r_multiple": -1.77,
+      "entry_hour": 10,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-29",
+      "entry_time": "2024-03-29T11:37:00",
+      "exit_time": "2024-03-29T12:40:00",
+      "entry_idx": 0,
+      "exit_idx": 94,
+      "entry_time_epoch": 1711708620,
+      "exit_time_epoch": 1711712400,
+      "entry_price": 250.28,
+      "exit_price": 247.47,
+      "pnl": -171.04,
+      "return_pct": -1.1208,
+      "direction": "long",
+      "status": "closed",
+      "size": 60,
+      "exit_reason": "stop_loss",
+      "mae": 9.27,
+      "mfe": 125.51,
+      "r_multiple": -1.71,
+      "entry_hour": 11,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-04-01",
+      "entry_time": "2024-04-01T12:58:00",
+      "exit_time": "2024-04-01T14:42:00",
+      "entry_idx": 0,
+      "exit_idx": 78,
+      "entry_time_epoch": 1711969080,
+      "exit_time_epoch": 1711975320,
+      "entry_price": 104.61,
+      "exit_price": 103.98,
+      "pnl": -91.24,
+      "return_pct": -0.6047,
+      "direction": "long",
+      "status": "closed",
+      "size": 144,
+      "exit_reason": "time_exit",
+      "mae": 6.38,
+      "mfe": 131.96,
+      "r_multiple": -0.91,
+      "entry_hour": 12,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-04-01",
+      "entry_time": "2024-04-01T10:56:00",
+      "exit_time": "2024-04-01T12:19:00",
+      "entry_idx": 15,
+      "exit_idx": 99,
+      "entry_time_epoch": 1711961760,
+      "exit_time_epoch": 1711966740,
+      "entry_price": 57.99,
+      "exit_price": 58.73,
+      "pnl": 191.56,
+      "return_pct": 1.2772,
+      "direction": "long",
+      "status": "closed",
+      "size": 258,
+      "exit_reason": "take_profit",
+      "mae": 64.22,
+      "mfe": 238.14,
+      "r_multiple": 1.92,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-02",
+      "entry_time": "2024-04-02T13:26:00",
+      "exit_time": "2024-04-02T14:16:00",
+      "entry_idx": 0,
+      "exit_idx": 27,
+      "entry_time_epoch": 1712057160,
+      "exit_time_epoch": 1712060160,
+      "entry_price": 29.16,
+      "exit_price": 29.0,
+      "pnl": -85.58,
+      "return_pct": -0.5634,
+      "direction": "long",
+      "status": "closed",
+      "size": 534,
+      "exit_reason": "time_exit",
+      "mae": 18.97,
+      "mfe": 124.14,
+      "r_multiple": -0.86,
+      "entry_hour": 13,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-02",
+      "entry_time": "2024-04-02T11:34:00",
+      "exit_time": "2024-04-02T13:11:00",
+      "entry_idx": 15,
+      "exit_idx": 41,
+      "entry_time_epoch": 1712050440,
+      "exit_time_epoch": 1712056260,
+      "entry_price": 120.43,
+      "exit_price": 119.71,
+      "pnl": -89.72,
+      "return_pct": -0.594,
+      "direction": "long",
+      "status": "closed",
+      "size": 124,
+      "exit_reason": "time_exit",
+      "mae": 8.51,
+      "mfe": 55.82,
+      "r_multiple": -0.9,
+      "entry_hour": 11,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-04",
+      "entry_time": "2024-04-04T13:13:00",
+      "exit_time": "2024-04-04T13:36:00",
+      "entry_idx": 0,
+      "exit_idx": 44,
+      "entry_time_epoch": 1712229180,
+      "exit_time_epoch": 1712230560,
+      "entry_price": 252.35,
+      "exit_price": 256.06,
+      "pnl": 220.72,
+      "return_pct": 1.4701,
+      "direction": "long",
+      "status": "closed",
+      "size": 59,
+      "exit_reason": "take_profit",
+      "mae": 64.71,
+      "mfe": 289.82,
+      "r_multiple": 2.21,
+      "entry_hour": 13,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-04-05",
+      "entry_time": "2024-04-05T10:34:00",
+      "exit_time": "2024-04-05T11:21:00",
+      "entry_idx": 0,
+      "exit_idx": 116,
+      "entry_time_epoch": 1712306040,
+      "exit_time_epoch": 1712308860,
+      "entry_price": 243.58,
+      "exit_price": 242.84,
+      "pnl": -46.49,
+      "return_pct": -0.3052,
+      "direction": "long",
+      "status": "closed",
+      "size": 62,
+      "exit_reason": "time_exit",
+      "mae": 20.14,
+      "mfe": 29.37,
+      "r_multiple": -0.46,
+      "entry_hour": 10,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-09",
+      "entry_time": "2024-04-09T12:28:00",
+      "exit_time": "2024-04-09T14:22:00",
+      "entry_idx": 0,
+      "exit_idx": 108,
+      "entry_time_epoch": 1712658480,
+      "exit_time_epoch": 1712665320,
+      "entry_price": 121.37,
+      "exit_price": 120.42,
+      "pnl": -119.05,
+      "return_pct": -0.7838,
+      "direction": "long",
+      "status": "closed",
+      "size": 125,
+      "exit_reason": "stop_loss",
+      "mae": 26.91,
+      "mfe": 85.9,
+      "r_multiple": -1.19,
+      "entry_hour": 12,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-10",
+      "entry_time": "2024-04-10T12:54:00",
+      "exit_time": "2024-04-10T14:00:00",
+      "entry_idx": 0,
+      "exit_idx": 25,
+      "entry_time_epoch": 1712746440,
+      "exit_time_epoch": 1712750400,
+      "entry_price": 139.36,
+      "exit_price": 140.2,
+      "pnl": 91.31,
+      "return_pct": 0.6059,
+      "direction": "long",
+      "status": "closed",
+      "size": 108,
+      "exit_reason": "take_profit",
+      "mae": 32.52,
+      "mfe": 86.16,
+      "r_multiple": 0.91,
+      "entry_hour": 12,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-10",
+      "entry_time": "2024-04-10T10:04:00",
+      "exit_time": "2024-04-10T10:35:00",
+      "entry_idx": 15,
+      "exit_idx": 106,
+      "entry_time_epoch": 1712736240,
+      "exit_time_epoch": 1712738100,
+      "entry_price": 97.0,
+      "exit_price": 98.56,
+      "pnl": 243.59,
+      "return_pct": 1.6067,
+      "direction": "long",
+      "status": "closed",
+      "size": 156,
+      "exit_reason": "take_profit",
+      "mae": 66.79,
+      "mfe": 201.01,
+      "r_multiple": 2.44,
+      "entry_hour": 10,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-11",
+      "entry_time": "2024-04-11T14:41:00",
+      "exit_time": "2024-04-11T16:34:00",
+      "entry_idx": 0,
+      "exit_idx": 67,
+      "entry_time_epoch": 1712839260,
+      "exit_time_epoch": 1712846040,
+      "entry_price": 174.37,
+      "exit_price": 177.89,
+      "pnl": 310.99,
+      "return_pct": 2.0188,
+      "direction": "long",
+      "status": "closed",
+      "size": 88,
+      "exit_reason": "take_profit",
+      "mae": 66.87,
+      "mfe": 431.68,
+      "r_multiple": 3.11,
+      "entry_hour": 14,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-11",
+      "entry_time": "2024-04-11T12:25:00",
+      "exit_time": "2024-04-11T13:33:00",
+      "entry_idx": 15,
+      "exit_idx": 49,
+      "entry_time_epoch": 1712831100,
+      "exit_time_epoch": 1712835180,
+      "entry_price": 224.29,
+      "exit_price": 226.44,
+      "pnl": 150.64,
+      "return_pct": 0.9586,
+      "direction": "long",
+      "status": "closed",
+      "size": 70,
+      "exit_reason": "take_profit",
+      "mae": 23.54,
+      "mfe": 113.72,
+      "r_multiple": 1.51,
+      "entry_hour": 12,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-15",
+      "entry_time": "2024-04-15T10:35:00",
+      "exit_time": "2024-04-15T10:57:00",
+      "entry_idx": 0,
+      "exit_idx": 60,
+      "entry_time_epoch": 1713170100,
+      "exit_time_epoch": 1713171420,
+      "entry_price": 184.21,
+      "exit_price": 186.8,
+      "pnl": 222.86,
+      "return_pct": 1.4046,
+      "direction": "long",
+      "status": "closed",
+      "size": 86,
+      "exit_reason": "take_profit",
+      "mae": 36.73,
+      "mfe": 138.67,
+      "r_multiple": 2.23,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-15",
+      "entry_time": "2024-04-15T12:55:00",
+      "exit_time": "2024-04-15T14:42:00",
+      "entry_idx": 15,
+      "exit_idx": 49,
+      "entry_time_epoch": 1713178500,
+      "exit_time_epoch": 1713184920,
+      "entry_price": 34.4,
+      "exit_price": 34.24,
+      "pnl": -73.14,
+      "return_pct": -0.4546,
+      "direction": "long",
+      "status": "closed",
+      "size": 457,
+      "exit_reason": "stop_loss",
+      "mae": 11.43,
+      "mfe": 44.15,
+      "r_multiple": -0.73,
+      "entry_hour": 12,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-04-17",
+      "entry_time": "2024-04-17T13:49:00",
+      "exit_time": "2024-04-17T15:48:00",
+      "entry_idx": 0,
+      "exit_idx": 18,
+      "entry_time_epoch": 1713354540,
+      "exit_time_epoch": 1713361680,
+      "entry_price": 194.08,
+      "exit_price": 192.49,
+      "pnl": -131.25,
+      "return_pct": -0.8195,
+      "direction": "long",
+      "status": "closed",
+      "size": 82,
+      "exit_reason": "time_exit",
+      "mae": 36.54,
+      "mfe": 145.56,
+      "r_multiple": -1.31,
+      "entry_hour": 13,
+      "entry_weekday": 2
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-18",
+      "entry_time": "2024-04-18T10:36:00",
+      "exit_time": "2024-04-18T12:15:00",
+      "entry_idx": 0,
+      "exit_idx": 110,
+      "entry_time_epoch": 1713429360,
+      "exit_time_epoch": 1713435300,
+      "entry_price": 132.22,
+      "exit_price": 133.06,
+      "pnl": 101.14,
+      "return_pct": 0.6367,
+      "direction": "long",
+      "status": "closed",
+      "size": 120,
+      "exit_reason": "take_profit",
+      "mae": 32.02,
+      "mfe": 53.67,
+      "r_multiple": 1.01,
+      "entry_hour": 10,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-04-19",
+      "entry_time": "2024-04-19T13:38:00",
+      "exit_time": "2024-04-19T14:03:00",
+      "entry_idx": 0,
+      "exit_idx": 49,
+      "entry_time_epoch": 1713526680,
+      "exit_time_epoch": 1713528180,
+      "entry_price": 267.34,
+      "exit_price": 266.45,
+      "pnl": -53.34,
+      "return_pct": -0.3337,
+      "direction": "long",
+      "status": "closed",
+      "size": 59,
+      "exit_reason": "stop_loss",
+      "mae": 20.12,
+      "mfe": 29.32,
+      "r_multiple": -0.53,
+      "entry_hour": 13,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-22",
+      "entry_time": "2024-04-22T09:41:00",
+      "exit_time": "2024-04-22T10:51:00",
+      "entry_idx": 0,
+      "exit_idx": 20,
+      "entry_time_epoch": 1713771660,
+      "exit_time_epoch": 1713775860,
+      "entry_price": 51.05,
+      "exit_price": 50.63,
+      "pnl": -131.73,
+      "return_pct": -0.8268,
+      "direction": "long",
+      "status": "closed",
+      "size": 313,
+      "exit_reason": "time_exit",
+      "mae": 39.07,
+      "mfe": 135.28,
+      "r_multiple": -1.32,
+      "entry_hour": 9,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-04-23",
+      "entry_time": "2024-04-23T10:48:00",
+      "exit_time": "2024-04-23T11:35:00",
+      "entry_idx": 0,
+      "exit_idx": 31,
+      "entry_time_epoch": 1713862080,
+      "exit_time_epoch": 1713864900,
+      "entry_price": 101.05,
+      "exit_price": 101.66,
+      "pnl": 94.8,
+      "return_pct": 0.6,
+      "direction": "long",
+      "status": "closed",
+      "size": 155,
+      "exit_reason": "take_profit",
+      "mae": 23.58,
+      "mfe": 88.23,
+      "r_multiple": 0.95,
+      "entry_hour": 10,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-04-25",
+      "entry_time": "2024-04-25T09:57:00",
+      "exit_time": "2024-04-25T10:52:00",
+      "entry_idx": 0,
+      "exit_idx": 29,
+      "entry_time_epoch": 1714031820,
+      "exit_time_epoch": 1714035120,
+      "entry_price": 181.21,
+      "exit_price": 183.79,
+      "pnl": 226.29,
+      "return_pct": 1.4236,
+      "direction": "long",
+      "status": "closed",
+      "size": 87,
+      "exit_reason": "take_profit",
+      "mae": 80.28,
+      "mfe": 207.66,
+      "r_multiple": 2.26,
+      "entry_hour": 9,
+      "entry_weekday": 3
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-26",
+      "entry_time": "2024-04-26T09:43:00",
+      "exit_time": "2024-04-26T10:11:00",
+      "entry_idx": 0,
+      "exit_idx": 110,
+      "entry_time_epoch": 1714117380,
+      "exit_time_epoch": 1714119060,
+      "entry_price": 88.13,
+      "exit_price": 87.48,
+      "pnl": -118.33,
+      "return_pct": -0.734,
+      "direction": "long",
+      "status": "closed",
+      "size": 182,
+      "exit_reason": "time_exit",
+      "mae": 31.0,
+      "mfe": 106.0,
+      "r_multiple": -1.18,
+      "entry_hour": 9,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-26",
+      "entry_time": "2024-04-26T11:49:00",
+      "exit_time": "2024-04-26T12:25:00",
+      "entry_idx": 15,
+      "exit_idx": 129,
+      "entry_time_epoch": 1714124940,
+      "exit_time_epoch": 1714127100,
+      "entry_price": 41.39,
+      "exit_price": 42.02,
+      "pnl": 243.64,
+      "return_pct": 1.5224,
+      "direction": "long",
+      "status": "closed",
+      "size": 386,
+      "exit_reason": "take_profit",
+      "mae": 64.64,
+      "mfe": 169.06,
+      "r_multiple": 2.44,
+      "entry_hour": 11,
+      "entry_weekday": 4
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-04-29",
+      "entry_time": "2024-04-29T10:11:00",
+      "exit_time": "2024-04-29T11:43:00",
+      "entry_idx": 0,
+      "exit_idx": 95,
+      "entry_time_epoch": 1714378260,
+      "exit_time_epoch": 1714383780,
+      "entry_price": 62.8,
+      "exit_price": 63.88,
+      "pnl": 280.15,
+      "return_pct": 1.7243,
+      "direction": "long",
+      "status": "closed",
+      "size": 259,
+      "exit_reason": "take_profit",
+      "mae": 10.56,
+      "mfe": 406.58,
+      "r_multiple": 2.8,
+      "entry_hour": 10,
+      "entry_weekday": 0
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-30",
+      "entry_time": "2024-04-30T14:40:00",
+      "exit_time": "2024-04-30T16:14:00",
+      "entry_idx": 0,
+      "exit_idx": 71,
+      "entry_time_epoch": 1714480800,
+      "exit_time_epoch": 1714486440,
+      "entry_price": 110.5,
+      "exit_price": 109.33,
+      "pnl": -175.65,
+      "return_pct": -1.0628,
+      "direction": "long",
+      "status": "closed",
+      "size": 150,
+      "exit_reason": "time_exit",
+      "mae": 27.76,
+      "mfe": 165.07,
+      "r_multiple": -1.76,
+      "entry_hour": 14,
+      "entry_weekday": 1
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-30",
+      "entry_time": "2024-04-30T11:37:00",
+      "exit_time": "2024-04-30T11:59:00",
+      "entry_idx": 15,
+      "exit_idx": 66,
+      "entry_time_epoch": 1714469820,
+      "exit_time_epoch": 1714471140,
+      "entry_price": 118.54,
+      "exit_price": 118.24,
+      "pnl": -41.13,
+      "return_pct": -0.2515,
+      "direction": "long",
+      "status": "closed",
+      "size": 137,
+      "exit_reason": "time_exit",
+      "mae": 9.5,
+      "mfe": 22.11,
+      "r_multiple": -0.41,
+      "entry_hour": 11,
+      "entry_weekday": 1
+    }
+  ],
+  "equity_curves": [
+    {
+      "ticker": "AMD",
+      "date": "2024-01-03",
+      "equity": [
+        {
+          "time": 1704278400,
+          "value": 10085.21
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-04",
+      "equity": [
+        {
+          "time": 1704365520,
+          "value": 9991.82
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-05",
+      "equity": [
+        {
+          "time": 1704460200,
+          "value": 9917.84
+        },
+        {
+          "time": 1704449400,
+          "value": 10061.76
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-08",
+      "equity": [
+        {
+          "time": 1704716760,
+          "value": 10298.41
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-09",
+      "equity": [
+        {
+          "time": 1704796620,
+          "value": 10221.09
+        },
+        {
+          "time": 1704807180,
+          "value": 10151.36
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-10",
+      "equity": [
+        {
+          "time": 1704891360,
+          "value": 10243.16
+        },
+        {
+          "time": 1704891300,
+          "value": 10133.79
+        },
+        {
+          "time": 1704899940,
+          "value": 9988.5
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-11",
+      "equity": [
+        {
+          "time": 1704984900,
+          "value": 10106.18
+        }
+      ]
+    },
+    {
+      "ticker": "META",
+      "date": "2024-01-15",
+      "equity": [
+        {
+          "time": 1705315020,
+          "value": 9991.08
+        },
+        {
+          "time": 1705315620,
+          "value": 10210.52
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-16",
+      "equity": [
+        {
+          "time": 1705416180,
+          "value": 10420.62
+        },
+        {
+          "time": 1705412640,
+          "value": 10501.21
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-01-17",
+      "equity": [
+        {
+          "time": 1705499460,
+          "value": 10698.37
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-18",
+      "equity": [
+        {
+          "time": 1705570620,
+          "value": 10548.28
+        },
+        {
+          "time": 1705576500,
+          "value": 10630.14
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-01-19",
+      "equity": [
+        {
+          "time": 1705660980,
+          "value": 10470.44
+        },
+        {
+          "time": 1705667220,
+          "value": 10742.29
+        },
+        {
+          "time": 1705660500,
+          "value": 10959.53
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-22",
+      "equity": [
+        {
+          "time": 1705919700,
+          "value": 11269.46
+        },
+        {
+          "time": 1705930560,
+          "value": 11520.1
+        },
+        {
+          "time": 1705932300,
+          "value": 11618.05
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-01-24",
+      "equity": [
+        {
+          "time": 1706095140,
+          "value": 11785.21
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-25",
+      "equity": [
+        {
+          "time": 1706189880,
+          "value": 11621.75
+        },
+        {
+          "time": 1706183700,
+          "value": 11758.31
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-01-26",
+      "equity": [
+        {
+          "time": 1706270340,
+          "value": 12022.95
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-01-29",
+      "equity": [
+        {
+          "time": 1706532780,
+          "value": 12094.52
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-01-30",
+      "equity": [
+        {
+          "time": 1706610600,
+          "value": 11942.9
+        },
+        {
+          "time": 1706629440,
+          "value": 11872.88
+        },
+        {
+          "time": 1706616960,
+          "value": 12185.56
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-01-31",
+      "equity": [
+        {
+          "time": 1706714160,
+          "value": 12253.56
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-02-01",
+      "equity": [
+        {
+          "time": 1706792280,
+          "value": 12088.63
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-02",
+      "equity": [
+        {
+          "time": 1706885700,
+          "value": 12341.01
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-05",
+      "equity": [
+        {
+          "time": 1707145500,
+          "value": 12451.48
+        }
+      ]
+    },
+    {
+      "ticker": "META",
+      "date": "2024-02-06",
+      "equity": [
+        {
+          "time": 1707216420,
+          "value": 12789.83
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-07",
+      "equity": [
+        {
+          "time": 1707298020,
+          "value": 13135.17
+        },
+        {
+          "time": 1707315300,
+          "value": 13306.52
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-08",
+      "equity": [
+        {
+          "time": 1707403620,
+          "value": 13438.79
+        },
+        {
+          "time": 1707401160,
+          "value": 13717.81
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-02-09",
+      "equity": [
+        {
+          "time": 1707478440,
+          "value": 13858.23
+        },
+        {
+          "time": 1707471780,
+          "value": 14015.63
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-12",
+      "equity": [
+        {
+          "time": 1707738480,
+          "value": 14197.47
+        }
+      ]
+    },
+    {
+      "ticker": "META",
+      "date": "2024-02-14",
+      "equity": [
+        {
+          "time": 1707917040,
+          "value": 14489.43
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-02-15",
+      "equity": [
+        {
+          "time": 1707994920,
+          "value": 14400.33
+        },
+        {
+          "time": 1707990660,
+          "value": 14338.58
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-02-16",
+      "equity": [
+        {
+          "time": 1708075440,
+          "value": 14191.4
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-19",
+      "equity": [
+        {
+          "time": 1708341180,
+          "value": 14106.07
+        },
+        {
+          "time": 1708342500,
+          "value": 14029.28
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-21",
+      "equity": [
+        {
+          "time": 1708510920,
+          "value": 13947.2
+        },
+        {
+          "time": 1708517760,
+          "value": 13821.86
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-02-22",
+      "equity": [
+        {
+          "time": 1708607580,
+          "value": 13667.25
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-02-23",
+      "equity": [
+        {
+          "time": 1708690380,
+          "value": 13825.95
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-02-26",
+      "equity": [
+        {
+          "time": 1708945140,
+          "value": 14028.29
+        },
+        {
+          "time": 1708945080,
+          "value": 14225.54
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-27",
+      "equity": [
+        {
+          "time": 1709027400,
+          "value": 14561.29
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-02-28",
+      "equity": [
+        {
+          "time": 1709118900,
+          "value": 14529.17
+        },
+        {
+          "time": 1709119860,
+          "value": 14842.26
+        },
+        {
+          "time": 1709114040,
+          "value": 14921.21
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-04",
+      "equity": [
+        {
+          "time": 1709550600,
+          "value": 14754.93
+        },
+        {
+          "time": 1709548680,
+          "value": 14610.52
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-05",
+      "equity": [
+        {
+          "time": 1709635560,
+          "value": 14538.11
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-06",
+      "equity": [
+        {
+          "time": 1709733480,
+          "value": 14618.82
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-07",
+      "equity": [
+        {
+          "time": 1709812560,
+          "value": 14576.75
+        },
+        {
+          "time": 1709806680,
+          "value": 14803.56
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-08",
+      "equity": [
+        {
+          "time": 1709898000,
+          "value": 14651.42
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-11",
+      "equity": [
+        {
+          "time": 1710164640,
+          "value": 14843.32
+        },
+        {
+          "time": 1710162420,
+          "value": 15060.67
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-03-12",
+      "equity": [
+        {
+          "time": 1710245520,
+          "value": 15129.04
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-03-13",
+      "equity": [
+        {
+          "time": 1710321240,
+          "value": 15075.94
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-14",
+      "equity": [
+        {
+          "time": 1710422340,
+          "value": 15004.5
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-15",
+      "equity": [
+        {
+          "time": 1710505140,
+          "value": 15222.09
+        },
+        {
+          "time": 1710499200,
+          "value": 15075.76
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-03-18",
+      "equity": [
+        {
+          "time": 1710768840,
+          "value": 15389.28
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-20",
+      "equity": [
+        {
+          "time": 1710943320,
+          "value": 15230.38
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-21",
+      "equity": [
+        {
+          "time": 1711025880,
+          "value": 15069.49
+        },
+        {
+          "time": 1711013940,
+          "value": 15171.71
+        },
+        {
+          "time": 1711017480,
+          "value": 15411.43
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-03-22",
+      "equity": [
+        {
+          "time": 1711109220,
+          "value": 15599.53
+        },
+        {
+          "time": 1711117740,
+          "value": 15539.65
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-03-26",
+      "equity": [
+        {
+          "time": 1711467540,
+          "value": 15373.06
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-03-27",
+      "equity": [
+        {
+          "time": 1711553280,
+          "value": 15322.54
+        },
+        {
+          "time": 1711532940,
+          "value": 15279.02
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-03-28",
+      "equity": [
+        {
+          "time": 1711629780,
+          "value": 15437.25
+        },
+        {
+          "time": 1711625760,
+          "value": 15260.26
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-03-29",
+      "equity": [
+        {
+          "time": 1711712400,
+          "value": 15089.22
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-04-01",
+      "equity": [
+        {
+          "time": 1711975320,
+          "value": 14997.98
+        },
+        {
+          "time": 1711966740,
+          "value": 15189.54
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-02",
+      "equity": [
+        {
+          "time": 1712060160,
+          "value": 15103.96
+        },
+        {
+          "time": 1712056260,
+          "value": 15014.24
+        }
+      ]
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-04",
+      "equity": [
+        {
+          "time": 1712230560,
+          "value": 15234.96
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-04-05",
+      "equity": [
+        {
+          "time": 1712308860,
+          "value": 15188.47
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-09",
+      "equity": [
+        {
+          "time": 1712665320,
+          "value": 15069.42
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-10",
+      "equity": [
+        {
+          "time": 1712750400,
+          "value": 15160.73
+        },
+        {
+          "time": 1712738100,
+          "value": 15404.32
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-11",
+      "equity": [
+        {
+          "time": 1712846040,
+          "value": 15715.31
+        },
+        {
+          "time": 1712835180,
+          "value": 15865.95
+        }
+      ]
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2024-04-15",
+      "equity": [
+        {
+          "time": 1713171420,
+          "value": 16088.81
+        },
+        {
+          "time": 1713184920,
+          "value": 16015.67
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "date": "2024-04-17",
+      "equity": [
+        {
+          "time": 1713361680,
+          "value": 15884.42
+        }
+      ]
+    },
+    {
+      "ticker": "META",
+      "date": "2024-04-18",
+      "equity": [
+        {
+          "time": 1713435300,
+          "value": 15985.56
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-04-19",
+      "equity": [
+        {
+          "time": 1713528180,
+          "value": 15932.22
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "date": "2024-04-22",
+      "equity": [
+        {
+          "time": 1713775860,
+          "value": 15800.49
+        }
+      ]
+    },
+    {
+      "ticker": "NVDA",
+      "date": "2024-04-23",
+      "equity": [
+        {
+          "time": 1713864900,
+          "value": 15895.29
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "date": "2024-04-25",
+      "equity": [
+        {
+          "time": 1714035120,
+          "value": 16121.58
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-26",
+      "equity": [
+        {
+          "time": 1714119060,
+          "value": 16003.25
+        },
+        {
+          "time": 1714127100,
+          "value": 16246.89
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "date": "2024-04-29",
+      "equity": [
+        {
+          "time": 1714383780,
+          "value": 16527.04
+        }
+      ]
+    },
+    {
+      "ticker": "AMZN",
+      "date": "2024-04-30",
+      "equity": [
+        {
+          "time": 1714486440,
+          "value": 16351.39
+        },
+        {
+          "time": 1714471140,
+          "value": 16310.26
+        }
+      ]
+    }
+  ],
+  "global_equity": [
+    {
+      "time": 1704150000,
+      "value": 10000.0
+    },
+    {
+      "time": 1704236400,
+      "value": 10085.21
+    },
+    {
+      "time": 1704322800,
+      "value": 9991.82
+    },
+    {
+      "time": 1704409200,
+      "value": 10061.76
+    },
+    {
+      "time": 1704668400,
+      "value": 10298.41
+    },
+    {
+      "time": 1704754800,
+      "value": 10151.36
+    },
+    {
+      "time": 1704841200,
+      "value": 9988.5
+    },
+    {
+      "time": 1704927600,
+      "value": 10106.18
+    },
+    {
+      "time": 1705014000,
+      "value": 10106.18
+    },
+    {
+      "time": 1705273200,
+      "value": 10210.52
+    },
+    {
+      "time": 1705359600,
+      "value": 10501.21
+    },
+    {
+      "time": 1705446000,
+      "value": 10698.37
+    },
+    {
+      "time": 1705532400,
+      "value": 10630.14
+    },
+    {
+      "time": 1705618800,
+      "value": 10959.53
+    },
+    {
+      "time": 1705878000,
+      "value": 11618.05
+    },
+    {
+      "time": 1705964400,
+      "value": 11618.05
+    },
+    {
+      "time": 1706050800,
+      "value": 11785.21
+    },
+    {
+      "time": 1706137200,
+      "value": 11758.31
+    },
+    {
+      "time": 1706223600,
+      "value": 12022.95
+    },
+    {
+      "time": 1706482800,
+      "value": 12094.52
+    },
+    {
+      "time": 1706569200,
+      "value": 12185.56
+    },
+    {
+      "time": 1706655600,
+      "value": 12253.56
+    },
+    {
+      "time": 1706742000,
+      "value": 12088.63
+    },
+    {
+      "time": 1706828400,
+      "value": 12341.01
+    },
+    {
+      "time": 1707087600,
+      "value": 12451.48
+    },
+    {
+      "time": 1707174000,
+      "value": 12789.83
+    },
+    {
+      "time": 1707260400,
+      "value": 13306.52
+    },
+    {
+      "time": 1707346800,
+      "value": 13717.81
+    },
+    {
+      "time": 1707433200,
+      "value": 14015.63
+    },
+    {
+      "time": 1707692400,
+      "value": 14197.47
+    },
+    {
+      "time": 1707778800,
+      "value": 14197.47
+    },
+    {
+      "time": 1707865200,
+      "value": 14489.43
+    },
+    {
+      "time": 1707951600,
+      "value": 14338.58
+    },
+    {
+      "time": 1708038000,
+      "value": 14191.4
+    },
+    {
+      "time": 1708297200,
+      "value": 14029.28
+    },
+    {
+      "time": 1708383600,
+      "value": 14029.28
+    },
+    {
+      "time": 1708470000,
+      "value": 13821.86
+    },
+    {
+      "time": 1708556400,
+      "value": 13667.25
+    },
+    {
+      "time": 1708642800,
+      "value": 13825.95
+    },
+    {
+      "time": 1708902000,
+      "value": 14225.54
+    },
+    {
+      "time": 1708988400,
+      "value": 14561.29
+    },
+    {
+      "time": 1709074800,
+      "value": 14921.21
+    },
+    {
+      "time": 1709161200,
+      "value": 14921.21
+    },
+    {
+      "time": 1709247600,
+      "value": 14921.21
+    },
+    {
+      "time": 1709506800,
+      "value": 14610.52
+    },
+    {
+      "time": 1709593200,
+      "value": 14538.11
+    },
+    {
+      "time": 1709679600,
+      "value": 14618.82
+    },
+    {
+      "time": 1709766000,
+      "value": 14803.56
+    },
+    {
+      "time": 1709852400,
+      "value": 14651.42
+    },
+    {
+      "time": 1710111600,
+      "value": 15060.67
+    },
+    {
+      "time": 1710198000,
+      "value": 15129.04
+    },
+    {
+      "time": 1710284400,
+      "value": 15075.94
+    },
+    {
+      "time": 1710370800,
+      "value": 15004.5
+    },
+    {
+      "time": 1710457200,
+      "value": 15075.76
+    },
+    {
+      "time": 1710716400,
+      "value": 15389.28
+    },
+    {
+      "time": 1710802800,
+      "value": 15389.28
+    },
+    {
+      "time": 1710889200,
+      "value": 15230.38
+    },
+    {
+      "time": 1710975600,
+      "value": 15411.43
+    },
+    {
+      "time": 1711062000,
+      "value": 15539.65
+    },
+    {
+      "time": 1711321200,
+      "value": 15539.65
+    },
+    {
+      "time": 1711407600,
+      "value": 15373.06
+    },
+    {
+      "time": 1711494000,
+      "value": 15279.02
+    },
+    {
+      "time": 1711580400,
+      "value": 15260.26
+    },
+    {
+      "time": 1711666800,
+      "value": 15089.22
+    },
+    {
+      "time": 1711922400,
+      "value": 15189.54
+    },
+    {
+      "time": 1712008800,
+      "value": 15014.24
+    },
+    {
+      "time": 1712095200,
+      "value": 15014.24
+    },
+    {
+      "time": 1712181600,
+      "value": 15234.96
+    },
+    {
+      "time": 1712268000,
+      "value": 15188.47
+    },
+    {
+      "time": 1712527200,
+      "value": 15188.47
+    },
+    {
+      "time": 1712613600,
+      "value": 15069.42
+    },
+    {
+      "time": 1712700000,
+      "value": 15404.32
+    },
+    {
+      "time": 1712786400,
+      "value": 15865.95
+    },
+    {
+      "time": 1712872800,
+      "value": 15865.95
+    },
+    {
+      "time": 1713132000,
+      "value": 16015.67
+    },
+    {
+      "time": 1713218400,
+      "value": 16015.67
+    },
+    {
+      "time": 1713304800,
+      "value": 15884.42
+    },
+    {
+      "time": 1713391200,
+      "value": 15985.56
+    },
+    {
+      "time": 1713477600,
+      "value": 15932.22
+    },
+    {
+      "time": 1713736800,
+      "value": 15800.49
+    },
+    {
+      "time": 1713823200,
+      "value": 15895.29
+    },
+    {
+      "time": 1713909600,
+      "value": 15895.29
+    },
+    {
+      "time": 1713996000,
+      "value": 16121.58
+    },
+    {
+      "time": 1714082400,
+      "value": 16246.89
+    },
+    {
+      "time": 1714341600,
+      "value": 16527.04
+    },
+    {
+      "time": 1714428000,
+      "value": 16310.26
+    }
+  ],
+  "global_drawdown": [
+    {
+      "time": 1704150000,
+      "value": 0.0
+    },
+    {
+      "time": 1704236400,
+      "value": 0.0
+    },
+    {
+      "time": 1704322800,
+      "value": -0.926
+    },
+    {
+      "time": 1704409200,
+      "value": -0.2325
+    },
+    {
+      "time": 1704668400,
+      "value": 0.0
+    },
+    {
+      "time": 1704754800,
+      "value": -1.4279
+    },
+    {
+      "time": 1704841200,
+      "value": -3.0093
+    },
+    {
+      "time": 1704927600,
+      "value": -1.8666
+    },
+    {
+      "time": 1705014000,
+      "value": -1.8666
+    },
+    {
+      "time": 1705273200,
+      "value": -0.8534
+    },
+    {
+      "time": 1705359600,
+      "value": 0.0
+    },
+    {
+      "time": 1705446000,
+      "value": 0.0
+    },
+    {
+      "time": 1705532400,
+      "value": -0.6378
+    },
+    {
+      "time": 1705618800,
+      "value": 0.0
+    },
+    {
+      "time": 1705878000,
+      "value": 0.0
+    },
+    {
+      "time": 1705964400,
+      "value": 0.0
+    },
+    {
+      "time": 1706050800,
+      "value": 0.0
+    },
+    {
+      "time": 1706137200,
+      "value": -0.2283
+    },
+    {
+      "time": 1706223600,
+      "value": 0.0
+    },
+    {
+      "time": 1706482800,
+      "value": 0.0
+    },
+    {
+      "time": 1706569200,
+      "value": 0.0
+    },
+    {
+      "time": 1706655600,
+      "value": 0.0
+    },
+    {
+      "time": 1706742000,
+      "value": -1.346
+    },
+    {
+      "time": 1706828400,
+      "value": 0.0
+    },
+    {
+      "time": 1707087600,
+      "value": 0.0
+    },
+    {
+      "time": 1707174000,
+      "value": 0.0
+    },
+    {
+      "time": 1707260400,
+      "value": 0.0
+    },
+    {
+      "time": 1707346800,
+      "value": 0.0
+    },
+    {
+      "time": 1707433200,
+      "value": 0.0
+    },
+    {
+      "time": 1707692400,
+      "value": 0.0
+    },
+    {
+      "time": 1707778800,
+      "value": 0.0
+    },
+    {
+      "time": 1707865200,
+      "value": 0.0
+    },
+    {
+      "time": 1707951600,
+      "value": -1.0411
+    },
+    {
+      "time": 1708038000,
+      "value": -2.0569
+    },
+    {
+      "time": 1708297200,
+      "value": -3.1758
+    },
+    {
+      "time": 1708383600,
+      "value": -3.1758
+    },
+    {
+      "time": 1708470000,
+      "value": -4.6073
+    },
+    {
+      "time": 1708556400,
+      "value": -5.6743
+    },
+    {
+      "time": 1708642800,
+      "value": -4.5791
+    },
+    {
+      "time": 1708902000,
+      "value": -1.8213
+    },
+    {
+      "time": 1708988400,
+      "value": 0.0
+    },
+    {
+      "time": 1709074800,
+      "value": 0.0
+    },
+    {
+      "time": 1709161200,
+      "value": 0.0
+    },
+    {
+      "time": 1709247600,
+      "value": 0.0
+    },
+    {
+      "time": 1709506800,
+      "value": -2.0822
+    },
+    {
+      "time": 1709593200,
+      "value": -2.5675
+    },
+    {
+      "time": 1709679600,
+      "value": -2.0266
+    },
+    {
+      "time": 1709766000,
+      "value": -0.7885
+    },
+    {
+      "time": 1709852400,
+      "value": -1.8081
+    },
+    {
+      "time": 1710111600,
+      "value": 0.0
+    },
+    {
+      "time": 1710198000,
+      "value": 0.0
+    },
+    {
+      "time": 1710284400,
+      "value": -0.351
+    },
+    {
+      "time": 1710370800,
+      "value": -0.8232
+    },
+    {
+      "time": 1710457200,
+      "value": -0.3522
+    },
+    {
+      "time": 1710716400,
+      "value": 0.0
+    },
+    {
+      "time": 1710802800,
+      "value": 0.0
+    },
+    {
+      "time": 1710889200,
+      "value": -1.0325
+    },
+    {
+      "time": 1710975600,
+      "value": 0.0
+    },
+    {
+      "time": 1711062000,
+      "value": 0.0
+    },
+    {
+      "time": 1711321200,
+      "value": 0.0
+    },
+    {
+      "time": 1711407600,
+      "value": -1.072
+    },
+    {
+      "time": 1711494000,
+      "value": -1.6772
+    },
+    {
+      "time": 1711580400,
+      "value": -1.7979
+    },
+    {
+      "time": 1711666800,
+      "value": -2.8986
+    },
+    {
+      "time": 1711922400,
+      "value": -2.253
+    },
+    {
+      "time": 1712008800,
+      "value": -3.3811
+    },
+    {
+      "time": 1712095200,
+      "value": -3.3811
+    },
+    {
+      "time": 1712181600,
+      "value": -1.9607
+    },
+    {
+      "time": 1712268000,
+      "value": -2.2599
+    },
+    {
+      "time": 1712527200,
+      "value": -2.2599
+    },
+    {
+      "time": 1712613600,
+      "value": -3.026
+    },
+    {
+      "time": 1712700000,
+      "value": -0.8709
+    },
+    {
+      "time": 1712786400,
+      "value": 0.0
+    },
+    {
+      "time": 1712872800,
+      "value": 0.0
+    },
+    {
+      "time": 1713132000,
+      "value": 0.0
+    },
+    {
+      "time": 1713218400,
+      "value": 0.0
+    },
+    {
+      "time": 1713304800,
+      "value": -0.8195
+    },
+    {
+      "time": 1713391200,
+      "value": -0.188
+    },
+    {
+      "time": 1713477600,
+      "value": -0.5211
+    },
+    {
+      "time": 1713736800,
+      "value": -1.3436
+    },
+    {
+      "time": 1713823200,
+      "value": -0.7516
+    },
+    {
+      "time": 1713909600,
+      "value": -0.7516
+    },
+    {
+      "time": 1713996000,
+      "value": 0.0
+    },
+    {
+      "time": 1714082400,
+      "value": 0.0
+    },
+    {
+      "time": 1714341600,
+      "value": 0.0
+    },
+    {
+      "time": 1714428000,
+      "value": -1.3117
+    }
+  ]
+}

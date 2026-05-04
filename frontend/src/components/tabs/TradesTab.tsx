@@ -10,13 +10,13 @@ interface TradesTabProps {
 type SortKey = keyof TradeRecord;
 type SortDir = "asc" | "desc";
 
-const EXIT_COLORS: Record<string, string> = {
-  SL: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  TP: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  "Partial TP": "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
-  Trailing: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  Signal: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  EOD: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+const EXIT_COLORS: Record<string, { bg: string; text: string }> = {
+  SL:           { bg: "rgba(239,68,68,0.1)",  text: "#ef4444" },
+  TP:           { bg: "rgba(16,185,129,0.1)", text: "#10b981" },
+  "Partial TP": { bg: "rgba(20,184,166,0.1)", text: "#14b8a6" },
+  Trailing:     { bg: "rgba(217,119,6,0.1)",  text: "#d97706" },
+  Signal:       { bg: "rgba(59,130,246,0.1)", text: "#3b82f6" },
+  EOD:          { bg: "rgba(148,163,184,0.06)", text: "var(--muted)" },
 };
 
 interface SortHeaderProps {
@@ -28,21 +28,15 @@ interface SortHeaderProps {
   onSort: (key: SortKey) => void;
 }
 
-const SortHeader = ({
-  label,
-  field,
-  align = "left",
-  sortKey,
-  sortDir,
-  onSort,
-}: SortHeaderProps) => (
+const SortHeader = ({ label, field, align = "left", sortKey, sortDir, onSort }: SortHeaderProps) => (
   <th
-    className={`px-3 py-2 text-${align} text-xs font-medium text-[var(--muted)] uppercase cursor-pointer hover:text-[var(--foreground)] select-none`}
+    className={`px-2 py-2 text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none transition-colors font-mono`}
+    style={{ textAlign: align, borderBottom: '1px solid var(--border)' }}
     onClick={() => onSort(field)}
   >
     {label}
     {sortKey === field && (
-      <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>
+      <span className="ml-0.5 text-[8px]">{sortDir === "asc" ? "▲" : "▼"}</span>
     )}
   </th>
 );
@@ -101,7 +95,7 @@ export default function TradesTab({ trades }: TradesTabProps) {
   }, [trades]);
 
   if (!trades.length) {
-    return <p className="text-sm text-[var(--muted)]">Sin trades</p>;
+    return <p className="text-[11px] text-[var(--muted)] font-mono">Sin trades</p>;
   }
 
   return (
@@ -109,47 +103,36 @@ export default function TradesTab({ trades }: TradesTabProps) {
       <div className="flex items-center justify-between mb-3">
         <input
           type="text"
-          placeholder="Buscar ticker, fecha, exit reason..."
+          placeholder="search ticker, date, exit reason..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-[var(--border)] rounded-md w-64 bg-[var(--card-muted-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          className="px-2.5 py-1.5 text-[11px] font-mono border-none bg-transparent text-[var(--foreground)] focus:outline-none w-56"
+          style={{ borderBottom: '1px solid var(--border)' }}
         />
-        <div className="flex gap-4 text-xs text-[var(--muted)]">
+        <div className="flex gap-5 text-[10px] text-[var(--muted)] font-mono">
           <span>
-            Total: <strong>{summary.total}</strong>
+            total: <strong className="text-[var(--text-data)]">{summary.total}</strong>
           </span>
           {summary.avgR !== null && (
             <span>
-              Avg R:{" "}
-              <strong
-                className={
-                  summary.avgR >= 0
-                    ? "text-[var(--success)]"
-                    : "text-[var(--danger)]"
-                }
-              >
+              avg R:{" "}
+              <strong className={summary.avgR >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}>
                 {summary.avgR.toFixed(2)}R
               </strong>
             </span>
           )}
           <span>
-            PnL:{" "}
-            <strong
-              className={
-                summary.totalPnl >= 0
-                  ? "text-[var(--success)]"
-                  : "text-[var(--danger)]"
-              }
-            >
+            pnl:{" "}
+            <strong className={summary.totalPnl >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}>
               {summary.totalPnl >= 0 ? "+" : ""}${summary.totalPnl.toFixed(2)}
             </strong>
           </span>
         </div>
       </div>
 
-      <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-[var(--border)] rounded-md bg-[var(--card-bg)] shadow-inner">
-        <table className="w-full text-sm">
-          <thead className="bg-[var(--sidebar-bg)] sticky top-0 border-b border-[var(--border)]">
+      <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+        <table className="w-full text-[11px] font-mono" style={{ borderCollapse: 'collapse' }}>
+          <thead className="sticky top-0 bg-[var(--background)]" style={{ zIndex: 10 }}>
             <tr>
               <SortHeader label="Ticker" field="ticker" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <SortHeader label="Fecha" field="date" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
@@ -160,60 +143,59 @@ export default function TradesTab({ trades }: TradesTabProps) {
               <SortHeader label="Size" field="size" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <SortHeader label="PnL" field="pnl" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <SortHeader label="R" field="r_multiple" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-              <SortHeader label="MAE (%)" field="mae" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-              <SortHeader label="MFE (%)" field="mfe" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="MAE%" field="mae" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="MFE%" field="mfe" align="right" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <SortHeader label="Exit" field="exit_reason" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border)]">
+          <tbody>
             {filtered.map((t, i) => (
-              <tr key={i} className="hover:bg-[var(--card-muted-bg)] transition-colors">
-                <td className="px-3 py-1.5 font-medium">{t.ticker}</td>
-                <td className="px-3 py-1.5 text-[var(--muted)]">{t.date}</td>
-                <td className="px-3 py-1.5 text-[var(--muted)] font-mono text-xs">
+              <tr
+                key={i}
+                className="hover:bg-[color-mix(in_srgb,var(--foreground)_3%,transparent)] transition-colors"
+                style={{ borderBottom: '1px solid color-mix(in srgb, var(--border) 30%, transparent)' }}
+              >
+                <td className="px-2 py-1.5 font-semibold text-[var(--text-data)]">{t.ticker}</td>
+                <td className="px-2 py-1.5 text-[var(--muted)]">{t.date}</td>
+                <td className="px-2 py-1.5 text-[var(--muted)]">
                   {t.entry_time.split(" ").pop()?.slice(0, 8)}
                 </td>
-                <td className="px-3 py-1.5 text-[var(--muted)] font-mono text-xs">
+                <td className="px-2 py-1.5 text-[var(--muted)]">
                   {t.exit_time.split(" ").pop()?.slice(0, 8)}
                 </td>
-                <td className="px-3 py-1.5 text-right font-mono">
+                <td className="px-2 py-1.5 text-right text-[var(--text-data)]">
                   ${t.entry_price.toFixed(2)}
                 </td>
-                <td className="px-3 py-1.5 text-right font-mono">
+                <td className="px-2 py-1.5 text-right text-[var(--text-data)]">
                   ${t.exit_price.toFixed(2)}
                 </td>
-                <td className="px-3 py-1.5 text-right font-mono">
+                <td className="px-2 py-1.5 text-right text-[var(--text-data)]">
                   {t.size.toFixed(2)}
                 </td>
-                <td
-                  className={`px-3 py-1.5 text-right font-mono font-medium ${t.pnl >= 0
-                    ? "text-[var(--success)]"
-                    : "text-[var(--danger)]"
-                    }`}
-                >
+                <td className={`px-2 py-1.5 text-right font-semibold ${t.pnl >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
                   {t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(2)}
                 </td>
-                <td
-                  className={`px-3 py-1.5 text-right font-mono ${(t.r_multiple || 0) >= 0
-                    ? "text-[var(--success)]"
-                    : "text-[var(--danger)]"
-                    }`}
-                >
+                <td className={`px-2 py-1.5 text-right ${(t.r_multiple || 0) >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
                   {t.r_multiple !== null ? `${t.r_multiple.toFixed(2)}R` : "—"}
                 </td>
-                <td className="px-3 py-1.5 text-right font-mono text-[var(--danger)]">
+                <td className="px-2 py-1.5 text-right text-[var(--danger)]">
                   {t.mae != null ? `${t.mae.toFixed(2)}%` : "—"}
                 </td>
-                <td className="px-3 py-1.5 text-right font-mono text-[var(--success)]">
+                <td className="px-2 py-1.5 text-right text-[var(--success)]">
                   {t.mfe != null ? `${t.mfe.toFixed(2)}%` : "—"}
                 </td>
-                <td className="px-3 py-1.5">
-                  <span
-                    className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${EXIT_COLORS[t.exit_reason] || "bg-gray-100 text-gray-600"
-                      }`}
-                  >
-                    {t.exit_reason}
-                  </span>
+                <td className="px-2 py-1.5">
+                  {(() => {
+                    const style = EXIT_COLORS[t.exit_reason] || { bg: "rgba(148,163,184,0.06)", text: "var(--muted)" };
+                    return (
+                      <span
+                        className="inline-block px-1.5 py-0.5 rounded-sm text-[10px] font-medium"
+                        style={{ backgroundColor: style.bg, color: style.text }}
+                      >
+                        {t.exit_reason}
+                      </span>
+                    );
+                  })()}
                 </td>
               </tr>
             ))}

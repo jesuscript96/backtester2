@@ -94,19 +94,25 @@ export default function RollingEVChart({ trades, riskR, isDarkMode = false }: Ro
     useEffect(() => {
         if (!containerRef.current || !evData.length) return;
 
+        const bgColor = isDarkMode ? "#18181a" : "#fafaf7";
+        const gridColor = isDarkMode ? "#303033" : "#f0eeea";
+        const textColor = isDarkMode ? "#475569" : "#a8a29e";
+
         const chart = createChart(containerRef.current, {
             width: containerRef.current.clientWidth,
             height: containerRef.current.clientHeight || 120,
             layout: {
-                background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
-                textColor: isDarkMode ? "#94a3b8" : "#999"
+                background: { color: bgColor },
+                textColor: textColor,
+                fontFamily: "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace",
+                fontSize: 10,
             },
             grid: {
-                vertLines: { color: isDarkMode ? "#1e293b" : "#f5f5f5" },
-                horzLines: { color: isDarkMode ? "#1e293b" : "#f5f5f5" },
+                vertLines: { color: gridColor },
+                horzLines: { color: gridColor },
             },
-            rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
-            timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
+            rightPriceScale: { borderVisible: false },
+            timeScale: { borderVisible: false, timeVisible: true },
             crosshair: { mode: 0 },
         });
         chartRef.current = chart;
@@ -114,12 +120,12 @@ export default function RollingEVChart({ trades, riskR, isDarkMode = false }: Ro
         // BaselineSeries with gradient fill above/below zero — like equity/drawdown
         const series = chart.addSeries(BaselineSeries, {
             baseValue: { type: "price", price: 0 },
-            topLineColor: "#e67e22",
-            topFillColor1: "rgba(230,126,34,0.3)",
-            topFillColor2: "rgba(230,126,34,0.02)",
-            bottomLineColor: "#e67e22",
-            bottomFillColor1: "rgba(230,126,34,0.02)",
-            bottomFillColor2: "rgba(230,126,34,0.3)",
+            topLineColor: isDarkMode ? "#ffffff" : "#000000",
+            topFillColor1: isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)",
+            topFillColor2: isDarkMode ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.01)",
+            bottomLineColor: isDarkMode ? "#ffffff" : "#000000",
+            bottomFillColor1: isDarkMode ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.01)",
+            bottomFillColor2: isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)",
             lineWidth: 2,
             priceFormat: { type: "price", precision: 2, minMove: 0.01 },
         });
@@ -151,35 +157,36 @@ export default function RollingEVChart({ trades, riskR, isDarkMode = false }: Ro
     }, [evData, isDarkMode]);
 
     return (
-        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col h-full transition-colors">
-            <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5 flex items-center justify-between">
-                <h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--foreground)]">
+        <div className="flex flex-col h-full transition-colors">
+            <div className="px-3 py-2 flex items-center justify-between">
+                <span className="text-[9px] font-semibold text-[var(--muted)] uppercase tracking-[0.15em]">
                     Rolling EV
-                </h2>
+                </span>
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-[var(--sidebar-bg)] rounded text-[10px] border border-[var(--border)]">
-                        {([["trades", "Trades"], ["days", "Días"]] as const).map(([val, label]) => (
+                    <div className="flex text-[9px] font-mono">
+                        {([["trades", "T"], ["days", "D"]] as const).map(([val, label]) => (
                             <button
                                 key={val}
                                 onClick={() => setBasis(val)}
-                                className={`px-2 py-0.5 rounded transition-colors font-medium border-none ${basis === val
-                                    ? "bg-[var(--card-bg)] text-[var(--foreground)] shadow-sm"
-                                    : "text-gray-400 hover:text-[var(--foreground)]"
+                                className={`px-1.5 py-0.5 transition-colors ${basis === val
+                                    ? "text-[var(--foreground)] font-bold"
+                                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
                                     }`}
                             >
                                 {label}
                             </button>
                         ))}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] text-[var(--muted)] uppercase">Window</span>
+                    <div className="flex items-center gap-1">
+                        <span className="text-[8px] text-[var(--muted)] font-mono">W</span>
                         <input
                             type="number"
                             min={5}
                             max={500}
                             value={rollingWindow}
                             onChange={(e) => setRollingWindow(Math.max(5, Math.min(500, parseInt(e.target.value) || 50)))}
-                            className="w-12 text-xs border border-[var(--border)] rounded px-1.5 py-0.5 text-center font-mono bg-[var(--card-muted-bg)] text-[var(--foreground)]"
+                            className="w-10 text-[10px] border-none bg-transparent text-center font-mono text-[var(--foreground)] outline-none"
+                            style={{ borderBottom: '1px solid var(--border)' }}
                         />
                     </div>
                 </div>

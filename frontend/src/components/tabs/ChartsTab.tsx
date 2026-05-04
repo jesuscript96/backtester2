@@ -72,38 +72,14 @@ function calculateEnhancedStats(arr: number[]) {
   return { n, mean, median, stdDev, max, min, skewness, kurtosis, q1, q3, range, iqr };
 }
 
-interface StatsTableProps {
-  stats: ReturnType<typeof calculateEnhancedStats> | null;
-  title: string;
-  isPct: boolean;
-}
-
-const StatsTable = ({ stats, title, isPct }: StatsTableProps) => {
-  if (!stats) return null;
-  return (
-    <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded p-3 text-[11px] flex-1 text-[var(--foreground)] h-full shadow-sm">
-      <h4 className="font-bold border-b border-[var(--border)] pb-1 mb-2 uppercase text-[10px] text-[var(--muted)] tracking-wider">
-        {title}
-      </h4>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono">
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">N:</span><span>{stats.n}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Media:</span><span>{stats.mean.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mediana:</span><span>{stats.median.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Desv Std:</span><span>{stats.stdDev.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q1 (25%):</span><span>{stats.q1.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Q3 (75%):</span><span>{stats.q3.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Máximo:</span><span>{stats.max.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Mínimo:</span><span>{stats.min.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Rango:</span><span>{stats.range.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">IQR:</span><span>{stats.iqr.toFixed(2)}{isPct ? '%' : ''}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Asimetría:</span><span>{stats.skewness.toFixed(3)}</span></div>
-        <div className="flex justify-between border-b border-[var(--border)] border-dashed pb-0.5"><span className="font-sans text-[var(--muted)]">Curtosis:</span><span>{stats.kurtosis.toFixed(3)}</span></div>
-      </div>
-    </div>
-  );
-};
 
 export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: ChartsTabProps) {
+
+  const gridColor = isDarkMode ? "#303033" : "#f0eeea";
+  const tickColor = isDarkMode ? "#94a3b8" : "#a8a29e";
+  const tooltipBg = isDarkMode ? "#303033" : "#fafaf7";
+  const barPositive = isDarkMode ? "#3b82f6" : "#10b981";
+  const barNegative = isDarkMode ? "#e2e8f0" : "#ef4444";
 
   const pnlDistribution = useMemo(() => {
     const pnlPctCoords = trades.map(t => t.return_pct).filter((v): v is number => v !== undefined && v !== null);
@@ -200,8 +176,6 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
   }, [trades]);
 
   const evByTime30Min = useMemo(() => {
-    // Hour slots + 30 min slots
-    // entry_time example: "2024-01-01 09:30:00"
     const timeMap = new Map<string, { total: number; count: number }>();
 
     for (const t of trades) {
@@ -250,53 +224,64 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
     return <p className="text-sm text-[var(--muted)]">Sin trades para analizar</p>;
   }
 
+  // Helper for stats rendering
+  const fmt = (v: number, pct = false) => `${v.toFixed(2)}${pct ? '%' : ''}`;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
 
-      {/* 1. Header Grid: Rolling EV left, EV Analysis right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[250px] lg:h-[320px]">
+      {/* ROW 1: Rolling EV + EV by Time + EV by Day — borderless triptych */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 h-[280px] lg:h-[300px]" style={{ borderBottom: '1px solid var(--border)' }}>
 
-        {/* Rolling EV Column */}
-        <div className="flex-1 lg:col-span-1 border border-[var(--border)] rounded overflow-hidden shadow-sm h-full">
+        {/* Rolling EV */}
+        <div className="h-full" style={{ borderRight: '1px solid var(--border)' }}>
           <RollingEVChart trades={trades} riskR={riskR} isDarkMode={isDarkMode} />
         </div>
 
-        {/* 30-min Time EV */}
-        <div className="lg:col-span-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors h-full">
-          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Tiempo (Intervalos 30m)</h2>
+        {/* EV por Tiempo (30m) */}
+        <div className="flex flex-col h-full" style={{ borderRight: '1px solid var(--border)' }}>
+          <div className="px-3 py-2 flex items-center">
+            <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">EV por Tiempo (30m)</span>
           </div>
-          <div className="flex-1 p-2 min-h-0">
+          <div className="flex-1 px-1 pb-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={evByTime30Min} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
-                <XAxis dataKey="time" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
-                <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
-                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'EV']} />
-                <ReferenceLine y={0} stroke="#94a3b8" />
-                <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
-                  {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
+              <BarChart data={evByTime30Min} margin={{ top: 5, right: 8, bottom: 0, left: -28 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="time" tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
+                <Tooltip
+                  contentStyle={{ fontSize: '10px', backgroundColor: tooltipBg, border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
+                  formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'EV']}
+                  cursor={{ fill: "rgba(120,113,108,0.04)" }}
+                />
+                <ReferenceLine y={0} stroke={tickColor} strokeWidth={0.5} />
+                <Bar dataKey="ev" radius={[1, 1, 0, 0]}>
+                  {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? barPositive : barNegative} fillOpacity={0.75} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Day EV */}
-        <div className="lg:col-span-1 bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden flex flex-col transition-colors h-full">
-          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1 flex items-center">
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[var(--foreground)]">EV por Día</h2>
+        {/* EV por Día */}
+        <div className="flex flex-col h-full">
+          <div className="px-3 py-2 flex items-center">
+            <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">EV por Dia</span>
           </div>
-          <div className="flex-1 p-2 min-h-0">
+          <div className="flex-1 px-1 pb-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={evByDay} margin={{ top: 5, right: 10, bottom: 0, left: -25 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} />
-                <YAxis tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }} tickFormatter={(v: number) => `$${v.toFixed(2)}`} />
-                <Tooltip contentStyle={{ fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderColor: 'var(--border)' }} formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'EV']} />
-                <ReferenceLine y={0} stroke="#94a3b8" />
-                <Bar dataKey="ev" radius={[2, 2, 0, 0]}>
-                  {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? "#10b981" : "#ef4444"} />)}
+              <BarChart data={evByDay} margin={{ top: 5, right: 8, bottom: 0, left: -28 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 9, fill: tickColor, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v.toFixed(0)}`} />
+                <Tooltip
+                  contentStyle={{ fontSize: '10px', backgroundColor: tooltipBg, border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
+                  formatter={(value: number) => [`$${Number(value).toFixed(2)}`, 'EV']}
+                  cursor={{ fill: "rgba(120,113,108,0.04)" }}
+                />
+                <ReferenceLine y={0} stroke={tickColor} strokeWidth={0.5} />
+                <Bar dataKey="ev" radius={[1, 1, 0, 0]}>
+                  {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? barPositive : barNegative} fillOpacity={0.75} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -304,40 +289,40 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
         </div>
       </div>
 
-      {/* 2. Distributions Parallel */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ROW 2: Distributions side by side — no card wrappers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
         {/* PnL Distribution */}
-        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] overflow-hidden flex flex-col shadow-sm transition-colors h-[300px]">
-          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5">
-            <span className="text-[11px] font-semibold text-[var(--foreground)] tracking-wide uppercase">
-              Distribución de Retornos (PnL %)
+        <div className="flex flex-col h-[280px]" style={{ borderRight: '1px solid var(--border)' }}>
+          <div className="px-3 py-2">
+            <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
+              Distribucion de Retornos (PnL %)
             </span>
           </div>
-          <div className="flex-1 p-3">
+          <div className="flex-1 px-1 pb-1">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={pnlDistribution.data} margin={{ top: 10, right: 10, left: -25, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+              <BarChart data={pnlDistribution.data} margin={{ top: 8, right: 8, left: -28, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 8, fill: isDarkMode ? "#94a3b8" : "#999" }}
-                  axisLine={true}
+                  tick={{ fontSize: 7, fill: tickColor, fontFamily: 'monospace' }}
+                  axisLine={false}
                   tickLine={false}
                   interval="preserveStartEnd"
                 />
                 <YAxis
-                  tick={{ fontSize: 8, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                  tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }}
                   axisLine={false}
                   tickLine={false}
                   allowDecimals={false}
                 />
                 <Tooltip
-                  contentStyle={{ backgroundColor: isDarkMode ? "#1e293b" : "#fff", fontSize: '10px', borderColor: 'var(--border)' }}
-                  cursor={{ fill: "rgba(0,0,0,0.05)" }}
+                  contentStyle={{ backgroundColor: tooltipBg, fontSize: '10px', border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
+                  cursor={{ fill: "rgba(120,113,108,0.04)" }}
                 />
-                <ReferenceLine x="0.00%" stroke="#94a3b8" strokeDasharray="3 3" />
+                <ReferenceLine x="0.00%" stroke={tickColor} strokeDasharray="3 3" strokeWidth={0.5} />
                 <Bar dataKey="value" radius={[1, 1, 0, 0]}>
                   {pnlDistribution.data.map((entry, index) => (
-                    <Cell key={index} fill={entry.num > 0 ? "#10b981" : entry.num < 0 ? "#ef4444" : "#94a3b8"} />
+                    <Cell key={index} fill={entry.num > 0 ? barPositive : entry.num < 0 ? barNegative : tickColor} fillOpacity={0.7} />
                   ))}
                 </Bar>
               </BarChart>
@@ -346,44 +331,93 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
         </div>
 
         {/* Consecutive Runs */}
-        <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] overflow-hidden flex flex-col shadow-sm transition-colors h-[300px]">
-          <div className="bg-[var(--sidebar-bg)] border-b border-[var(--border)] px-3 py-1.5 flex justify-between items-center">
-            <span className="text-[11px] font-semibold text-[var(--foreground)] tracking-wide uppercase">
-              Consecutive Runs Distribution
+        <div className="flex flex-col h-[280px]">
+          <div className="px-3 py-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
+              Consecutive Runs
             </span>
-            <div className="flex gap-2 text-[8px] text-[var(--muted)]">
-              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#10b981]"></div> W</div>
-              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#ef4444]"></div> L</div>
+            <div className="flex gap-3 text-[8px] font-mono text-[var(--muted)]">
+              <span className="flex items-center gap-1"><span className="inline-block w-2 h-[3px] bg-emerald-500 rounded-sm"></span>W</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-2 h-[3px] bg-red-500 rounded-sm"></span>L</span>
             </div>
           </div>
-          <div className="flex-1 p-3">
+          <div className="flex-1 px-1 pb-1">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={consecutiveRuns.data} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#1e293b" : "#f0f0f0"} vertical={false} />
+              <BarChart data={consecutiveRuns.data} margin={{ top: 8, right: 8, left: -28, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                 <XAxis
                   dataKey="length"
-                  tick={{ fontSize: 10, fill: isDarkMode ? "#94a3b8" : "#999" }}
-                  axisLine={true}
+                  tick={{ fontSize: 9, fill: tickColor, fontFamily: 'monospace' }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 9, fill: isDarkMode ? "#94a3b8" : "#999" }}
+                  tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }}
                   axisLine={false}
+                  tickLine={false}
                   allowDecimals={false}
                 />
-                <Tooltip contentStyle={{ backgroundColor: isDarkMode ? "#1e293b" : "#fff", fontSize: '10px', borderColor: 'var(--border)' }} />
-                <Bar dataKey="winRuns" name="Wins" fill="#10b981" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="lossRuns" name="Losses" fill="#ef4444" radius={[2, 2, 0, 0]} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: tooltipBg, fontSize: '10px', border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
+                />
+                <Bar dataKey="winRuns" name="Wins" fill={barPositive} fillOpacity={0.7} radius={[1, 1, 0, 0]} />
+                <Bar dataKey="lossRuns" name="Losses" fill={barNegative} fillOpacity={0.7} radius={[1, 1, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* 3. Combined Stats Below */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatsTable stats={pnlDistribution.stats} title="Estadística Descriptiva PnL" isPct={true} />
-        <StatsTable stats={consecutiveRuns.winStats} title="Descriptiva Rachas (W)" isPct={false} />
-        <StatsTable stats={consecutiveRuns.lossStats} title="Descriptiva Rachas (L)" isPct={false} />
+      {/* ROW 3: Combined Statistics — single terminal-style table */}
+      <div className="pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+        <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em] block mb-3">
+          Descriptive Statistics
+        </span>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px] font-mono" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <th className="text-left py-1.5 px-2 text-[var(--muted)] font-normal">metric</th>
+                <th className="text-right py-1.5 px-2 text-[var(--muted)] font-normal">PnL %</th>
+                <th className="text-right py-1.5 px-2 text-[var(--muted)] font-normal">Streaks (W)</th>
+                <th className="text-right py-1.5 px-2 text-[var(--muted)] font-normal">Streaks (L)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { label: "N", pnl: pnlDistribution.stats?.n ?? 0, w: consecutiveRuns.winStats?.n ?? 0, l: consecutiveRuns.lossStats?.n ?? 0, isPct: false, isInt: true },
+                { label: "Mean", pnl: pnlDistribution.stats?.mean ?? 0, w: consecutiveRuns.winStats?.mean ?? 0, l: consecutiveRuns.lossStats?.mean ?? 0, isPct: true },
+                { label: "Median", pnl: pnlDistribution.stats?.median ?? 0, w: consecutiveRuns.winStats?.median ?? 0, l: consecutiveRuns.lossStats?.median ?? 0, isPct: true },
+                { label: "Std Dev", pnl: pnlDistribution.stats?.stdDev ?? 0, w: consecutiveRuns.winStats?.stdDev ?? 0, l: consecutiveRuns.lossStats?.stdDev ?? 0, isPct: true },
+                { label: "Q1 (25%)", pnl: pnlDistribution.stats?.q1 ?? 0, w: consecutiveRuns.winStats?.q1 ?? 0, l: consecutiveRuns.lossStats?.q1 ?? 0, isPct: true },
+                { label: "Q3 (75%)", pnl: pnlDistribution.stats?.q3 ?? 0, w: consecutiveRuns.winStats?.q3 ?? 0, l: consecutiveRuns.lossStats?.q3 ?? 0, isPct: true },
+                { label: "Max", pnl: pnlDistribution.stats?.max ?? 0, w: consecutiveRuns.winStats?.max ?? 0, l: consecutiveRuns.lossStats?.max ?? 0, isPct: true },
+                { label: "Min", pnl: pnlDistribution.stats?.min ?? 0, w: consecutiveRuns.winStats?.min ?? 0, l: consecutiveRuns.lossStats?.min ?? 0, isPct: true },
+                { label: "Range", pnl: pnlDistribution.stats?.range ?? 0, w: consecutiveRuns.winStats?.range ?? 0, l: consecutiveRuns.lossStats?.range ?? 0, isPct: true },
+                { label: "IQR", pnl: pnlDistribution.stats?.iqr ?? 0, w: consecutiveRuns.winStats?.iqr ?? 0, l: consecutiveRuns.lossStats?.iqr ?? 0, isPct: true },
+                { label: "Skewness", pnl: pnlDistribution.stats?.skewness ?? 0, w: consecutiveRuns.winStats?.skewness ?? 0, l: consecutiveRuns.lossStats?.skewness ?? 0, isPct: false, prec: 3 },
+                { label: "Kurtosis", pnl: pnlDistribution.stats?.kurtosis ?? 0, w: consecutiveRuns.winStats?.kurtosis ?? 0, l: consecutiveRuns.lossStats?.kurtosis ?? 0, isPct: false, prec: 3 },
+              ].map((row, idx) => (
+                <tr
+                  key={idx}
+                  className="hover:bg-[color-mix(in_srgb,var(--foreground)_3%,transparent)] transition-colors"
+                  style={{ borderBottom: '1px solid color-mix(in srgb, var(--border) 30%, transparent)' }}
+                >
+                  <td className="py-1.5 px-2 text-[var(--muted)]">{row.label}</td>
+                  <td className="py-1.5 px-2 text-right text-[var(--text-data)]">
+                    {row.isInt ? row.pnl : (row.pnl).toFixed(row.prec ?? 2)}{row.isPct && !row.isInt ? '%' : ''}
+                  </td>
+                  <td className="py-1.5 px-2 text-right text-[var(--text-data)]">
+                    {row.isInt ? row.w : (row.w).toFixed(row.prec ?? 2)}
+                  </td>
+                  <td className="py-1.5 px-2 text-right text-[var(--text-data)]">
+                    {row.isInt ? row.l : (row.l).toFixed(row.prec ?? 2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

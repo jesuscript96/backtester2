@@ -158,12 +158,12 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
       width: equityContainer.clientWidth,
       height: 400,
       layout: {
-        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        background: { color: isDarkMode ? "#18181a" : "#fafaf7" },
         textColor: isDarkMode ? "#f8fafc" : "#333"
       },
       grid: {
-        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
-        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        vertLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
       },
       rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
       timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
@@ -238,12 +238,12 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
         width: ddContainer.clientWidth,
         height: 150,
         layout: {
-          background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+          background: { color: isDarkMode ? "#18181a" : "#fafaf7" },
           textColor: isDarkMode ? "#f8fafc" : "#333"
         },
         grid: {
-          vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
-          horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+          vertLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
+          horzLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
         },
         rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
         timeScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0", timeVisible: true },
@@ -377,15 +377,15 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
   })();
 
   return (
-    <div className="flex flex-col h-[675px] bg-[var(--card-bg)]">
+    <div className="flex flex-col h-[675px]">
       {/* MAIN TAB SWITCHER */}
-      <div className="px-3 border-b border-[var(--border)] bg-[var(--sidebar-bg)] flex items-center h-[30px]">
+      <div className="px-1 flex items-center h-[30px]" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className="flex h-full">
           <button
             onClick={() => setActiveMainTab("equity")}
-            className={`px-3 flex items-center text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 h-full ${
+            className={`px-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] transition-all border-b-2 h-full ${
               activeMainTab === "equity"
-                ? "text-[var(--accent)] border-[var(--accent)]"
+                ? "text-[var(--foreground)] border-[var(--foreground)]"
                 : "text-[var(--muted)] border-transparent hover:text-[var(--foreground)]"
             }`}
           >
@@ -393,9 +393,9 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
           </button>
           <button
             onClick={() => setActiveMainTab("whatif")}
-            className={`px-3 flex items-center text-[10px] font-bold uppercase tracking-wider transition-all border-b-2 h-full ${
+            className={`px-3 flex items-center text-[10px] font-semibold uppercase tracking-[0.12em] transition-all border-b-2 h-full ${
               activeMainTab === "whatif"
-                ? "text-[var(--accent)] border-[var(--accent)]"
+                ? "text-[var(--foreground)] border-[var(--foreground)]"
                 : "text-[var(--muted)] border-transparent hover:text-[var(--foreground)]"
             }`}
           >
@@ -411,27 +411,27 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
-                      Max Drawdown
+                    <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide font-mono">
+                      Max DD
                     </span>
-                    <span className="text-xs font-semibold text-[var(--danger)]">
+                    <span className="text-[12px] font-bold font-mono text-[var(--danger)]">
                       {ddDisplay}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
+                    <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide font-mono">
                       Max Profit
                     </span>
-                    <span className="text-xs font-semibold text-green-600">
+                    <span className="text-[12px] font-bold font-mono text-[var(--success)]">
                       {profitDisplay}
                     </span>
                   </div>
                   {maxProfitWithExpenses !== null && (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide">
+                      <span className="text-[10px] text-[var(--muted)] uppercase tracking-wide font-mono">
                         Max Profit c/ Gastos
                       </span>
-                      <span className="text-xs font-semibold text-green-600">
+                      <span className="text-[12px] font-bold font-mono text-[var(--success)]">
                         {profitWithExpensesDisplay}
                       </span>
                     </div>
@@ -439,16 +439,17 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="flex bg-[var(--sidebar-bg)] p-1 rounded-md text-xs border border-[var(--border)] ml-2">
+                  <div className="flex p-0.5 text-[10px] ml-2">
                     {(["$", "%", "R"] as ViewMode[]).map((mode) => (
                       <button
                         key={mode}
                         onClick={() => setViewMode(mode)}
-                        className={`px-3 py-1 rounded transition-colors ${
+                        className={`px-2.5 py-1 font-mono transition-colors ${
                           viewMode === mode
-                            ? "bg-[var(--card-bg)] text-[var(--foreground)] shadow-sm font-bold"
+                            ? "text-[var(--foreground)] font-bold"
                             : "text-[var(--muted)] hover:text-[var(--foreground)]"
                         }`}
+                        style={viewMode === mode ? { borderBottom: '2px solid var(--foreground)' } : { borderBottom: '2px solid transparent' }}
                       >
                         {mode}
                       </button>
@@ -700,7 +701,7 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
                   <button 
                     onClick={handleRunWhatIf}
                     disabled={simLoading}
-                    className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white py-2.5 rounded-md text-[11px] font-bold uppercase tracking-[0.15em] shadow-sm hover:shadow-md transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[var(--foreground)] text-[var(--background)] py-2 text-[10px] font-mono font-semibold uppercase tracking-[0.15em] hover:opacity-80 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <span className="text-sm">{simLoading ? "⏳" : "⚡"}</span>
                     {simLoading ? "Simulando..." : "Ejecutar Simulación What-if"}
@@ -713,8 +714,8 @@ export default function EquityCurveTab({ globalEquity, globalDrawdown, trades, m
             </div>
 
             {/* RIGHT COLUMN: SIMULATION RESULTS */}
-            <div className="w-1/2 h-full overflow-y-auto px-5 py-4 bg-[var(--background)] custom-scrollbar">
-               <h4 className="text-[10px] font-bold uppercase text-[var(--muted)] mb-4 flex items-center gap-2 opacity-60">
+            <div className="w-1/2 h-full overflow-y-auto px-5 py-4 custom-scrollbar">
+               <h4 className="text-[10px] font-semibold uppercase text-[var(--muted)] mb-4 flex items-center gap-2 font-mono tracking-[0.12em]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted)]"></span>
                 Resultados Simulados
                </h4>
@@ -829,12 +830,12 @@ function WhatIfEquityChart({
       width: container.clientWidth,
       height: 180,
       layout: {
-        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        background: { color: isDarkMode ? "#18181a" : "#fafaf7" },
         textColor: isDarkMode ? "#94a3b8" : "#64748b",
       },
       grid: {
-        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
-        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        vertLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
       },
       rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
       timeScale: {
@@ -887,12 +888,12 @@ function WhatIfEquityChart({
       width: ddContainer.clientWidth,
       height: 80,
       layout: {
-        background: { color: isDarkMode ? "#0f172a" : "#ffffff" },
+        background: { color: isDarkMode ? "#18181a" : "#fafaf7" },
         textColor: isDarkMode ? "#94a3b8" : "#64748b",
       },
       grid: {
-        vertLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
-        horzLines: { color: isDarkMode ? "#1e293b" : "#f0f0f0" },
+        vertLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
+        horzLines: { color: isDarkMode ? "#303033" : "#f0f0f0" },
       },
       rightPriceScale: { borderColor: isDarkMode ? "#334155" : "#e2e8f0" },
       timeScale: {

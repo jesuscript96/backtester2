@@ -60,6 +60,9 @@ class SurfaceRequest(BaseModel):
 @router.post("/optimization/parameters")
 def get_optimization_parameters(req: ParametersRequest):
     logger.info(f"Extracting parameters for strategy {req.strategy_id}")
+    # Mock strategy has no optimizable parameters
+    if req.strategy_id == "mock_strat_1":
+        return {"parameters": [], "strategy_name": "Mock Strategy (Temporal)"}
     strategy = get_strategy(req.strategy_id)
     if not strategy:
         logger.error(f"Strategy {req.strategy_id} not found")

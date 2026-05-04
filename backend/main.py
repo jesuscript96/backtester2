@@ -32,8 +32,11 @@ def on_startup():
     try:
         logger.info("Syncing hot tables in startup event...")
         sync_hot_tables()
+        logger.info("Hot tables synced successfully.")
     except Exception as e:
         logger.error(f"Startup hot table sync failed: {e}")
+    
+    logger.info("Startup sequence complete.")
 
     from backend.config import INTRADAY_BATCH_SIZE
     logger.info("=== BacktesterMVP starting ===")

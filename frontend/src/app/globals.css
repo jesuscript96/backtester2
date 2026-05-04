@@ -17,17 +17,20 @@
   --danger: #ef4444;
   --muted: #78716c;
   /* Stone-500 */
+  --text-data: #44403c;
+  /* Stone-700 — for data/numbers in tables */
   transition: background-color 0.2s, color 0.2s;
 }
 
 .dark {
-  --background: #0f172a;
-  --sidebar-bg: #020617;
-  --foreground: #f8fafc;
-  --card-bg: #1e293b;
-  --card-muted-bg: #0f172a;
-  --border: #334155;
-  --muted: #94a3b8;
+  --background: #18181a;
+  --sidebar-bg: #202022;
+  --foreground: #ededed;
+  --card-bg: #18181a;
+  --card-muted-bg: #202022;
+  --border: #303033;
+  --muted: #8b8b8d;
+  --text-data: #d1d1d6;
 }
 
 @theme inline {

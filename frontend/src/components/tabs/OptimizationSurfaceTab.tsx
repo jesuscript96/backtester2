@@ -174,9 +174,9 @@ export default function OptimizationSurfaceTab({
     const p = result.params;
     const metricLabel = METRIC_OPTIONS.find((m) => m.value === result.metric)?.label || result.metric;
 
-    const bg = isDarkMode ? "#0f172a" : "#ffffff";
-    const fg = isDarkMode ? "#e2e8f0" : "#1e293b";
-    const gridColor = isDarkMode ? "#1e293b" : "#e2e8f0";
+    const bg = isDarkMode ? "#18181a" : "#fafaf7";
+    const fg = isDarkMode ? "#cbd5e1" : "#44403c";
+    const gridColor = isDarkMode ? "#303033" : "#f0eeea";
 
     if (mode === "2D" && p.length === 2) {
       const z = result.grid;
@@ -193,8 +193,8 @@ export default function OptimizationSurfaceTab({
             colorscale: "Viridis",
             contours: { coloring: "heatmap" as const, showlabels: true },
             colorbar: {
-              title: { text: metricLabel, font: { color: fg, size: 11 } },
-              tickfont: { color: fg, size: 10 },
+              title: { text: metricLabel, font: { color: fg, size: 10 } },
+              tickfont: { color: fg, size: 9 },
             },
             hovertemplate:
               `${p[0].label}: %{x:.2f}<br>${p[1].label}: %{y:.2f}<br>${metricLabel}: %{z:.4f}<extra></extra>`,
@@ -203,7 +203,7 @@ export default function OptimizationSurfaceTab({
         layout: {
           paper_bgcolor: bg,
           plot_bgcolor: bg,
-          font: { color: fg, family: "Inter, system-ui, sans-serif" },
+          font: { color: fg, family: "'JetBrains Mono', monospace", size: 10 },
           xaxis: { title: { text: p[0].label }, gridcolor: gridColor, color: fg },
           yaxis: { title: { text: p[1].label }, gridcolor: gridColor, color: fg },
           margin: { l: 60, r: 20, t: 30, b: 60 },
@@ -213,7 +213,6 @@ export default function OptimizationSurfaceTab({
     }
 
     if (mode === "3D" && p.length === 2) {
-      // 3D surface
       // For 3D surface, replace nulls to avoid WebGL crashes (uniformMatrix4fv error)
       const rawZ = result.grid as (number | null)[][];
       const validVals = rawZ.flat().filter((v): v is number => v !== null && !isNaN(v));
@@ -232,8 +231,8 @@ export default function OptimizationSurfaceTab({
             type: "surface" as const,
             colorscale: "Viridis",
             colorbar: {
-              title: { text: metricLabel, font: { color: fg, size: 11 } },
-              tickfont: { color: fg, size: 10 },
+              title: { text: metricLabel, font: { color: fg, size: 10 } },
+              tickfont: { color: fg, size: 9 },
             },
             hovertemplate:
               `${p[0].label}: %{x:.2f}<br>${p[1].label}: %{y:.2f}<br>${metricLabel}: %{z:.4f}<extra></extra>`,
@@ -243,7 +242,7 @@ export default function OptimizationSurfaceTab({
         layout: {
           paper_bgcolor: bg,
           plot_bgcolor: bg,
-          font: { color: fg, family: "Inter, system-ui, sans-serif" },
+          font: { color: fg, family: "'JetBrains Mono', monospace", size: 10 },
           scene: {
             xaxis: { title: { text: p[0].label }, gridcolor: gridColor, color: fg, backgroundcolor: bg },
             yaxis: { title: { text: p[1].label }, gridcolor: gridColor, color: fg, backgroundcolor: bg },
@@ -264,7 +263,7 @@ export default function OptimizationSurfaceTab({
   if (!strategyId || !datasetId) {
     return (
       <div className="flex items-center justify-center h-40">
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-[11px] text-[var(--muted)] font-mono">
           Ejecuta un backtest para acceder a la Optimization Surface
         </p>
       </div>
@@ -272,34 +271,35 @@ export default function OptimizationSurfaceTab({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--foreground)]">
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
             Optimization Surface
-          </h3>
+          </span>
           {strategyName && (
-            <p className="text-xs text-[var(--muted)]">Estrategia: {strategyName}</p>
+            <span className="text-[10px] text-[var(--muted)] font-mono opacity-60">{strategyName}</span>
           )}
         </div>
       </div>
 
-      {/* Configuration */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--sidebar-bg)]">
+      {/* Configuration — flat grid, no card wrapper */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
         {/* Mode toggle */}
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Modo</label>
-          <div className="flex rounded-md overflow-hidden border border-[var(--border)]">
+          <label className="text-[9px] text-[var(--muted)] block mb-1.5 font-mono uppercase">Modo</label>
+          <div className="flex">
             {(["2D", "3D"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex-1 px-3 py-1.5 text-[10px] font-mono font-semibold transition-colors ${
                   mode === m
-                    ? "bg-[var(--accent)] text-white"
-                    : "bg-[var(--card-bg)] text-[var(--muted)] hover:text-[var(--foreground)]"
+                    ? "bg-[var(--foreground)] text-[var(--background)]"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
                 }`}
+                style={{ borderBottom: mode === m ? 'none' : '1px solid var(--border)' }}
               >
                 {m}
               </button>
@@ -309,11 +309,12 @@ export default function OptimizationSurfaceTab({
 
         {/* Metric */}
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Métrica objetivo</label>
+          <label className="text-[9px] text-[var(--muted)] block mb-1.5 font-mono uppercase">Metrica</label>
           <select
             value={metric}
             onChange={(e) => setMetric(e.target.value)}
-            className="w-full px-2 py-1.5 text-xs border border-[var(--border)] rounded-md bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            className="w-full px-2 py-1.5 text-[11px] font-mono bg-transparent text-[var(--text-data)] focus:outline-none"
+            style={{ borderBottom: '1px solid var(--border)' }}
           >
             {METRIC_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -323,11 +324,12 @@ export default function OptimizationSurfaceTab({
 
         {/* Param X */}
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Eje X</label>
+          <label className="text-[9px] text-[var(--muted)] block mb-1.5 font-mono uppercase">Eje X</label>
           <select
             value={paramX}
             onChange={(e) => setParamX(e.target.value)}
-            className="w-full px-2 py-1.5 text-xs border border-[var(--border)] rounded-md bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            className="w-full px-2 py-1.5 text-[11px] font-mono bg-transparent text-[var(--text-data)] focus:outline-none"
+            style={{ borderBottom: '1px solid var(--border)' }}
           >
             {params.filter((p) => p.id !== paramY).map((p) => (
               <option key={p.id} value={p.id}>{p.label}</option>
@@ -337,11 +339,12 @@ export default function OptimizationSurfaceTab({
 
         {/* Param Y */}
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Eje Y</label>
+          <label className="text-[9px] text-[var(--muted)] block mb-1.5 font-mono uppercase">Eje Y</label>
           <select
             value={paramY}
             onChange={(e) => setParamY(e.target.value)}
-            className="w-full px-2 py-1.5 text-xs border border-[var(--border)] rounded-md bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            className="w-full px-2 py-1.5 text-[11px] font-mono bg-transparent text-[var(--text-data)] focus:outline-none"
+            style={{ borderBottom: '1px solid var(--border)' }}
           >
             {params.filter((p) => p.id !== paramX).map((p) => (
               <option key={p.id} value={p.id}>{p.label}</option>
@@ -351,11 +354,12 @@ export default function OptimizationSurfaceTab({
 
         {/* Grid steps */}
         <div>
-          <label className="text-xs text-[var(--muted)] block mb-1">Resolución</label>
+          <label className="text-[9px] text-[var(--muted)] block mb-1.5 font-mono uppercase">Resolución</label>
           <select
             value={gridSteps}
             onChange={(e) => setGridSteps(Number(e.target.value))}
-            className="w-full px-2 py-1.5 text-xs border border-[var(--border)] rounded-md bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            className="w-full px-2 py-1.5 text-[11px] font-mono bg-transparent text-[var(--text-data)] focus:outline-none"
+            style={{ borderBottom: '1px solid var(--border)' }}
           >
             {[5, 8, 10, 12, 15, 20].map((n) => (
               <option key={n} value={n}>{n}×{n} ({n*n} pts)</option>
@@ -368,16 +372,16 @@ export default function OptimizationSurfaceTab({
           <button
             onClick={handleRun}
             disabled={loading || !paramX || !paramY}
-            className="w-full px-4 py-1.5 text-xs font-medium rounded-md bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-50 transition-colors"
+            className="w-full px-4 py-1.5 text-[10px] font-mono font-semibold uppercase tracking-wider bg-[var(--foreground)] text-[var(--background)] hover:opacity-80 disabled:opacity-30 transition-all"
           >
-            {loading ? "Calculando..." : "Ejecutar"}
+            {loading ? "..." : "Ejecutar"}
           </button>
         </div>
       </div>
 
       {/* Range sliders */}
       {(paramX || paramY) && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-3 rounded-lg border border-[var(--border)] bg-[var(--sidebar-bg)]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {paramX && (
             <RangeSlider
               label={getParamById(paramX)?.label || "X"}
@@ -399,36 +403,36 @@ export default function OptimizationSurfaceTab({
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-md p-3">
-          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        <div className="py-2" style={{ borderTop: '1px solid rgba(239,68,68,0.3)' }}>
+          <p className="text-[11px] text-[var(--danger)] font-mono">{error}</p>
         </div>
       )}
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center h-64 border border-[var(--border)] rounded-lg bg-[var(--card-bg)] shadow-sm">
+        <div className="flex items-center justify-center h-64">
           <div className="text-center space-y-4 w-full max-w-xs px-6">
-            <svg className="animate-spin h-8 w-8 text-[var(--accent)] mx-auto" viewBox="0 0 24 24">
+            <svg className="animate-spin h-5 w-5 text-[var(--muted)] mx-auto" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <div className="space-y-3">
               <div className="flex justify-between items-end mb-1">
-                <p className="text-sm font-semibold text-[var(--foreground)]">
-                  Ejecutando optimización
+                <p className="text-[11px] font-mono text-[var(--text-data)]">
+                  optimizing...
                 </p>
-                <span className="text-xs font-mono text-[var(--accent)] font-bold">
+                <span className="text-[11px] font-mono text-[var(--foreground)] font-bold">
                   {progress}%
                 </span>
               </div>
-              <div className="h-2 w-full bg-[var(--sidebar-bg)] rounded-full overflow-hidden border border-[var(--border)]">
-                <div 
-                  className="h-full bg-[var(--accent)] transition-all duration-300 ease-out shadow-[0_0_10px_var(--accent)]"
+              <div className="h-[2px] w-full bg-[var(--border)] overflow-hidden">
+                <div
+                  className="h-full bg-[var(--foreground)] transition-all duration-300 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-[10px] text-[var(--muted)] uppercase tracking-wider">
-                Procesando {gridSteps * gridSteps} backtests...
+              <p className="text-[9px] text-[var(--muted)] uppercase tracking-wider font-mono">
+                {gridSteps * gridSteps} backtests
               </p>
             </div>
           </div>
@@ -437,9 +441,9 @@ export default function OptimizationSurfaceTab({
 
       {/* Results */}
       {result && plotData && !loading && (
-        <div className="flex gap-4 flex-col lg:flex-row">
+        <div className="flex gap-6 flex-col lg:flex-row">
           {/* Chart */}
-          <div className="lg:w-2/3 min-h-[500px] flex flex-col border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--card-bg)]">
+          <div className="lg:w-2/3 min-h-[500px] flex flex-col">
             <Plot
               data={plotData.data}
               layout={{
@@ -458,19 +462,19 @@ export default function OptimizationSurfaceTab({
           </div>
 
           {/* Analysis panel */}
-          <div className="lg:w-1/3 space-y-3">
+          <div className="lg:w-1/3 space-y-4">
             {/* Elapsed */}
-            <div className="text-xs text-[var(--muted)] text-right">
-              ⏱ {result.elapsed_seconds}s ({result.shape.reduce((a: number, b: number) => a * b, 1)} backtests)
+            <div className="text-[10px] text-[var(--muted)] text-right font-mono">
+              {result.elapsed_seconds}s / {result.shape.reduce((a: number, b: number) => a * b, 1)} runs
             </div>
 
             {/* Peak */}
             {pa?.peak && (
               <AnalysisCard
-                title="📈 Pico Máximo"
+                title="Peak"
                 isDarkMode={isDarkMode}
                 items={[
-                  { label: "Valor", value: fmt(pa.peak.value) },
+                  { label: "Value", value: fmt(pa.peak.value) },
                   ...Object.entries(pa.peak.coordinates).map(([k, v]) => ({
                     label: k,
                     value: fmt(v),
@@ -482,16 +486,16 @@ export default function OptimizationSurfaceTab({
             {/* Robust Plateau */}
             {pa?.robust_plateau && (
               <AnalysisCard
-                title="🏔️ Robust Plateau"
-                subtitle="Región de menor sensibilidad a cambios"
+                title="Robust Plateau"
+                subtitle="Lowest sensitivity region"
                 isDarkMode={isDarkMode}
                 items={[
-                  { label: "Media", value: fmt(pa.robust_plateau.mean_value) },
-                  { label: "Desv. Estándar", value: fmt(pa.robust_plateau.std_value) },
-                  { label: "Tamaño (celdas)", value: String(pa.robust_plateau.size) },
-                  { label: "Profit Factor", value: fmt(pa.robust_plateau.profit_factor) },
-                  { label: "DD/Return", value: fmt(pa.robust_plateau.return_dd) },
-                  { label: "Total Return %", value: fmt(pa.robust_plateau.total_return) },
+                  { label: "Mean", value: fmt(pa.robust_plateau.mean_value) },
+                  { label: "Std Dev", value: fmt(pa.robust_plateau.std_value) },
+                  { label: "Size", value: String(pa.robust_plateau.size) },
+                  { label: "PF", value: fmt(pa.robust_plateau.profit_factor) },
+                  { label: "DD/Ret", value: fmt(pa.robust_plateau.return_dd) },
+                  { label: "Return %", value: fmt(pa.robust_plateau.total_return) },
                 ]}
               />
             )}
@@ -499,17 +503,17 @@ export default function OptimizationSurfaceTab({
             {/* Local Stability */}
             {pa?.local_stability && (
               <AnalysisCard
-                title="🎯 Estabilidad Local"
-                subtitle="Máximo vecino-promediado (penaliza picos aislados)"
+                title="Local Stability"
+                subtitle="Neighbor-averaged maximum"
                 isDarkMode={isDarkMode}
                 items={[
-                  { label: "Valor", value: fmt(pa.local_stability.best_value) },
+                  { label: "Value", value: fmt(pa.local_stability.best_value) },
                   ...Object.entries(pa.local_stability.coordinates).map(([k, v]) => ({
                     label: k,
                     value: fmt(v),
                   })),
-                  { label: "Profit Factor", value: fmt(pa.local_stability.profit_factor) },
-                  { label: "DD/Return", value: fmt(pa.local_stability.return_dd) },
+                  { label: "PF", value: fmt(pa.local_stability.profit_factor) },
+                  { label: "DD/Ret", value: fmt(pa.local_stability.return_dd) },
                 ]}
               />
             )}
@@ -517,8 +521,8 @@ export default function OptimizationSurfaceTab({
             {/* Robust Center */}
             {pa?.robust_center && (
               <AnalysisCard
-                title="🎯 Centro Robusto"
-                subtitle="Centro geométrico de la meseta más estable"
+                title="Robust Center"
+                subtitle="Geometric center of stable plateau"
                 isDarkMode={isDarkMode}
                 items={[
                   ...Object.entries(pa.robust_center.coordinates).map(([k, v]) => ({
@@ -526,7 +530,7 @@ export default function OptimizationSurfaceTab({
                     value: fmt(v),
                   })),
                   {
-                    label: "Degradación vs Pico",
+                    label: "Degradation",
                     value: fmt(pa.robust_center.degradation_from_peak),
                     highlight: true,
                   },
@@ -540,20 +544,20 @@ export default function OptimizationSurfaceTab({
       {/* Empty state */}
       {loadingParams && (
         <div className="flex items-center justify-center h-40">
-          <p className="text-sm text-[var(--muted)] animate-pulse">
-            Detectando parámetros en la estrategia...
+          <p className="text-[11px] text-[var(--muted)] animate-pulse font-mono">
+            detecting parameters...
           </p>
         </div>
       )}
 
       {!result && !loading && !loadingParams && params.length > 0 && (
-        <div className="flex items-center justify-center h-40 border border-dashed border-[var(--border)] rounded-lg">
+        <div className="flex items-center justify-center h-40" style={{ borderTop: '1px dashed var(--border)' }}>
           <div className="text-center space-y-1">
-            <p className="text-sm text-[var(--muted)]">
-              Selecciona parámetros y ejecuta la optimización
+            <p className="text-[11px] text-[var(--muted)] font-mono">
+              Select parameters and run optimization
             </p>
-            <p className="text-xs text-[var(--muted)]">
-              {params.length} parámetros detectados en la estrategia
+            <p className="text-[9px] text-[var(--muted)] font-mono opacity-60">
+              {params.length} parameters detected
             </p>
           </div>
         </div>
@@ -561,8 +565,8 @@ export default function OptimizationSurfaceTab({
 
       {!loadingParams && params.length === 0 && (
         <div className="flex items-center justify-center h-40">
-          <p className="text-sm text-[var(--muted)]">
-            No se detectaron parámetros optimizables en la estrategia
+          <p className="text-[11px] text-[var(--muted)] font-mono">
+            No optimizable parameters detected
           </p>
         </div>
       )}
@@ -588,27 +592,29 @@ function RangeSlider({
   const step = param?.step || 1;
   return (
     <div>
-      <label className="text-xs text-[var(--muted)] block mb-1">{label}</label>
+      <label className="text-[9px] text-[var(--muted)] block mb-1.5 font-mono uppercase">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="number"
           value={value[0]}
           step={step}
           onChange={(e) => onChange([Number(e.target.value), value[1]])}
-          className="w-20 px-2 py-1 text-xs border border-[var(--border)] rounded bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          className="w-20 px-2 py-1 text-[11px] font-mono bg-transparent text-[var(--text-data)] focus:outline-none"
+          style={{ borderBottom: '1px solid var(--border)' }}
         />
-        <span className="text-xs text-[var(--muted)]">→</span>
+        <span className="text-[9px] text-[var(--muted)] font-mono">→</span>
         <input
           type="number"
           value={value[1]}
           step={step}
           onChange={(e) => onChange([value[0], Number(e.target.value)])}
-          className="w-20 px-2 py-1 text-xs border border-[var(--border)] rounded bg-[var(--card-bg)] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          className="w-20 px-2 py-1 text-[11px] font-mono bg-transparent text-[var(--text-data)] focus:outline-none"
+          style={{ borderBottom: '1px solid var(--border)' }}
         />
       </div>
       {param && (
-        <p className="text-[10px] text-[var(--muted)] mt-0.5">
-          Actual: {param.current_value} | Step: {step}
+        <p className="text-[9px] text-[var(--muted)] mt-1 font-mono opacity-50">
+          current: {param.current_value} | step: {step}
         </p>
       )}
     </div>
@@ -627,20 +633,20 @@ function AnalysisCard({
   isDarkMode?: boolean;
 }) {
   return (
-    <div className="p-1 space-y-2">
-      <p className="text-xs font-semibold text-[var(--foreground)] mb-0.5">{title}</p>
+    <div className="py-2" style={{ borderTop: '1px solid var(--border)' }}>
+      <p className="text-[10px] font-semibold text-[var(--foreground)] uppercase tracking-[0.1em] mb-0.5 font-mono">{title}</p>
       {subtitle && (
-        <p className="text-[10px] text-[var(--muted)] mb-2">{subtitle}</p>
+        <p className="text-[9px] text-[var(--muted)] mb-2 font-mono opacity-60">{subtitle}</p>
       )}
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {items.map((item, i) => (
-          <div key={i} className="flex justify-between items-center">
-            <span className="text-[11px] text-[var(--muted)]">{item.label}</span>
+          <div key={i} className="flex justify-between items-center py-0.5">
+            <span className="text-[10px] text-[var(--muted)] font-mono">{item.label}</span>
             <span
               className={`text-[11px] font-mono ${
                 item.highlight
-                  ? "text-amber-500 dark:text-amber-400 font-semibold"
-                  : "text-[var(--foreground)]"
+                  ? "text-amber-500 font-semibold"
+                  : "text-[var(--text-data)]"
               }`}
             >
               {item.value}

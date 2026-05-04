@@ -221,8 +221,7 @@ export default function Home() {
               {/* TOP ROW: Equity Curve (2/3) + Metrics (1/3) */}
               <div className="flex gap-4">
                 <div className="w-2/3">
-                  <div className="bg-[var(--card-bg)] rounded border border-[var(--border)] shadow-sm overflow-hidden">
-                    <EquityCurveTab
+                  <EquityCurveTab
                       globalEquity={result.global_equity}
                       globalDrawdown={result.global_drawdown}
                       trades={result.trades}
@@ -232,11 +231,15 @@ export default function Home() {
                       monthlyExpenses={backtestParamsRef.current.monthly_expenses as number | undefined}
                       isDarkMode={isDarkMode}
                     />
-                  </div>
                 </div>
-                <div className="w-1/3 flex flex-col gap-4">
+                <div className="w-1/3 flex flex-col">
                   <MetricsCard metrics={result.aggregate_metrics} vertical />
-                  <div className="flex-1" style={{ minHeight: 140 }}>
+                  
+                  <div className="flex-1 flex flex-col justify-center">
+                    <div className="w-full border-b border-dashed border-[var(--border)] opacity-60"></div>
+                  </div>
+                  
+                  <div className="h-[300px]">
                     <MaeScatterChart trades={result.trades} isDarkMode={isDarkMode} />
                   </div>
                 </div>

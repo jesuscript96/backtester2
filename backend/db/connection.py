@@ -53,7 +53,7 @@ def _create_connection() -> duckdb.DuckDBPyConnection:
 
         # --- Performance Tuning ---
         conn.execute("SET http_keep_alive=true;")
-        conn.execute("SET http_retries=10;")
+        conn.execute("SET http_retries=2;")
         conn.execute("SET s3_url_style='path';")
 
 

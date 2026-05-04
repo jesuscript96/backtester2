@@ -9,14 +9,16 @@ interface CalendarTabProps {
   isDarkMode?: boolean;
 }
 
-const WEEKDAY_LABELS = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
-
-function pnlColor(pnl: number, maxAbs: number): string {
+function pnlColor(pnl: number, maxAbs: number, isDarkMode: boolean): string {
   if (maxAbs === 0) return "transparent";
   const intensity = Math.min(Math.abs(pnl) / maxAbs, 1);
-  if (pnl > 0) return `rgba(16,185,129,${0.15 + intensity * 0.5})`;
-  if (pnl < 0) return `rgba(239,68,68,${0.15 + intensity * 0.5})`;
-  return "rgba(148,163,184,0.1)";
+  if (pnl > 0) return isDarkMode
+    ? `rgba(59,130,246,${0.12 + intensity * 0.4})`
+    : `rgba(16,185,129,${0.12 + intensity * 0.45})`;
+  if (pnl < 0) return isDarkMode
+    ? `rgba(226,232,240,${0.08 + intensity * 0.25})`
+    : `rgba(239,68,68,${0.12 + intensity * 0.45})`;
+  return "transparent";
 }
 
 export default function CalendarTab({ dayResults, trades, isDarkMode = false }: CalendarTabProps) {
@@ -43,7 +45,7 @@ export default function CalendarTab({ dayResults, trades, isDarkMode = false }: 
   }, [pnlByDate]);
 
   if (!dayResults.length) {
-    return <p className="text-sm text-[var(--muted)]">Sin resultados</p>;
+    return <p className="text-[11px] text-[var(--muted)] font-mono">Sin resultados</p>;
   }
 
   return (
@@ -65,13 +67,15 @@ export default function CalendarTab({ dayResults, trades, isDarkMode = false }: 
         }
 
         return (
-          <div key={monthStr} className="bg-[var(--card-bg)] rounded-lg border border-[var(--border)] p-3 shadow-sm transition-colors">
-            <h4 className="text-[11px] font-bold text-[var(--foreground)] mb-2 uppercase tracking-tight text-center border-b border-[var(--border)] pb-1">
-              {monthName}
-            </h4>
-            <div className="grid grid-cols-7 gap-1">
+          <div key={monthStr}>
+            <div className="pb-1.5 mb-2" style={{ borderBottom: '1px solid var(--border)' }}>
+              <span className="text-[11px] font-semibold text-[var(--foreground)] uppercase tracking-tight">
+                {monthName}
+              </span>
+            </div>
+            <div className="grid grid-cols-7 gap-[3px]">
               {["L", "M", "X", "J", "V", "S", "D"].map((l) => (
-                <div key={l} className="text-[9px] font-bold text-[var(--muted)] text-center mb-1">
+                <div key={l} className="text-[8px] font-bold text-[var(--muted)] text-center mb-0.5 font-mono">
                   {l}
                 </div>
               ))}
@@ -83,13 +87,13 @@ export default function CalendarTab({ dayResults, trades, isDarkMode = false }: 
                 return (
                   <div
                     key={day.date}
-                    className="aspect-square rounded-[3px] flex items-center justify-center text-[8px] border border-[var(--border)] flex-col leading-none transition-colors"
+                    className="aspect-square rounded-[2px] flex items-center justify-center text-[9px] flex-col leading-none transition-colors"
                     title={hasPnl ? `${day.date}: $${day.pnl?.toFixed(2)}` : day.date}
                     style={{
-                      backgroundColor: hasPnl ? pnlColor(day.pnl!, maxAbsPnl) : "transparent",
+                      backgroundColor: hasPnl ? pnlColor(day.pnl!, maxAbsPnl, isDarkMode) : "transparent",
                     }}
                   >
-                    <span className={`font-bold ${hasPnl ? "text-[var(--foreground)]" : "text-[var(--muted)] opacity-30"}`}>
+                    <span className={`font-mono font-semibold ${hasPnl ? "text-[var(--text-data)]" : "text-[var(--muted)] opacity-20"}`}>
                       {dayNum}
                     </span>
                   </div>

@@ -62,6 +62,15 @@ def run_backtest_endpoint(req: BacktestRequest):
     t0 = time.time()
     logger.info(f"BACKTEST START dataset={req.dataset_id} strategy={req.strategy_id}")
 
+    if req.dataset_id == "mock_dataset_1" and req.strategy_id == "mock_strat_1":
+        import json
+        logger.info("Returning mock backtest data")
+        try:
+            with open("mock_backtest.json", "r") as f:
+                return json.load(f)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Mock data not generated")
+
     strategy = get_strategy(req.strategy_id)
     if not strategy:
         raise HTTPException(status_code=404, detail="Strategy not found")
@@ -157,6 +166,35 @@ def run_backtest_endpoint(req: BacktestRequest):
 
 @router.get("/candles")
 def get_candles(dataset_id: str, ticker: str, date: str):
+    # Return synthetic candles for the mock dataset
+    if dataset_id == "mock_dataset_1":
+        import random, math
+        from datetime import datetime, timezone
+        random.seed(hash(f"{ticker}{date}") & 0xFFFFFF)
+        try:
+            base_dt = datetime.strptime(date, "%Y-%m-%d").replace(
+                hour=9, minute=30, tzinfo=timezone.utc
+            )
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid date format")
+        price = random.uniform(50, 300)
+        candles = []
+        for i in range(390):  # 9:30 → 16:00 ET, 1 min each
+            ts = int(base_dt.timestamp()) + i * 60
+            # simple random walk
+            change = random.gauss(0, 0.003) * price
+            open_ = round(price, 2)
+            close = round(max(price + change, 0.5), 2)
+            high = round(max(open_, close) * (1 + abs(random.gauss(0, 0.001))), 2)
+            low = round(min(open_, close) * (1 - abs(random.gauss(0, 0.001))), 2)
+            volume = random.randint(1000, 50000)
+            candles.append({
+                "time": ts, "open": open_, "high": high,
+                "low": low, "close": close, "volume": volume, "vwap": None,
+            })
+            price = close
+        return {"ticker": ticker, "date": date, "candles": candles}
+
     candles = fetch_day_candles(dataset_id, ticker, date)
     if not candles:
         raise HTTPException(status_code=404, detail="No candle data found")
