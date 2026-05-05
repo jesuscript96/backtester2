@@ -86,8 +86,10 @@ export default function ChartsTab({
   const gridColor = isDarkMode ? "#303033" : "#f0eeea";
   const tickColor = isDarkMode ? "#94a3b8" : "#a8a29e";
   const tooltipBg = isDarkMode ? "#303033" : "#fafaf7";
-  const barPositive = isDarkMode ? "#3b82f6" : "#10b981";
-  const barNegative = isDarkMode ? "#e2e8f0" : "#ef4444";
+  const barPositiveFill = isDarkMode ? "#3b82f6" : "#f1f5f9";
+  const barPositiveStroke = isDarkMode ? "transparent" : "#1c1917";
+  const barNegativeFill = isDarkMode ? "#e2e8f0" : "#18181a";
+  const barNegativeStroke = isDarkMode ? "transparent" : "transparent";
 
   const pnlDistribution = useMemo(() => {
     const pnlPctCoords = trades.map(t => t.return_pct).filter((v): v is number => v !== undefined && v !== null);
@@ -298,7 +300,7 @@ export default function ChartsTab({
                 />
                 <ReferenceLine y={0} stroke={tickColor} strokeWidth={0.5} />
                 <Bar dataKey="ev" radius={[1, 1, 0, 0]}>
-                  {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? barPositive : barNegative} fillOpacity={0.75} />)}
+                  {evByTime30Min.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? barPositiveFill : barNegativeFill} stroke={entry.ev >= 0 ? barPositiveStroke : barNegativeStroke} fillOpacity={isDarkMode ? 0.75 : 1} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -323,7 +325,7 @@ export default function ChartsTab({
                 />
                 <ReferenceLine y={0} stroke={tickColor} strokeWidth={0.5} />
                 <Bar dataKey="ev" radius={[1, 1, 0, 0]}>
-                  {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? barPositive : barNegative} fillOpacity={0.75} />)}
+                  {evByDay.map((entry, idx) => <Cell key={idx} fill={entry.ev >= 0 ? barPositiveFill : barNegativeFill} stroke={entry.ev >= 0 ? barPositiveStroke : barNegativeStroke} fillOpacity={isDarkMode ? 0.75 : 1} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -364,7 +366,7 @@ export default function ChartsTab({
                 <ReferenceLine x="0.00%" stroke={tickColor} strokeDasharray="3 3" strokeWidth={0.5} />
                 <Bar dataKey="value" radius={[1, 1, 0, 0]}>
                   {pnlDistribution.data.map((entry, index) => (
-                    <Cell key={index} fill={entry.num > 0 ? barPositive : entry.num < 0 ? barNegative : tickColor} fillOpacity={0.7} />
+                    <Cell key={index} fill={entry.num > 0 ? barPositiveFill : entry.num < 0 ? barNegativeFill : tickColor} stroke={entry.num > 0 ? barPositiveStroke : entry.num < 0 ? barNegativeStroke : 'transparent'} fillOpacity={isDarkMode ? 0.7 : 1} />
                   ))}
                 </Bar>
               </BarChart>
@@ -402,8 +404,8 @@ export default function ChartsTab({
                 <Tooltip
                   contentStyle={{ backgroundColor: tooltipBg, fontSize: '10px', border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
                 />
-                <Bar dataKey="winRuns" name="Wins" fill={barPositive} fillOpacity={0.7} radius={[1, 1, 0, 0]} />
-                <Bar dataKey="lossRuns" name="Losses" fill={barNegative} fillOpacity={0.7} radius={[1, 1, 0, 0]} />
+                <Bar dataKey="winRuns" name="Wins" fill={barPositiveFill} stroke={barPositiveStroke} fillOpacity={isDarkMode ? 0.7 : 1} radius={[1, 1, 0, 0]} />
+                <Bar dataKey="lossRuns" name="Losses" fill={barNegativeFill} stroke={barNegativeStroke} fillOpacity={isDarkMode ? 0.7 : 1} radius={[1, 1, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
