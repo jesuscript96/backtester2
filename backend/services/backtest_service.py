@@ -308,12 +308,13 @@ def run_backtest(
             risk_unit_dollar = risk_r
 
         trades_records = _enrich_trades(
-            raw_trades, timestamps, ticker, date, strategy_def, risk_unit_dollar
+            raw_trades, timestamps, ticker, date, strategy_def, risk_unit_dollar,
+            gap_pct=daily_stats.get("gap_pct"),
         )
 
         equity = _extract_equity_from_values(eq_vals, timestamps)
 
-        stats = _extract_day_stats_from_values(eq_vals, ticker, date, trades_records)
+        stats = _extract_day_stats_from_values(eq_vals, ticker, date, trades_records, daily_stats.get("gap_pct"))
 
         all_equity.append({"ticker": ticker, "date": date, "equity": equity})
         all_trades.extend(trades_records)
@@ -405,6 +406,7 @@ def _enrich_trades(
     date: str,
     strategy_def: dict,
     risk_unit_dollar: float,
+    gap_pct: float | None = None,
 ) -> list[dict]:
     if not raw_trades:
         return []
@@ -445,6 +447,7 @@ def _enrich_trades(
             "r_multiple": r_multiple,
             "entry_hour": entry_ts.hour,
             "entry_weekday": entry_ts.weekday(),
+            "gap_pct": float(gap_pct) if gap_pct is not None else None,
         })
     return result
 
@@ -573,6 +576,7 @@ def _extract_day_stats_from_values(
     ticker: str,
     date: str,
     trades_records: list[dict],
+    gap_pct: float | None = None
 ) -> dict:
     empty = {
         "ticker": ticker, "date": date,
@@ -580,6 +584,7 @@ def _extract_day_stats_from_values(
         "total_trades": 0, "profit_factor": 0, "sharpe_ratio": 0,
         "sortino_ratio": 0, "expectancy": 0, "best_trade_pct": 0,
         "worst_trade_pct": 0, "init_value": 0, "end_value": 0,
+        "gap_pct": float(gap_pct) if gap_pct is not None else None,
     }
     try:
         eq_arr = np.asarray(eq_vals, dtype=np.float64)
@@ -635,6 +640,7 @@ def _extract_day_stats_from_values(
         "worst_trade_pct": _safe_float(worst_trade),
         "init_value": _safe_float(start_val),
         "end_value": _safe_float(end_val),
+        "gap_pct": float(gap_pct) if gap_pct is not None else None,
     }
 
 

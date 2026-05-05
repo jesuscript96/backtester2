@@ -11,12 +11,15 @@ import {
   ResponsiveContainer,
   Cell,
   ReferenceLine,
+  ScatterChart,
+  Scatter,
 } from "recharts";
-import type { TradeRecord } from "@/lib/api";
+import type { TradeRecord, DayResult } from "@/lib/api";
 import RollingEVChart from "@/components/RollingEVChart";
 
 interface ChartsTabProps {
   trades: TradeRecord[];
+  dayResults: DayResult[];
   riskR?: number;
   isDarkMode?: boolean;
 }
@@ -73,7 +76,12 @@ function calculateEnhancedStats(arr: number[]) {
 }
 
 
-export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: ChartsTabProps) {
+export default function ChartsTab({
+  trades,
+  dayResults,
+  riskR = 100,
+  isDarkMode = false,
+}: ChartsTabProps) {
 
   const gridColor = isDarkMode ? "#303033" : "#f0eeea";
   const tickColor = isDarkMode ? "#94a3b8" : "#a8a29e";
@@ -220,6 +228,40 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
     });
   }, [trades]);
 
+  // --- Gap % vs PnL % scatter + linear regression ---
+  const { gapVsPnl, gapRegression, gapRegressionLine } = useMemo(() => {
+    const points: { x: number; y: number }[] = [];
+    for (const d of dayResults) {
+      if (d.gap_pct !== undefined && d.gap_pct !== null && d.total_return_pct !== undefined) {
+        points.push({ x: d.gap_pct, y: d.total_return_pct });
+      }
+    }
+    if (points.length < 2) return { gapVsPnl: points, gapRegression: null, gapRegressionLine: null };
+
+    // Linear regression
+    const n = points.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    for (const p of points) { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; }
+    const denom = n * sumXX - sumX * sumX;
+    if (denom === 0) return { gapVsPnl: points, gapRegression: null, gapRegressionLine: null };
+
+    const slope = (n * sumXY - sumX * sumY) / denom;
+    const intercept = (sumY - slope * sumX) / n;
+    const meanY = sumY / n;
+    let ssTot = 0, ssRes = 0;
+    for (const p of points) { ssTot += (p.y - meanY) ** 2; ssRes += (p.y - (slope * p.x + intercept)) ** 2; }
+    const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
+
+    const minX = Math.min(...points.map(p => p.x));
+    const maxX = Math.max(...points.map(p => p.x));
+    const lineData = [
+      { x: minX, y: slope * minX + intercept },
+      { x: maxX, y: slope * maxX + intercept },
+    ];
+
+    return { gapVsPnl: points, gapRegression: { r2, slope, intercept }, gapRegressionLine: lineData };
+  }, [trades]);
+
   if (!trades.length) {
     return <p className="text-sm text-[var(--muted)]">Sin trades para analizar</p>;
   }
@@ -290,7 +332,7 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
       </div>
 
       {/* ROW 2: Distributions side by side — no card wrappers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
         {/* PnL Distribution */}
         <div className="flex flex-col h-[280px]" style={{ borderRight: '1px solid var(--border)' }}>
           <div className="px-3 py-2">
@@ -331,7 +373,7 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
         </div>
 
         {/* Consecutive Runs */}
-        <div className="flex flex-col h-[280px]">
+        <div className="flex flex-col h-[280px]" style={{ borderRight: '1px solid var(--border)' }}>
           <div className="px-3 py-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
               Consecutive Runs
@@ -363,6 +405,74 @@ export default function ChartsTab({ trades, riskR = 100, isDarkMode = false }: C
                 <Bar dataKey="winRuns" name="Wins" fill={barPositive} fillOpacity={0.7} radius={[1, 1, 0, 0]} />
                 <Bar dataKey="lossRuns" name="Losses" fill={barNegative} fillOpacity={0.7} radius={[1, 1, 0, 0]} />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gap % vs PnL % Scatter */}
+        <div className="flex flex-col h-[280px]">
+          <div className="px-3 py-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em]">
+              Gap % vs PnL %
+            </span>
+            {gapRegression && (
+              <span className="text-[9px] font-mono text-[var(--muted)]">
+                R² = {(gapRegression.r2 * 100).toFixed(1)}%
+              </span>
+            )}
+          </div>
+          <div className="flex-1 px-1 pb-1 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 8, right: 8, left: -20, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                <XAxis
+                  type="number"
+                  dataKey="x"
+                  name="Gap %"
+                  tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }}
+                  tickFormatter={(v: number) => `${v.toFixed(0)}%`}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="number"
+                  dataKey="y"
+                  name="PnL %"
+                  tick={{ fontSize: 8, fill: tickColor, fontFamily: 'monospace' }}
+                  tickFormatter={(v: number) => `${v.toFixed(1)}%`}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  cursor={{ strokeDasharray: '3 3' }}
+                  contentStyle={{ backgroundColor: tooltipBg, fontSize: '10px', border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
+                  formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, name === 'x' ? 'Gap' : 'PnL']}
+                />
+                <ReferenceLine y={0} stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"} strokeWidth={1} />
+                <ReferenceLine x={0} stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"} strokeWidth={1} />
+                <Scatter
+                  name="Trades"
+                  data={gapVsPnl}
+                  shape={(props: { cx?: number; cy?: number }) => {
+                    if (!props.cx || !props.cy) return <></>;
+                    return <circle cx={props.cx} cy={props.cy} r={2} stroke={isDarkMode ? '#e2e8f0' : '#1c1917'} fill="transparent" strokeWidth={1} />;
+                  }}
+                  isAnimationActive={false}
+                />
+                {gapRegressionLine && (
+                  <Scatter
+                    data={gapRegressionLine}
+                    shape={() => <></>}
+                    line={{
+                      stroke: isDarkMode ? '#e2e8f0' : '#1c1917',
+                      strokeDasharray: '3 3',
+                      strokeWidth: 1.5
+                    }}
+                    tooltipType="none"
+                    isAnimationActive={false}
+                  />
+                )}
+              </ScatterChart>
             </ResponsiveContainer>
           </div>
         </div>

@@ -232,14 +232,29 @@ export default function Home() {
                       isDarkMode={isDarkMode}
                     />
                 </div>
-                <div className="w-1/3 flex flex-col">
+                <div className="w-1/3 flex flex-col px-1">
                   <MetricsCard metrics={result.aggregate_metrics} vertical />
                   
-                  <div className="flex-1 flex flex-col justify-center">
-                    <div className="w-full border-b border-dashed border-[var(--border)] opacity-60"></div>
+                  <div className="flex flex-col items-center justify-center gap-2 py-6 px-1">
+                    <button
+                      className="w-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] rounded
+                        bg-[var(--foreground)] text-[var(--background)]
+                        hover:opacity-80 transition-opacity cursor-pointer shadow-sm"
+                    >
+                      Guardar estrategia
+                    </button>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="w-3 h-3 rounded-sm border border-[var(--border)] accent-[var(--foreground)]"
+                      />
+                      <span className="text-[9px] text-[var(--muted)] font-mono">
+                        Enviar con configuración del What if
+                      </span>
+                    </label>
                   </div>
                   
-                  <div className="h-[300px]">
+                  <div className="h-[250px]">
                     <MaeScatterChart trades={result.trades} isDarkMode={isDarkMode} />
                   </div>
                 </div>

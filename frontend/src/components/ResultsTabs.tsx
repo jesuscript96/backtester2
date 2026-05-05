@@ -115,7 +115,7 @@ export default function ResultsTabs({
           </div>
         </div>
         <div style={{ display: activeTab === "charts" ? "block" : "none" }}>
-          <ChartsTab trades={result.trades} riskR={riskR} isDarkMode={isDarkMode} />
+          <ChartsTab trades={result.trades} dayResults={result.day_results} riskR={riskR} isDarkMode={isDarkMode} />
         </div>
         <div style={{ display: activeTab === "optimization" ? "block" : "none" }}>
           <OptimizationSurfaceTab

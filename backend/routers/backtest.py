@@ -63,11 +63,21 @@ def run_backtest_endpoint(req: BacktestRequest):
     logger.info(f"BACKTEST START dataset={req.dataset_id} strategy={req.strategy_id}")
 
     if req.dataset_id == "mock_dataset_1" and req.strategy_id == "mock_strat_1":
-        import json
+        import json, random
         logger.info("Returning mock backtest data")
         try:
             with open("mock_backtest.json", "r") as f:
-                return json.load(f)
+                data = json.load(f)
+            # Inject gap_pct for Gap vs PnL chart testing
+            random.seed(42)
+            gap_map = {}
+            for d in data.get("day_results", []):
+                gap = round(random.uniform(-15, 40), 2)
+                d["gap_pct"] = gap
+                gap_map[d["date"]] = gap
+            for t in data.get("trades", []):
+                t["gap_pct"] = gap_map.get(t.get("date"), round(random.uniform(-15, 40), 2))
+            return data
         except Exception as e:
             raise HTTPException(status_code=500, detail="Mock data not generated")
 

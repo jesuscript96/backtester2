@@ -75,6 +75,7 @@ export interface TradeRecord {
   r_multiple: number | null;
   entry_hour: number;
   entry_weekday: number;
+  gap_pct?: number | null;
 }
 
 export interface CandleData {
@@ -119,6 +120,7 @@ export interface DayResult {
   worst_trade_pct: number | null;
   init_value: number | null;
   end_value: number | null;
+  gap_pct?: number | null;
 }
 
 export interface AggregateMetrics {

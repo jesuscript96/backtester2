@@ -151,7 +151,7 @@ export default function MaeScatterChart({ trades, isDarkMode }: MaeScatterChartP
         return <div className="p-4 text-center text-[var(--muted)] text-[11px] font-mono">Sin datos</div>;
     }
 
-    const dotColor = "#f97316";
+    const dotColor = isDarkMode ? "#ffffff" : "#000000";
     const gridColor = isDarkMode ? "#303033" : "#f0eeea";
     const tickColor = isDarkMode ? "#94a3b8" : "#a8a29e";
 
