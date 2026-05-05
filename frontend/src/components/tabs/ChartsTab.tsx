@@ -446,7 +446,7 @@ export default function ChartsTab({
                 <Tooltip
                   cursor={{ strokeDasharray: '3 3' }}
                   contentStyle={{ backgroundColor: tooltipBg, fontSize: '10px', border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
-                  formatter={(value: any, name: string) => {
+                  formatter={(value: any, name: any) => {
                     const numValue = typeof value === 'number' ? value : Number(value);
                     return [`${numValue.toFixed(2)}%`, name === 'x' ? 'Gap' : 'PnL'];
                   }}
