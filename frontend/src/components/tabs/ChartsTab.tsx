@@ -232,7 +232,7 @@ export default function ChartsTab({
   const { gapVsPnl, gapRegression, gapRegressionLine } = useMemo(() => {
     const points: { x: number; y: number }[] = [];
     for (const d of dayResults) {
-      if (d.gap_pct !== undefined && d.gap_pct !== null && d.total_return_pct !== undefined) {
+      if (d.gap_pct !== undefined && d.gap_pct !== null && d.total_return_pct !== undefined && d.total_return_pct !== null) {
         points.push({ x: d.gap_pct, y: d.total_return_pct });
       }
     }
@@ -446,7 +446,10 @@ export default function ChartsTab({
                 <Tooltip
                   cursor={{ strokeDasharray: '3 3' }}
                   contentStyle={{ backgroundColor: tooltipBg, fontSize: '10px', border: '1px solid var(--border)', borderRadius: 2, fontFamily: 'monospace' }}
-                  formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, name === 'x' ? 'Gap' : 'PnL']}
+                  formatter={(value: any, name: string) => {
+                    const numValue = typeof value === 'number' ? value : Number(value);
+                    return [`${numValue.toFixed(2)}%`, name === 'x' ? 'Gap' : 'PnL'];
+                  }}
                 />
                 <ReferenceLine y={0} stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"} strokeWidth={1} />
                 <ReferenceLine x={0} stroke={isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"} strokeWidth={1} />
