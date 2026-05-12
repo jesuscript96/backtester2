@@ -2,7 +2,7 @@ import axios from "axios";
 
 /** Backend mounts routers at /api; accept env as origin only (e.g. Qlify/Hetzner URL without /api). */
 function apiBaseUrl(): string {
-  const fallback = "http://127.0.0.1:8000/api";
+  const fallback = "http://localhost:8001/api";
   const raw = process.env.NEXT_PUBLIC_API_URL;
   const s = (typeof raw === "string" && raw.trim() ? raw.trim() : fallback).replace(
     /\/+$/,
